@@ -1,0 +1,17 @@
+id=nnin
+label=NNIN/C Pseudopotential Virtual Vault (Cornell)
+families=nc us paw
+provenance=external
+generator=mixed
+engine=ld1
+upstream=https://nninc.cnf.cornell.edu/
+author=NNIN Computation project, Cornell
+reference=https://nninc.cnf.cornell.edu/
+license=see each entry
+summary=A search interface over pseudopotentials contributed from many generators, rather than a single curated table.
+notes=The vault is queried through a web form rather than served as a directory, so PseudoForge cannot address individual files. Download what you need and run 'pseudoforge import' -- validation, cutoff scan and reporting all work on imported files.
+available=Mixed provenance; each entry states its own generator and functional.
+xc_available=varies
+rel_available=varies
+families_note=mixed provenance
+formats=upf xml

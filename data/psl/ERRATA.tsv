@@ -1,0 +1,30 @@
+# ---------------------------------------------------------------------------
+# ERRATA.tsv -- corrections applied to upstream PSlibrary recipes.
+#
+# The recipe database is sliced verbatim out of the upstream .job files by
+# tools/extract_pslibrary.sh, and "verbatim" is the point: it is what lets us
+# say a deck is PSlibrary's and mean it.  A handful of upstream decks are
+# nevertheless wrong in a way that makes ld1.x produce an unusable file.  Those
+# are corrected here rather than by editing the extracted template, because an
+# edited template is silently destroyed the next time anyone re-runs the
+# extractor -- which is exactly what happened to the caesium recipe once
+# already, leaving a correction on disk that no test and no changelog knew
+# about.
+#
+# A row is only admissible when the upstream value is *impossible*, not merely
+# unusual, and the correction is the minimal edit that removes the
+# impossibility.  Anything that is a matter of taste stays as upstream wrote
+# it.  Every row records what was measured, so the claim can be rechecked.
+#
+# Columns (tab-separated):
+#   set        recipe set, as named by the extractor (us-low, paw-high, ...)
+#   element    element symbol
+#   tag        variant tag (spnl.1.0.0, ...)
+#   field      the input keyword corrected
+#   upstream   the exact upstream text
+#   corrected  the exact replacement text
+#   reason     why upstream cannot be right, and what was measured
+# ---------------------------------------------------------------------------
+#set	element	tag	field	upstream	corrected	reason
+us-low	Cs	spnl.1.0.0	config	[Xe] 4f14 6s1 6p0 5d0	[Xe] 4f-1 6s1 6p0 5d0	[Xe] is 54 electrons and does not contain 4f, which first fills at Z=58; [Xe] 4f14 therefore asks for 68 electrons in an atom with Z=55. ld1.x counts a core of 60 and reports z_valence = 55 - 60 = -5, writing a UPF that no code can use. Upstream writes 4f-1 -- ld1's marker for an unoccupied test channel -- for this same element in the high set. Measured with QE 7.6 ld1.x: upstream gives z_valence=-5.00, 47 SCF iterations and "error in KS equations"; corrected gives z_valence=9.00 (5s2 5p6 6s1), 27 iterations, no warning, AE-PS eigenvalue agreement within 1e-5 Ry and transferability "excellent". The 4f channel is unoccupied and absent from the pseudo-wavefunction list, so the corrected deck is bit-for-bit identical to dropping 4f entirely.
+paw-low	Cs	spnl.1.0.0	config	[Xe] 4f14 6s1 6p0 5d0	[Xe] 4f-1 6s1 6p0 5d0	[Xe] is 54 electrons and does not contain 4f, which first fills at Z=58; [Xe] 4f14 therefore asks for 68 electrons in an atom with Z=55. ld1.x counts a core of 60 and reports z_valence = 55 - 60 = -5, writing a UPF that no code can use. The PAW deck (lpaw=.true.) of the same recipe carries the identical config. Upstream writes 4f-1 -- ld1's marker for an unoccupied test channel -- for this same element in the high set. Measured with QE 7.6 ld1.x: upstream gives z_valence=-5.00, 47 SCF iterations and "error in KS equations"; corrected gives z_valence=9.00 (5s2 5p6 6s1), 27 iterations, no warning, AE-PS eigenvalue agreement within 1e-5 Ry and transferability "excellent". The 4f channel is unoccupied and absent from the pseudo-wavefunction list, so the corrected deck is bit-for-bit identical to dropping 4f entirely.

@@ -1,0 +1,17 @@
+id=pseudodojo
+label=PseudoDojo
+families=nc paw
+provenance=reproducible
+generator=oncvpsp / atompaw
+upstream=PseudoDojo
+author=van Setten, Giantomassi, Bousquet, Verstraete, Hamann, Gonze, Rignanese
+reference=http://www.pseudo-dojo.org/
+license=see PseudoDojo site
+summary=Systematically validated NC (ONCVPSP) and PAW (JTH/ATOMPAW) tables with published delta-gauge, ghost-state and phonon tests, in standard and stringent accuracy levels.
+notes=ONCVPSP (NC) and ATOMPAW (PAW). PseudoDojo publishes its ONCVPSP input files in its GitHub repository, one directory per functional and relativity, so PseudoForge fetches the deck for each element you ask for and runs it. Note that a v0.4 deck was tuned against the ONCVPSP build of its day; on a different build the diagnostics can differ, and PseudoForge reports that rather than hiding it.
+engine=oncvpsp
+available=Scalar-relativistic PBE, PBEsol and PW tables, ~63 elements each. The fully-relativistic table is PBE only and covers 18 elements (H-Xe); there is no fully-relativistic PBEsol or PW set, and no Tl in any table. Bundled in full.
+xc_available=pbe pbesol pw
+rel_available=scalar full
+families_note=NC; ~63 elements per functional
+formats=upf psp8 xml

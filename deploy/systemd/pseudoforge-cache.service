@@ -1,0 +1,15 @@
+[Unit]
+Description=PseudoForge conversion cache warm-up
+Documentation=https://pseudo.amirkhani.me/docs/how-to/deploy/
+After=pseudoforge-api.service
+
+[Service]
+Type=oneshot
+User=pseudoforge
+Group=pseudoforge
+WorkingDirectory=/opt/pseudoforge/server
+Environment=PF_BIN=/opt/pseudoforge/pseudoforge
+Environment=PF_VAR_DIR=/var/lib/pseudoforge
+ExecStart=/opt/pseudoforge/server/.venv/bin/python workers/warm_cache.py --top 40
+Nice=19
+IOSchedulingClass=idle

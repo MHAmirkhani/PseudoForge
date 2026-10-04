@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# PseudoForge -- multi-engine pseudopotential generator and validator
+#
+# Copyright (C) 2026 the PseudoForge authors
+# Distributed under the GNU General Public License v2 or later.
+#
+# The PSlibrary recipes shipped in data/psl are derived from PSlibrary 1.0.0
+# by Andrea Dal Corso (GPL-2.0-or-later); see docs/PROVENANCE.md.
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+# ---- locate ourselves, following symlinks ---------------------------------
+pf_self() {
+    local src=${BASH_SOURCE[0]} dir
+    while [ -L "$src" ]; do
+        dir=$(cd -P "$(dirname "$src")" && pwd)
+        src=$(readlink "$src")
+        case $src in /*) ;; *) src=$dir/$src ;; esac
+    done
+    cd -P "$(dirname "$src")" && pwd
+}
+
+PF_ROOT=$(pf_self)
+PF_LIB=$PF_ROOT/lib
+PF_DATA=${PF_DATA:-$PF_ROOT/data}
+export PF_ROOT PF_LIB PF_DATA
+
+# ---- load the library -----------------------------------------------------
+for _m in core sink config deps elements xc namelist profiles metadata formats gth sssp convert doctor params engines build recipe input_builder executor fetch project run upf testing validate plot report http optimise cli ui tui wizard; do
+    # shellcheck disable=SC1090
+    . "$PF_LIB/$_m.sh" || { echo "pseudoforge: cannot load $PF_LIB/$_m.sh" >&2; exit 1; }
+done
+unset _m
+
+deps_check_required || exit 1
+[ -d "$PF_DATA/psl" ] || die "recipe database missing at $PF_DATA/psl -- run tools/extract_pslibrary.sh"
+
+pf_config_load
+pf_elements_load
+pf_xc_load
+pf_profiles_load
+pf_engines_load
+pf_metadata_load
+pf_formats_load
+spec_init
+
+# ---- dispatch -------------------------------------------------------------
+cmd=${1:-}
+case $cmd in
+    oldtui)
+        shift; ui_main ;;
+    ''|tui|menu|wizard)
+        [ -n "$cmd" ] && shift
+        # --help / -h before the terminal check: help works in a script.
+        case "${1:-}" in -h|--help) cli_usage; exit 0 ;; esac
+        if [ -t 0 ] && [ -t 1 ] && deps_tui_backend >/dev/null; then
+            tui_main
+        elif [ -t 0 ] && [ -t 1 ]; then
+            # No whiptail/dialog: the wizard has a plain-text flow that asks the
+            # same questions.
+            wizard_main
+        else
+            deps_tui_backend >/dev/null || deps_tui_hint
+            [ -t 0 ] || info "not a terminal; use the command line interface"
+            cli_usage
+            exit 1
+        fi
+        ;;
+    generate|gen|make)
+        shift; cli_parse "$@"; cmd_generate ;;
+    wizard|w)
+        case "${2:-}" in -h|--help) cli_usage; exit 0 ;; esac
+        shift
+        [ -t 0 ] && [ -t 1 ] || die "the wizard needs an interactive terminal; use 'pseudoforge generate' instead"
+        if deps_tui_backend >/dev/null; then ui_init; ui_wizard; clear; else wizard_main; fi ;;
+    engines|engine)
+        shift; cmd_engines "$@" ;;
+    convert)
+        shift; cmd_convert "$@" ;;
+    optimise|optimize)
+        shift; cmd_optimise "$@" ;;
+    doctor|check|check-env)
+        shift; cmd_doctor "$@" ;;
+    compare|diff)
+        shift; cmd_compare "$@" ;;
+    citation|cite)
+        shift; cmd_citation "$@" ;;
+    params)
+        shift; cmd_params "$@" ;;
+    profile)
+        shift; cmd_profile "$@" ;;
+    xc|functional)
+        shift; cmd_xc "$@" ;;
+    # `check` was listed here and for doctor above; case takes the first
+    # match, so this one could never be reached. It stays doctor's.
+    validate)
+        shift; cmd_validate "$@" ;;
+    import)
+        shift; cmd_import "$@" ;;
+    report)
+        shift; cmd_report "$@" ;;
+    plot)
+        shift; cmd_plot "$@" ;;
+    api)
+        shift; cmd_api "$@" ;;
+    native)
+        shift; cmd_native "$@" ;;
+    recipe|inspect)
+        shift
+        # Two senses of "recipe": a saved run configuration (the subcommands
+        # below) and the ld1.x deck for one element (everything else, which is
+        # what this verb has always meant).  No element symbol is spelled like
+        # a subcommand, so the split is unambiguous.
+        case ${1:-} in
+            save|load|show|list|ls|delete|rm|export|import|path)
+                cmd_recipe_store "$@" ;;
+            *)
+                _el=${1:-}; [ $# -gt 0 ] && shift
+                cli_parse "$@"; cmd_recipe "$_el" ;;
+        esac ;;
+    list|ls)
+        shift; cmd_list "$@" ;;
+    show|info)
+        shift; cmd_show "$@" ;;
+    config)
+        shift; cmd_config "$@" ;;
+    version|--version|-V)
+        printf '%s %s -- %s
+' "$PSEUDOFORGE_NAME" "$PSEUDOFORGE_VERSION" "$PSEUDOFORGE_TAGLINE"
+        printf 'by %s  <%s>
+' "$PSEUDOFORGE_AUTHOR" "$PSEUDOFORGE_URL" ;;
+    help|--help|-h)
+        cli_usage ;;
+    -*)
+        # bare options mean "generate"
+        cli_parse "$@"; cmd_generate ;;
+    *)
+        die "unknown command '$cmd' -- try: pseudoforge help" ;;
+esac

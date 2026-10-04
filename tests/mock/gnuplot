@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# A stand-in for gnuplot.
+#
+# gnuplot cannot be installed on every machine the suite runs on, and the
+# thing worth testing here is not gnuplot's rendering -- that is gnuplot's
+# problem -- but whether PseudoForge hands it a script that says what it meant
+# to say, and whether the output file it promised actually appears.
+#
+# So this records the script it was given at $MOCK_GNUPLOT_LOG and writes a
+# real (tiny) PNG wherever the script's `set output` points, which is exactly
+# the contract plot_series_gnuplot checks.
+# ---------------------------------------------------------------------------
+set -u
+
+case ${1:-} in
+    --version) echo "gnuplot 5.4 patchlevel 0 (mock)"; exit 0 ;;
+esac
+
+script=${1:-}
+[ -f "$script" ] || { echo "mock gnuplot: no such script: $script" >&2; exit 1; }
+
+[ -n "${MOCK_GNUPLOT_LOG:-}" ] && cat "$script" >> "$MOCK_GNUPLOT_LOG"
+
+out=$(sed -n 's/^set output "\(.*\)"$/\1/p' "$script" | tail -1)
+[ -n "$out" ] || { echo "mock gnuplot: the script sets no output file" >&2; exit 1; }
+
+# Refuse a script that plots nothing, the way gnuplot would.
+grep -q '^plot ' "$script" || { echo "mock gnuplot: no plot command" >&2; exit 1; }
+
+# Every data file the script names must exist, or the plot would be empty.
+sed -n "s/.*'\\([^']*\\)' using.*/\\1/p" "$script" | sort -u | while IFS= read -r d; do
+    [ -f "$d" ] || { echo "mock gnuplot: no such data file: $d" >&2; exit 1; }
+done
+
+mkdir -p "$(dirname "$out")" 2>/dev/null
+# A 1x1 PNG: enough for "did a real image appear" without pretending to draw.
+printf '\211PNG\r\n\032\n\0\0\0\rIHDR\0\0\0\1\0\0\0\1\10\6\0\0\0\37\25\304\211\0\0\0\nIDATx\234c\370\17\0\1\1\1\0\30\335\215\260\0\0\0\0IEND\256B\140\202' > "$out"
+exit 0

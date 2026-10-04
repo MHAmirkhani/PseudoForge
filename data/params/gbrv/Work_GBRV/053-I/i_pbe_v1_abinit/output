@@ -1,0 +1,316 @@
+../../../Bin/runatom.x I_ae_ref.adat I_ae_ref.out I_ae_ref.ae I_ae_ref.atwf I_ae_ref.logd dummy
+beginning execution pseudopotential program version  7.3.6
+ beginning the all electron calculation
+completed self-consistent cycle   1 delta =  0.5550016D+01
+completed self-consistent cycle   2 delta =  0.3479370D+01
+completed self-consistent cycle   3 delta =  0.2611292D+01
+completed self-consistent cycle   4 delta =  0.2028419D+01
+completed self-consistent cycle   5 delta =  0.1604903D+01
+completed self-consistent cycle   6 delta =  0.1285450D+01
+completed self-consistent cycle   7 delta =  0.1038797D+01
+completed self-consistent cycle   8 delta =  0.8455809D+00
+completed self-consistent cycle   9 delta =  0.6925158D+00
+completed self-consistent cycle  10 delta =  0.5699002D+00
+completed self-consistent cycle  11 delta =  0.4713582D+00
+completed self-consistent cycle  12 delta =  0.3913002D+00
+completed self-consistent cycle  13 delta =  0.3496361D+00
+completed self-consistent cycle  14 delta =  0.3178482D+00
+completed self-consistent cycle  15 delta =  0.2886955D+00
+completed self-consistent cycle  16 delta =  0.2620117D+00
+completed self-consistent cycle  17 delta =  0.2375706D+00
+completed self-consistent cycle  18 delta =  0.2153071D+00
+completed self-consistent cycle  19 delta =  0.1949739D+00
+completed self-consistent cycle  20 delta =  0.1764723D+00
+completed self-consistent cycle  21 delta =  0.1596507D+00
+completed self-consistent cycle  22 delta =  0.1443502D+00
+completed self-consistent cycle  23 delta =  0.1304636D+00
+completed self-consistent cycle  24 delta =  0.1178839D+00
+completed self-consistent cycle  25 delta =  0.1064749D+00
+completed self-consistent cycle  26 delta =  0.9613660D-01
+completed self-consistent cycle  27 delta =  0.1837422D+00
+completed self-consistent cycle  28 delta =  0.1671701D+00
+completed self-consistent cycle  29 delta =  0.1519662D+00
+completed self-consistent cycle  30 delta =  0.1380454D+00
+completed self-consistent cycle  31 delta =  0.1253207D+00
+completed self-consistent cycle  32 delta =  0.1137063D+00
+completed self-consistent cycle  33 delta =  0.1031182D+00
+completed self-consistent cycle  34 delta =  0.9347625D-01
+completed self-consistent cycle  35 delta =  0.8470391D-01
+completed self-consistent cycle  36 delta =  0.7672921D-01
+completed self-consistent cycle  37 delta =  0.6948469D-01
+completed self-consistent cycle  38 delta =  0.6290756D-01
+completed self-consistent cycle  39 delta =  0.5693955D-01
+completed self-consistent cycle  40 delta =  0.5152683D-01
+completed self-consistent cycle  41 delta =  0.4661979D-01
+completed self-consistent cycle  42 delta =  0.4217285D-01
+completed self-consistent cycle  43 delta =  0.3814420D-01
+completed self-consistent cycle  44 delta =  0.3449557D-01
+completed self-consistent cycle  45 delta =  0.3119197D-01
+completed self-consistent cycle  46 delta =  0.2820149D-01
+completed self-consistent cycle  47 delta =  0.2549503D-01
+completed self-consistent cycle  48 delta =  0.2304606D-01
+completed self-consistent cycle  49 delta =  0.2083048D-01
+completed self-consistent cycle  50 delta =  0.1882636D-01
+completed self-consistent cycle  51 delta =  0.1701377D-01
+completed self-consistent cycle  52 delta =  0.1537462D-01
+completed self-consistent cycle  53 delta =  0.1389249D-01
+completed self-consistent cycle  54 delta =  0.1255247D-01
+completed self-consistent cycle  55 delta =  0.1134107D-01
+completed self-consistent cycle  56 delta =  0.1024604D-01
+completed self-consistent cycle  57 delta =  0.9256277D-02
+completed self-consistent cycle  58 delta =  0.8361739D-02
+completed self-consistent cycle  59 delta =  0.7553320D-02
+completed self-consistent cycle  60 delta =  0.6822778D-02
+completed self-consistent cycle  61 delta =  0.6162653D-02
+completed self-consistent cycle  62 delta =  0.5566192D-02
+completed self-consistent cycle  63 delta =  0.5027284D-02
+completed self-consistent cycle  64 delta =  0.4540402D-02
+completed self-consistent cycle  65 delta =  0.4100544D-02
+completed self-consistent cycle  66 delta =  0.3703186D-02
+completed self-consistent cycle  67 delta =  0.3344237D-02
+completed self-consistent cycle  68 delta =  0.3019999D-02
+completed self-consistent cycle  69 delta =  0.2727125D-02
+completed self-consistent cycle  70 delta =  0.2462592D-02
+completed self-consistent cycle  71 delta =  0.2223666D-02
+completed self-consistent cycle  72 delta =  0.2007874D-02
+completed self-consistent cycle  73 delta =  0.1812983D-02
+completed self-consistent cycle  74 delta =  0.1636975D-02
+completed self-consistent cycle  75 delta =  0.1478023D-02
+completed self-consistent cycle  76 delta =  0.1334479D-02
+completed self-consistent cycle  77 delta =  0.1204854D-02
+completed self-consistent cycle  78 delta =  0.1087800D-02
+completed self-consistent cycle  79 delta =  0.9821002D-03
+completed self-consistent cycle  80 delta =  0.8866564D-03
+completed self-consistent cycle  81 delta =  0.8004750D-03
+completed self-consistent cycle  82 delta =  0.7226590D-03
+completed self-consistent cycle  83 delta =  0.6523977D-03
+completed self-consistent cycle  84 delta =  0.5889589D-03
+completed self-consistent cycle  85 delta =  0.5316814D-03
+completed self-consistent cycle  86 delta =  0.4799676D-03
+completed self-consistent cycle  87 delta =  0.4332780D-03
+completed self-consistent cycle  88 delta =  0.3911252D-03
+completed self-consistent cycle  89 delta =  0.3530690D-03
+completed self-consistent cycle  90 delta =  0.3187118D-03
+completed self-consistent cycle  91 delta =  0.2876946D-03
+completed self-consistent cycle  92 delta =  0.2596931D-03
+completed self-consistent cycle  93 delta =  0.2344144D-03
+completed self-consistent cycle  94 delta =  0.2115942D-03
+completed self-consistent cycle  95 delta =  0.1909936D-03
+completed self-consistent cycle  96 delta =  0.1723969D-03
+completed self-consistent cycle  97 delta =  0.1556095D-03
+completed self-consistent cycle  98 delta =  0.1404556D-03
+completed self-consistent cycle  99 delta =  0.1267762D-03
+completed self-consistent cycle 100 delta =  0.1144281D-03
+completed self-consistent cycle 101 delta =  0.1032818D-03
+completed self-consistent cycle 102 delta =  0.9322053D-04
+completed self-consistent cycle 103 delta =  0.8413873D-04
+completed self-consistent cycle 104 delta =  0.7594113D-04
+completed self-consistent cycle 105 delta =  0.6854173D-04
+completed self-consistent cycle 106 delta =  0.6186284D-04
+completed self-consistent cycle 107 delta =  0.5583438D-04
+completed self-consistent cycle 108 delta =  0.5039304D-04
+completed self-consistent cycle 109 delta =  0.4548170D-04
+completed self-consistent cycle 110 delta =  0.4104876D-04
+completed self-consistent cycle 111 delta =  0.3704767D-04
+completed self-consistent cycle 112 delta =  0.3343637D-04
+completed self-consistent cycle 113 delta =  0.3017691D-04
+completed self-consistent cycle 114 delta =  0.2723505D-04
+completed self-consistent cycle 115 delta =  0.2457985D-04
+completed self-consistent cycle 116 delta =  0.2218340D-04
+completed self-consistent cycle 117 delta =  0.2002052D-04
+completed self-consistent cycle 118 delta =  0.1806840D-04
+completed self-consistent cycle 119 delta =  0.1630655D-04
+completed self-consistent cycle 120 delta =  0.1471660D-04
+completed self-consistent cycle 121 delta =  0.1328143D-04
+completed self-consistent cycle 122 delta =  0.1198618D-04
+completed self-consistent cycle 123 delta =  0.1086766D-04
+completed self-consistent cycle 124 delta =  0.9864004D-05
+completed self-consistent cycle 125 delta =  0.8952799D-05
+completed self-consistent cycle 126 delta =  0.8125551D-05
+completed self-consistent cycle 127 delta =  0.7374545D-05
+completed self-consistent cycle 128 delta =  0.6692771D-05
+completed self-consistent cycle 129 delta =  0.6073866D-05
+completed self-consistent cycle 130 delta =  0.5512044D-05
+completed self-consistent cycle 131 delta =  0.5002055D-05
+completed self-consistent cycle 132 delta =  0.4539131D-05
+completed self-consistent cycle 133 delta =  0.4118939D-05
+completed self-consistent cycle 134 delta =  0.3737544D-05
+completed self-consistent cycle 135 delta =  0.3391375D-05
+completed self-consistent cycle 136 delta =  0.3077185D-05
+completed self-consistent cycle 137 delta =  0.2792031D-05
+completed self-consistent cycle 138 delta =  0.2533233D-05
+completed self-consistent cycle 139 delta =  0.2298364D-05
+completed self-consistent cycle 140 delta =  0.2085215D-05
+completed self-consistent cycle 141 delta =  0.1891783D-05
+completed self-consistent cycle 142 delta =  0.1716986D-05
+completed self-consistent cycle 143 delta =  0.1558684D-05
+completed self-consistent cycle 144 delta =  0.1414938D-05
+completed self-consistent cycle 145 delta =  0.1284414D-05
+completed self-consistent cycle 146 delta =  0.1165898D-05
+completed self-consistent cycle 147 delta =  0.1058288D-05
+completed self-consistent cycle 148 delta =  0.9605860D-06
+completed self-consistent cycle 149 delta =  0.8718803D-06
+completed self-consistent cycle 150 delta =  0.7913446D-06
+completed self-consistent cycle 151 delta =  0.7182279D-06
+completed self-consistent cycle 152 delta =  0.6518494D-06
+completed self-consistent cycle 153 delta =  0.5915912D-06
+completed self-consistent cycle 154 delta =  0.5368901D-06
+completed self-consistent cycle 155 delta =  0.4872321D-06
+completed self-consistent cycle 156 delta =  0.4421565D-06
+completed self-consistent cycle 157 delta =  0.4012402D-06
+completed self-consistent cycle 158 delta =  0.3641022D-06
+completed self-consistent cycle 159 delta =  0.3303924D-06
+completed self-consistent cycle 160 delta =  0.2997967D-06
+completed self-consistent cycle 161 delta =  0.2720271D-06
+completed self-consistent cycle 162 delta =  0.2468237D-06
+completed self-consistent cycle 163 delta =  0.2239506D-06
+completed self-consistent cycle 164 delta =  0.2031899D-06
+completed self-consistent cycle 165 delta =  0.1843520D-06
+completed self-consistent cycle 166 delta =  0.1672562D-06
+completed self-consistent cycle 167 delta =  0.1517414D-06
+completed self-consistent cycle 168 delta =  0.1376626D-06
+completed self-consistent cycle 169 delta =  0.1248878D-06
+completed self-consistent cycle 170 delta =  0.1132952D-06
+completed self-consistent cycle 171 delta =  0.1027745D-06
+completed self-consistent cycle 172 delta =  0.9323198D-07
+completed self-consistent cycle 173 delta =  0.8457129D-07
+completed self-consistent cycle 174 delta =  0.7671422D-07
+completed self-consistent cycle 175 delta =  0.6958623D-07
+completed self-consistent cycle 176 delta =  0.6311856D-07
+completed self-consistent cycle 177 delta =  0.5725130D-07
+completed self-consistent cycle 178 delta =  0.5192689D-07
+completed self-consistent cycle 179 delta =  0.4710214D-07
+completed self-consistent cycle 180 delta =  0.4274515D-07
+completed self-consistent cycle 181 delta =  0.3879200D-07
+completed self-consistent cycle 182 delta =  0.3520339D-07
+completed self-consistent cycle 183 delta =  0.3194528D-07
+completed self-consistent cycle 184 delta =  0.2898777D-07
+completed self-consistent cycle 185 delta =  0.2630480D-07
+completed self-consistent cycle 186 delta =  0.2386917D-07
+completed self-consistent cycle 187 delta =  0.2165930D-07
+completed self-consistent cycle 188 delta =  0.1965216D-07
+completed self-consistent cycle 189 delta =  0.1783224D-07
+completed self-consistent cycle 190 delta =  0.1617977D-07
+completed self-consistent cycle 191 delta =  0.1467907D-07
+completed self-consistent cycle 192 delta =  0.1331794D-07
+completed self-consistent cycle 193 delta =  0.1208349D-07
+completed self-consistent cycle 194 delta =  0.1096328D-07
+completed self-consistent cycle 195 delta =  0.9945561D-08
+completed self-consistent cycle 196 delta =  0.9022787D-08
+completed self-consistent cycle 197 delta =  0.7958704D-08
+completed self-consistent cycle 198 delta =  0.7466024D-08
+completed self-consistent cycle 199 delta =  0.6580825D-08
+completed self-consistent cycle 200 delta =  0.6173025D-08
+completed self-consistent cycle 201 delta =  0.5435407D-08
+completed self-consistent cycle 202 delta =  0.5099629D-08
+completed self-consistent cycle 203 delta =  0.4486735D-08
+completed self-consistent cycle 204 delta =  0.3978735D-08
+completed self-consistent cycle 205 delta =  0.3879439D-08
+completed self-consistent cycle 206 delta =  0.3386796D-08
+completed self-consistent cycle 207 delta =  0.2978872D-08
+completed self-consistent cycle 208 delta =  0.2958062D-08
+completed self-consistent cycle 209 delta =  0.2548084D-08
+completed self-consistent cycle 210 delta =  0.2235740D-08
+completed self-consistent cycle 211 delta =  0.1991034D-08
+completed self-consistent cycle 212 delta =  0.1788821D-08
+completed self-consistent cycle 213 delta =  0.1953799D-08
+completed self-consistent cycle 214 delta =  0.1648290D-08
+completed self-consistent cycle 215 delta =  0.1406284D-08
+completed self-consistent cycle 216 delta =  0.1239120D-08
+completed self-consistent cycle 217 delta =  0.1103705D-08
+completed self-consistent cycle 218 delta =  0.9927277D-09
+ all electron calculation completed
+../../../Bin/runatom.x I_ps.adat I_ps.out I_ae_ref.ae I_ps.atwf I_ps.logd I_ps.uspp
+beginning execution pseudopotential program version  7.3.6
+ beginning the all electron calculation
+completed self-consistent cycle   1 delta =  0.1974613D-07
+completed self-consistent cycle   2 delta =  0.1579686D-07
+completed self-consistent cycle   3 delta =  0.1263756D-07
+completed self-consistent cycle   4 delta =  0.1010999D-07
+completed self-consistent cycle   5 delta =  0.8087980D-08
+completed self-consistent cycle   6 delta =  0.6470385D-08
+completed self-consistent cycle   7 delta =  0.5176266D-08
+completed self-consistent cycle   8 delta =  0.4141084D-08
+completed self-consistent cycle   9 delta =  0.3312825D-08
+completed self-consistent cycle  10 delta =  0.2650218D-08
+completed self-consistent cycle  11 delta =  0.2120288D-08
+completed self-consistent cycle  12 delta =  0.1696174D-08
+completed self-consistent cycle  13 delta =  0.1356939D-08
+completed self-consistent cycle  14 delta =  0.1085551D-08
+completed self-consistent cycle  15 delta =  0.8684554D-09
+ all electron calculation completed
+> USpp->Abinit translator: first call
+ constructing ibeta =           1
+ constructing ibeta =           2
+ constructing ibeta =           3
+ constructing ibeta =           4
+ constructing ibeta =           5
+ constructing ibeta =           6
+ construction of qqq and ddd complete
+ pseudizing qfuncs for beta= 1
+ pseudizing qfuncs for beta= 2
+ pseudizing qfuncs for beta= 3
+ pseudizing qfuncs for beta= 4
+ pseudizing qfuncs for beta= 5
+ pseudizing qfuncs for beta= 6
+ qfunc pseudized
+> USpp->Abinit translator: second call
+> USpp->Abinit translator COMMENT:
+  - Orthogonalization of projectors
+    as been canceled...
+ transformation of q and d complete
+ transformation of qfunc complete
+ transformation of qfcoef complete
+> USpp->Abinit translator: third call
+ fourier transforming the qfunctions
+> USpp->Abinit translator: fourth call
+ fourier transforming the core charge
+ solving the schroedinger equation
+ descreening the potential
+ writing the pseudopotential to file
+> USpp->Abinit translator: fifth call
+
+> USpp->Abinit translator: launching translation utility
+
+========================================================
+==   uspp2abinit - v2.4.0:                            ==
+==   Use D. Vanderbilt ultrasoft psp generator (uspp) ==
+==   to produce a PAW atomic data file readable       ==
+==   by Abinit (v5.4.3+)                              ==
+========================================================
+
+> USpp->Abinit translator INFO: file uspp2abinit.dat does not exists.
+
+> USpp->Abinit translator COMMENT:
+   No Real Space optimization will be done.
+
+> USpp->Abinit translator INFO:
+  Intg[n-tn-nhat]=-0.2E-03 (inside sph.),  0.1E-14 (whole space)
+
+> USpp->Abinit translator INFO:
+  Mesh size for valence density has been adjusted to  786
+
+> USpp->Abinit translator COMMENT:
+  Use "Bessel" shape function with
+  compensation charge radius= 2.471
+
+> USpp->Abinit translator INFO:
+  Mesh size for core density has been adjusted to  749
+  in order to get Zcore lower than given precision ( 0.10E-06).
+
+> USpp->Abinit translator INFO:
+  At r_vloc= 9.77 a.u., VHartree(ntild(Zv+Zc))= -Zv/r + -3.3771E-06
+  This quantity must be as small as possible.
+
+> PAW atomic data file successfully created.
+
+> USPP2Abinit converter ended.
+
+ fourier analysing pseudowavefunctions
+ computing the logarithmic derivatives
+ beginning search for possible ghost states
+ eigensolution in bessel basis with cutoff 30.00
+ eigensolution in bessel basis with cutoff 35.00
+ eigensolution in bessel basis with cutoff 40.00
+ eigensolution in bessel basis with cutoff 45.00
+ eigensolution in bessel basis with cutoff 50.00

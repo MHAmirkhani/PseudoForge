@@ -1,0 +1,12 @@
+id=pseudoforge-auto
+label=PseudoForge auto
+families=paw us nc
+provenance=derived
+generator=ld1
+summary=A recipe PseudoForge builds from the element's ground-state configuration, semicore choice and a cut-off radius heuristic, for elements or settings no shipped library covers.
+notes=This is PseudoForge's own construction, not a reproduction of any published library. It is a starting point that must be validated (transferability + cutoff scan are enabled by default for this profile), not a drop-in replacement for a curated set.
+engine=ld1
+xc_available=pz pw vwn pbe pbesol pw91 bp blyp revpbe wc
+rel_available=scalar full
+families_note=whatever the source recipe supports
+formats=upf xml

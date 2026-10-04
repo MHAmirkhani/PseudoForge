@@ -1,0 +1,46 @@
+# PseudoForge engine manifest
+# ---------------------------------------------------------------------------
+# Where each generator engine comes from, and which version PseudoForge builds.
+#
+# This file exists so that updating an engine is a one-line edit rather than a
+# code change.  Bump the version and the URL, drop the old sha256 in, and the
+# next `pseudoforge engines build` picks it up.  Nothing else in the tool
+# hard-codes an engine version.
+#
+# Sources are NOT vendored into this repository.  Three reasons:
+#   - they are large (ONCVPSP alone is 5.7 MB, GBRV's tree 13 MB) and would
+#     dominate a repository whose own code is a few hundred kilobytes
+#   - upstream keeps releasing, and a vendored copy silently goes stale
+#   - their licences differ from PseudoForge's, and shipping them would mean
+#     shipping and tracking each of those obligations
+#
+# Instead the archive is downloaded once, verified against the checksum below,
+# cached under ~/.pseudoforge/engines/build, and compiled.  A user who prefers
+# to supply their own copy can drop the archive beside the pseudoforge script,
+# or point <ENGINE>_SRC_DIR at an unpacked tree; both are checked before any
+# download happens.
+#
+# Columns, tab-separated:
+#   id  version  url  sha256  archive-name
+#
+# ld1 is absent on purpose: it ships inside Quantum ESPRESSO, so its version
+# is QE's and is probed from the binary rather than pinned here.
+# libxc and gsl are libraries rather than engines, but they are built the
+# same way and their versions belong in the same place.
+#
+# A sha256 of "-" means "not pinned": the download is still verified to be a
+# readable archive of the expected type, but not against a known digest.  Pin
+# it when you have verified a release yourself -- that is what turns a download
+# into something reproducible.
+# ---------------------------------------------------------------------------
+
+oncvpsp	4.0.1	https://github.com/oncvpsp/oncvpsp/archive/refs/heads/master.zip	-	oncvpsp-master.zip
+uspp	7.3.4	https://www.physics.rutgers.edu/~dhv/uspp/uspp-736.tgz	-	uspp-734-3.tgz
+fhi98pp	1.0	https://th.fhi-berlin.mpg.de/th/fhi98md/fhi98PP/	-	fhi98PP.zip
+opium	4.1.0	https://github.com/rappegroup/opium/archive/refs/tags/v4.1.0.tar.gz	-	opium-4.1.0.tar.gz
+gth	2.2	https://github.com/cp2k/cp2k-data	-	cp2k-data.tar.gz
+atompaw	4.2.0.6-git914acde	https://github.com/atompaw/atompaw	-	atompaw.tar.gz
+ape	2.4.0-git5b95184	https://gitlab.com/ape/ape	-	ape.tar.gz
+libxc	7.1.2	https://gitlab.com/libxc/libxc	-	libxc.tar.gz
+gsl	2.7.1	https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz	-	gsl-2.7.1.tar.gz
+adpack	2.2-pseudoforge1	http://www.openmx-square.org/adpack/adpack.html	-	adpack2.2.tar.gz

@@ -1,0 +1,139 @@
+cff-version: 1.2.0
+title: "PseudoForge: a multi-engine pseudopotential generator and validator"
+message: >-
+  If you use PseudoForge in work you publish, please cite it. Please also cite
+  the atomic code that actually produced your pseudopotentials and the library
+  whose parameters were used — PseudoForge drives other people's generators and
+  reproduces other people's libraries, and those are the scientific
+  contributions behind any file it writes. Running `pseudoforge --attribution`
+  prints the citations for the engines and libraries a given run touched, and
+  every run writes CITATION.txt beside its output.
+type: software
+authors:
+  - given-names: "Mohammad H."
+    family-names: Amirkhani
+    email: mohammadhossienamirkhani@gmail.com
+    website: "https://amirkhani.me"
+repository-code: "https://github.com/MHAmirkhani/pseudoforge"
+url: "https://amirkhani.me"
+abstract: >-
+  PseudoForge generates and validates pseudopotentials by driving nine
+  independent atomic structure codes — Quantum ESPRESSO's ld1, ONCVPSP, the
+  Vanderbilt ultrasoft generator, fhi98PP, OPIUM, the Goedecker-Teter-Hutter
+  fitting toolchain, AtomPAW and the Atomic Pseudopotential Engine — through a
+  single interface, in pure Bash with no Python dependency.
+
+  It reproduces published libraries from those libraries' own published
+  parameters rather than approximating them: PSlibrary is reproduced
+  byte-identically, and the GTH coefficient tables are reproduced exactly for
+  all 322 published element-functional combinations. Where a library's
+  parameters are not published, PseudoForge says so and labels its own
+  construction as such rather than issuing it under the library's name.
+
+  Validation asks each engine for its own analysis rather than forcing one
+  engine's test on all of them, and records which analysis produced each
+  verdict. Every run writes a provenance file recording the engine version and
+  a fingerprint of the binary that ran, because two builds of the same engine
+  version do not produce the same pseudopotential.
+keywords:
+  - pseudopotential
+  - density functional theory
+  - electronic structure
+  - Quantum ESPRESSO
+  - PAW
+  - norm-conserving
+  - ultrasoft
+license: GPL-2.0-or-later
+version: 1.3.0
+# Provenance of the DOIs below: the ONCVPSP, Vanderbilt, GTH, HGH and both
+# SSSP entries are the ones already recorded and checked in lib/metadata.sh.
+# The PAW, Troullier-Martins and Rappe entries were taken from the reference
+# list supplied by the author, which gave these DOIs explicitly.
+references:
+  - type: article
+    title: "Optimized norm-conserving Vanderbilt pseudopotentials"
+    authors:
+      - family-names: Hamann
+        given-names: "D. R."
+    doi: 10.1103/PhysRevB.88.085117
+    notes: "ONCVPSP, the engine behind the SG15 and PseudoDojo norm-conserving tables."
+  - type: article
+    title: "Soft self-consistent pseudopotentials in a generalized eigenvalue formalism"
+    authors:
+      - family-names: Vanderbilt
+        given-names: "D."
+    doi: 10.1103/PhysRevB.41.7892
+    notes: "The ultrasoft formalism and the generator behind the GBRV library."
+  - type: article
+    title: "Separable dual-space Gaussian pseudopotentials"
+    authors:
+      - family-names: Goedecker
+        given-names: "S."
+      - family-names: Teter
+        given-names: "M."
+      - family-names: Hutter
+        given-names: "J."
+    doi: 10.1103/PhysRevB.54.1703
+    notes: "GTH."
+  - type: article
+    title: "Relativistic separable dual-space Gaussian pseudopotentials from H to Rn"
+    authors:
+      - family-names: Hartwigsen
+        given-names: "C."
+      - family-names: Goedecker
+        given-names: "S."
+      - family-names: Hutter
+        given-names: "J."
+    doi: 10.1103/PhysRevB.58.3641
+    notes: "HGH, the relativistic extension of GTH."
+  - type: article
+    title: "Projector augmented-wave method"
+    authors:
+      - family-names: "Blöchl"
+        given-names: "P. E."
+    doi: 10.1103/PhysRevB.50.17953
+    notes: "The PAW method, implemented by AtomPAW and by ld1."
+  - type: article
+    title: "Efficient pseudopotentials for plane-wave calculations"
+    authors:
+      - family-names: Troullier
+        given-names: "N."
+      - family-names: Martins
+        given-names: "J. L."
+    doi: 10.1103/PhysRevB.43.1993
+    notes: "The Troullier-Martins scheme, used by several engines here."
+  - type: article
+    title: "Optimized pseudopotentials"
+    authors:
+      - family-names: Rappe
+        given-names: "A. M."
+      - family-names: Rabe
+        given-names: "K. M."
+      - family-names: Kaxiras
+        given-names: "E."
+      - family-names: Joannopoulos
+        given-names: "J. D."
+    doi: 10.1103/PhysRevB.41.1227
+    notes: "The optimized scheme behind OPIUM."
+  - type: article
+    title: >-
+      Precision and efficiency in solid-state pseudopotential calculations
+    authors:
+      - family-names: Prandini
+        given-names: "G."
+      - family-names: Marrazzo
+        given-names: "A."
+      - family-names: Castelli
+        given-names: "I. E."
+      - family-names: Mounet
+        given-names: "N."
+      - family-names: Marzari
+        given-names: "N."
+    doi: 10.1038/s41524-018-0127-2
+    notes: "SSSP, the verification protocol and selection PseudoForge resolves."
+  - type: data
+    title: >-
+      A Standard Solid State Pseudopotentials (SSSP) library optimized for
+      precision and efficiency
+    doi: 10.24435/materialscloud:f3-ym
+    notes: "The SSSP selection tables bundled with PseudoForge (version 1.3.0)."

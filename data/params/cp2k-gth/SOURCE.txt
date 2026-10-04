@@ -1,0 +1,18 @@
+Goedecker-Teter-Hutter (GTH) pseudopotential coefficient tables
+===============================================================
+
+Redistributed verbatim from the CP2K data repository so PseudoForge can offer
+them offline.  Not PseudoForge's work; PseudoForge's licence does not apply.
+
+  source : https://github.com/cp2k/cp2k-data/tree/master/potentials/Goedecker
+  terms  : see the CP2K distribution
+  cite   : S. Goedecker, M. Teter, J. Hutter, Phys. Rev. B 54, 1703 (1996);
+           C. Hartwigsen, S. Goedecker, J. Hutter, Phys. Rev. B 58, 3641 (1998)
+
+These are analytic fit coefficients, not generator output -- there is no atomic
+code input to reproduce.  CP2K, ABINIT and BigDFT read this format directly.
+Quantum ESPRESSO does not: its own upfconv.x lists .gth as "DOES NOT WORK".
+
+CP2K also publishes the fitting codes and per-element inputs under
+potentials/Goedecker/{atom,pseudo,build}, so a future PseudoForge engine could
+generate these rather than only ship them.

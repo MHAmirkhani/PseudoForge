@@ -1,0 +1,30 @@
+*** UPDATE April 2020 *** 
+The zipped tarball archives and AiiDA export files had inconsistent internal formats and naming conventions, which made it difficult to work with them programmatically. In this update, the files are standardized according to the conventions that are detailed in the README.md file. Note that the actual content of pseudo potential files and the JSON metadata files has **not** changed, with the exception that the keys "cutoff" and "dual" in the JSON files have been replaced with "cutoff_wfc" and "cutoff_rho". Here the value of "cutoff_wfc" is equal to the old "cutoff", and "cutoff_rho" is equal to the product of the old "cutoff" and "dual". Besides that, the update concerns merely the renaming of certain files and the restructuring of archive formats.
+
+*** UPDATE November 2020 *** 
+The AiiDA export files contained in the sssp.tar archive have been modified and migrated to version format 0.9 in order to be imported in AiiDA 1.2.0 and later versions. The modifications are detailed in the README.md file in the sssp.tar archive.
+The AiiDA export files contained in the sssp_bands.tar archive have been migrated to version format 0.9 as well.
+
+*** UPDATE April 2021 - Version 1.1.1 ***
+The PBEsol pseudopotential files contained unescaped "&" characters. In this update, the files concerned have been fixed escaping the "&" characters contained in PP_INPUTFILE blocks.
+
+*** UPDATE May 2021 - Version 1.1.2 ***
+For compatibility issues, the mesh_size in the header of the pseudopotential files has been changed to be the same as the mesh value. These issues affected the pseudopotential files for the lanthanides.
+Note that, starting from this version, for each minor version only the files of the corresponding latest patch version are provided. The files of the previous patch versions (i.e. 1.1, 1.1.1) can be retrieved from the previous versions of this record.
+Note also that the AiiDA export archives of the different SSSP configurations are not provided any more. In order to use the SSSP configurations in AiiDA, it is recommended instead to install them through the aiida-pseudo package (https://aiida-pseudo.readthedocs.io/en/latest/).
+
+*** UPDATE Nov 2022 - Version 1.2 *** 
+The PBE pseudopotentials for the Lanthanides (precision and efficiency) are regenerated with ATOMPAW-4.2.0.2. This 1) provides orbital labels for all the pseudo-wavefunctions (required by +U calculations), and 2) alleviates convergence issues related to negative pseudo-charge densities in ultrasoft/PAW potentials (La/Ce pseudopotentials are generated with adapted inputs courtesy of Simon Pintarelli (https://github.com/simonpintarelli/mineralscloud_paw_rccore)).
+In the SSSP precision PBE library, the choices for 14 pseudopotentials (Na, Cu, Cs, Ca, Ba, As, Te, I, Hg, Ne, Ar, Kr, Xe, Rn) are updated after taking into consideration the equation-of-state results for oxides (X2O, X2O3, X2O5, XO, XO2, XO3) and uninaries (BCC, FCC, SC, Diamond) compared to the all-electron solution from WIEN2K. 
+The SSSP efficiency and SSSP precision pseudopotentials for Cu both are replaced by the pseudopotential from the pslibrary 1.0.0 low acc as proposed in v1.2.0 beta.
+The SSSP precision pseudopotential for Ba is replaced by the pseudopotential from pseudo-dojo library name as Ba.nc.z_10.oncvpsp4.dojo.v4-sp.upf.
+For elements Na, Cs, Ca, As, Te, Hg, I, Ne, Ar, Kr, Xe, and Rn, the SSSP precision pseudopotentials are replaced by the pseudopotentials with different recommended choices without changing.
+
+The AiiDA export files are contained in the sssp-infos.aiida archive has been modified from sssp.tar and migrated to storage schema version “main_0001” in order to be imported in AiiDA 2.0.2 and later versions. The modifications are detailed in the README.md file in the sssp-infos.aiida archive.
+The AiiDA export files are contained in the sssp-bands.aiida archive has been migrated to storage schema version “main_0001” as well.
+
+*** UPDATE Mar 2023 - Version 1.2.1 ***
+The precision libraries for Iridium (Ir) have been updated with the latest pseudopotential from Pslibrary accuracy 1.0.0 US. It should be noted that the original Ir pseudopotential from the GBRV library contains a ghost state at 10eV. Despite this, the efficiency libraries continue to utilize the GBRV pseudopotential, therefore users relying on this pseudopotential should exercise caution.
+
+*** UPDATE April 2023 - Version 1.3.0 ***
+The pseudopotentials of elements At, Fr, Ra are added from PSlibrary. The pseudopotential of actinides are added from dataset of https://www.uni-marburg.de/de/fb15/arbeitsgruppen/anorganische_chemie/ag-kraus/forschung/paw_datasets_for_the_actinoids

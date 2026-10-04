@@ -1,0 +1,121 @@
+#
+# File Name
+#
+
+System.CurrrentDir    ./             # default=./
+System.Name            P9.0p
+Log.print              OFF           # ON|OFF
+
+System.UseRestartfile  yes           # NO|YES, default=NO
+System.Restartfile     P9.0p         # default=null
+
+#
+# Calculation type
+#
+
+eq.type              sdirac          # sch|sdirac|dirac 
+calc.type             pao            # ALL|VPS|PAO
+xc.type               GGA            # LDA|GGA
+
+#
+# Atom
+#
+
+AtomSpecies             15
+max.occupied.N            3
+total.electron        15.0
+valence.electron       5.0 
+<occupied.electrons 
+ 1   2.0
+ 2   2.0  6.0
+ 3   2.0  3.0  0.0
+occupied.electrons>
+
+#
+# parameters for solving 1D-differential equations
+#
+
+grid.xmin             -8.5           # default=-7.0 rmin(a.u.)=exp(grid.xmin)
+grid.xmax              3.2           # default= 2.5 rmax(a.u.)=exp(grid.xmax)
+grid.num             12000           # default=4000
+grid.num.output        500           # default=2000
+
+#
+# SCF
+#
+
+scf.maxIter             60           # default=40            
+scf.Mixing.Type       Simple         # Simple|GR-Pulay 
+scf.Init.Mixing.Weight 0.10          # default=0.300 
+scf.Min.Mixing.Weight  0.001         # default=0.001 
+scf.Max.Mixing.Weight  0.800         # default=0.800 
+scf.Mixing.History      7            # default=5
+scf.Mixing.StartPulay   4            # default=6
+scf.criterion         1.0e-14        # default=1.0e-9
+
+#
+# Pseudo potetial, cutoff (A.U.)
+#
+
+vps.type               MBK           # BHS|TM        
+number.vps              5
+<pseudo.NandL
+ 0  3  0  1.4  0.0  
+ 1  3  1  1.5  0.0
+ 2  3  2  1.5 -0.2
+ 3  4  0  2.4 -0.4
+ 4  4  1  2.7  0.0
+pseudo.NandL> 
+Blochl.projector.num    4            # default=1 which means KB-form
+local.type            Polynomial     # Simple|Polynomial
+local.part.vps          1            # default=0
+local.cutoff           1.70          # default=smallest_cutoff_vps
+local.origin.ratio     2.20          # default=3.0
+log.deri.RadF.calc      off          # ON|OFF
+log.deri.MinE          -2.0          # default=-3.0 (Hartree)
+log.deri.MaxE           2.0          # default= 2.0 (Hartree) 
+log.deri.num             60          # default=50
+<log.deri.R
+ 0  2.6 
+ 1  2.7 
+ 2  2.6 
+log.deri.R>
+ghost.check             off          # ON|OFF
+ 
+#
+# Core electron density for partial core correction
+#   pcc.ratio=rho_core/rho_V,
+#   pcc.ratio.origin = rho_core(orgin)/rho_core(ip)
+#
+
+charge.pcc.calc         on           # ON|OFF
+pcc.ratio              0.15          # default=1.0     
+pcc.ratio.origin       5.00          # default=6.0     
+
+#
+# Pseudo atomic orbitals
+#
+
+maxL.pao                3            # default=2
+num.pao                15            # default=7 
+radial.cutoff.pao     9.0            # default=5.0 (Bohr)
+height.of.wall    20000.0            # default=4000.0 (Hartree)
+rising.edge           0.2            # default=0.5(Bohr),r1=rc-rising.edge
+search.LowerE       -3.000           # default=-3.000 (Hartree)
+search.UpperE       50.000           # default=20.000 (Hartree)
+num.of.partition     1200            # default=300
+matching.point.ratio  0.70           # default=0.67
+
+
+
+
+
+
+
+
+
+
+
+
+
+

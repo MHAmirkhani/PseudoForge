@@ -1,0 +1,44 @@
+ &ATOM
+  Z  =     5.0000000000000000     
+  ZV =     3.0000000000000000     
+  XC = 1197   0.6666666667
+  TYPE = NORMCONSERVING GOEDECKER
+ &END
+ &INFO
+ ****************************************************************
+
+ Atomic symbol                       : B
+
+ Atomic number                       :   5
+ Effective core charge               :   3
+ Number of core states               :   1
+ Number of valence states            :  11
+ Electronic configuration (s,p,d,...):     2    1
+
+ Exchange-correlation functional     : PBESOL
+
+       r(loc)         C(1)         C(2)
+     0.418788    -5.730626     0.847892
+
+         r(0)     h(i,j)^0
+     0.371947     6.276452
+
+ Please cite:
+
+ - S. Goedecker, M. Teter, and J. Hutter,
+   Phys. Rev. B 54, 1703 (1996)
+ - C. Hartwigsen, S. Goedecker, and J. Hutter,
+   Phys. Rev. B 58, 3641 (1998)
+ - M. Krack,
+   Theor. Chem. Acc. 114, 145 (2005)
+
+ ****************************************************************
+ &END
+ &POTENTIAL
+     GOEDECKER
+           2                                    LMAX
+      0.418787733                                 RC
+   2    -5.730626412     0.847891814   #C  C1 C2
+      0.371947240  1   6.276451623 H(s) 11                 
+      0.554722046  0 H(p) no projector       
+ &END

@@ -1,0 +1,14 @@
+Marburg PAW data sets for the actinoids -- generation inputs
+============================================================
+
+These are the ld1.x input decks published by the authors, redistributed here
+verbatim so PseudoForge can reproduce the data sets without a download.  They
+are not PseudoForge's work and PseudoForge's licence does not apply.
+
+  source : https://www.uni-marburg.de/de/fb15/arbeitsgruppen/ag-kraus/forschung/paw_datasets_for_the_actinoids
+  terms  : see the distribution
+  layout : scalar/ from scalar-relativistic-basis.zip
+           full/   from fully-relativistic-basis.zip
+
+Nothing here has been modified.  They are ordinary ld1.x decks, so PseudoForge
+generates them with the same engine it uses for PSlibrary.

@@ -1,0 +1,11 @@
+SSSP selection tables, bundled so the choice can be made offline.
+
+  Materials Cloud Archive record rcyfm-68h65
+  https://doi.org/10.24435/materialscloud:f3-ym
+  Version 1.3.0, published 2023-04-13.
+
+Only the .json selection tables are kept here, not the pseudopotential
+archives (which run to 60 MB each).  The table is the part that *is* SSSP:
+which library was chosen for each element, and the cut-offs the verification
+found sufficient.  The files themselves belong to the libraries the table
+names, and PseudoForge generates or fetches them from there.

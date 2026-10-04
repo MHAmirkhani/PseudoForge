@@ -1,0 +1,12 @@
+SG15 ONCV pseudopotential generation inputs
+
+These are the generation input files published by the authors, redistributed
+here verbatim so PseudoForge can reproduce the library without a download.
+They are not PseudoForge's work and PseudoForge's licence does not apply.
+
+  source   : http://www.quantum-simulation.org/potentials/sg15_oncv/
+  terms    : Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)
+  cite     : M. Schlipf and F. Gygi, Comput. Phys. Commun. 196, 36 (2015). DOI 10.1016/j.cpc.2015.05.011
+
+Nothing here has been modified.  If a file looks wrong, compare it with the
+source above rather than trusting this copy.

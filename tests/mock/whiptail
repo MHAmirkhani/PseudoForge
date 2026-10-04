@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# A scripted stand-in for whiptail, so the test suite can drive pseudoforge's menus
+# without a terminal.
+#
+# It does not render anything.  It records every dialog it was asked to show,
+# and answers from a queue, which is enough to verify that the wizard asks for
+# the right things in the right order and hands the right values on.
+#
+#   MOCK_WT_ANSWERS   file with one answer per line, consumed in order.
+#                     For --yesno an answer of "yes"/"0" exits 0, anything else
+#                     exits 1.  An answer of "CANCEL" exits 1 for any dialog.
+#   MOCK_WT_LOG       file the dialogs are appended to, as
+#                     "<type>\t<title>\t<tag1> <tag2> ..."
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+LOG=${MOCK_WT_LOG:-/dev/null}
+ANSWERS=${MOCK_WT_ANSWERS:-}
+
+title=""
+kind=""
+tags=""
+
+args=("$@")
+i=0
+n=${#args[@]}
+
+# ---------------------------------------------------------------------------
+# Mimic the real whiptail's argument parsing closely enough to catch the bug it
+# actually has: popt reads *any* argument starting with a dash as an option,
+# including a menu tag.  A tag like "--info--" makes the real whiptail exit 1
+# with "unknown option", which a caller cannot distinguish from Cancel, so the
+# dialog silently never appears.  A permissive mock hides that entirely, which
+# is exactly what happened once.
+mock_reject_dash_tags() {
+    local i=0 k=0 inlist=0
+    while [ $i -lt $n ]; do
+        case ${args[i]} in
+            --menu|--checklist|--radiolist)
+                # skip: text, height, width, listheight
+                inlist=1; i=$((i + 5)); k=0; continue ;;
+        esac
+        if [ $inlist = 1 ]; then
+            # in a menu list, even-numbered entries are tags
+            if [ $((k % 2)) = 0 ] && [ "${args[i]#-}" != "${args[i]}" ]; then
+                printf '%s: unknown option\n' "${args[i]}" >&2
+                exit 1
+            fi
+            k=$((k + 1))
+        fi
+        i=$((i + 1))
+    done
+}
+mock_reject_dash_tags
+
+while [ $i -lt $n ]; do
+    case ${args[i]} in
+        --title)     title=${args[i+1]:-}; i=$((i + 2)) ;;
+        # options that take a value and are not part of the item list;
+        # skipping their argument matters or it gets read as a menu tag
+        --cancel-button|--ok-button|--default-item|--backtitle)
+                     i=$((i + 2)) ;;
+        --backtitle) i=$((i + 2)) ;;
+        --menu|--checklist|--radiolist)
+            kind=${args[i]#--}
+            # <text> <height> <width> <listheight> then tag/item[/state] triples
+            local_step=$([ "$kind" = menu ] && echo 2 || echo 3)
+            i=$((i + 5))
+            while [ $i -lt $n ]; do
+                tags="$tags ${args[i]}"
+                i=$((i + local_step))
+            done
+            ;;
+        --inputbox)  kind=inputbox; i=$((i + 4)); [ $i -lt $n ] && i=$((i + 1)) ;;
+        --yesno)     kind=yesno;    i=$((i + 4)) ;;
+        --msgbox)    kind=msgbox;   i=$((i + 4)) ;;
+        --textbox)   kind=textbox;  i=$((i + 4)) ;;
+        --gauge)     kind=gauge;    i=$((i + 5)) ;;
+        --scrolltext) i=$((i + 1)) ;;
+        *)           i=$((i + 1)) ;;
+    esac
+done
+
+printf '%s\t%s\t%s\n' "${kind:-?}" "$title" "${tags# }" >> "$LOG"
+
+# msgbox and textbox just acknowledge
+case $kind in
+    msgbox|textbox|gauge) exit 0 ;;
+esac
+
+answer=""
+# An exhausted answer queue means the same thing as the user pressing Cancel.
+# Returning 0 with an empty value instead would leave every "while :" menu loop
+# spinning forever, which is a test that hangs rather than one that fails.
+if [ -z "$ANSWERS" ] || [ ! -s "$ANSWERS" ]; then
+    exit 1
+fi
+if [ -n "$ANSWERS" ] && [ -s "$ANSWERS" ]; then
+    answer=$(head -1 "$ANSWERS")
+    tail -n +2 "$ANSWERS" > "$ANSWERS.tmp" && mv "$ANSWERS.tmp" "$ANSWERS"
+fi
+
+[ "$answer" = CANCEL ] && exit 1
+
+case $kind in
+    yesno)
+        case $answer in yes|YES|0|"") exit 0 ;; *) exit 1 ;; esac
+        ;;
+esac
+
+# whiptail writes the chosen tag(s) to stderr (callers redirect 3>&1 1>&2 2>&3)
+printf '%s' "$answer" >&2
+exit 0

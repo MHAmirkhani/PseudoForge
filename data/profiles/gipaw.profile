@@ -1,0 +1,17 @@
+id=gipaw
+label=GIPAW pseudopotentials (Ceresoli)
+families=us nc
+provenance=library
+generator=ld1
+engine=ld1
+upstream=https://github.com/dceresoli/qe-gipaw
+author=Davide Ceresoli
+reference=https://github.com/dceresoli/gipaw-pseudopotentials
+license=see the repository
+summary=Pseudopotentials carrying the GIPAW reconstruction data that NMR and EPR calculations need; ordinary pseudopotentials cannot be used for those properties.
+notes=PseudoForge ships Ceresoli's own ld1.x input decks, so these are generated here rather than downloaded: 17 published decks covering aluminium (PBE and PZ, Troullier-Martins) and the fifteen lanthanides (PBE, ultrasoft with semicore states). Every one sets lgipaw_reconstruction, which is what makes the result usable for NMR and EPR; an ordinary pseudopotential is not. For anything outside those 17, --gipaw adds the same reconstruction to any psl-* recipe, which is a PseudoForge construction rather than Ceresoli's.
+available=Al (PBE, PZ) and La-Lu (PBE, ultrasoft with semicore). 17 published decks, bundled.
+xc_available=pbe
+rel_available=scalar
+families_note=US and NC, Al and the lanthanides
+formats=upf xml

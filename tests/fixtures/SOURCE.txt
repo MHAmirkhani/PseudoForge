@@ -1,0 +1,40 @@
+Real engine output, kept so that every validator can be checked against a file
+an engine actually wrote before it is trusted on a new one.
+
+Not hand-written.  That is the point: two validators have now been written
+against an imagined format and rejected valid files --
+
+  - vps_validate looked for a "Vps.public" keyword that does not exist in the
+    OpenMX format, and rejected every .vps ADPACK produces;
+  - the same function flagged the banner of asterisks a .vps opens with as a
+    Fortran overflow marker.
+
+Both would have been caught in seconds by running against one real file.
+
+Provenance of each file
+-----------------------
+
+  upf/Si.pbe-oncv.UPF        ONCVPSP 4.0.1, pbe, scalar-relativistic
+  van/Si.van                 USPP (Vanderbilt) runatom.x
+  vps/{F,Be}.pz-adpack.vps   ADPACK 2.2
+  pawxml/Li.r2scan-atompaw.xml   AtomPAW, r2SCAN -- the meta-GGA refusal case
+  cpi/Si.pz-fhi98pp.cpi      fhi98PP, pz, via this tool:
+                               pseudoforge generate -e Si -t nc -x pz \
+                                   --engine fhi98pp --format cpi
+                             Kept because it is the file QE 7.6's upfconv.x
+                             refuses (see the measurement in lib/convert.sh),
+                             and a refusal that cannot be reproduced is a
+                             rumour.
+  rrkj3/Si.pbe-rrkjus-ld1.rrkj3
+                             QE 7.6 ld1.x, PSlibrary 1.0.0 Si US PBE deck,
+                             unchanged except file_pseudopw='Si.rrkj3' --
+                             ld1 writes the old RRKJ layout for any name not
+                             ending in upf (INPUT_LD1, file_pseudopw).
+                             pw.x gives the same bulk-Si energy from this
+                             file and from its UPF conversion. It is NOT the
+                             same pseudopotential as the UPF ld1 writes from
+                             that deck: 2.2 eV per cell apart, because the
+                             RRKJ layout cannot hold l-resolved augmentation.
+  cpmd/Si.pbe-opium.cpmd     OPIUM, pseudoforge-auto Si PBE, --format upf,cpmd.
+                             Kept to show cpmd -> upf is refused at runtime:
+                             QE 7.x has no CPMD reader in upfconv.x.

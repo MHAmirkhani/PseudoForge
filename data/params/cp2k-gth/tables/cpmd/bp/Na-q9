@@ -1,0 +1,46 @@
+ &ATOM
+  Z  =     11.000000000000000     
+  ZV =     9.0000000000000000     
+  XC = 1111   0.6666666667
+  TYPE = NORMCONSERVING GOEDECKER
+ &END
+ &INFO
+ ****************************************************************
+
+ Atomic symbol                       : Na
+
+ Atomic number                       :  11
+ Effective core charge               :   9
+ Number of core states               :   1
+ Number of valence states            :  12
+ Electronic configuration (s,p,d,...):     3    6
+
+ Exchange-correlation functional     : BP
+
+       r(loc)         C(1)         C(2)
+     0.180000    -8.857429     3.941550
+
+         r(0)     h(i,j)^0
+     0.140215    38.688249
+         r(1)     h(i,j)^1
+     0.148004    -7.537068
+
+ Please cite:
+
+ - S. Goedecker, M. Teter, and J. Hutter,
+   Phys. Rev. B 54, 1703 (1996)
+ - C. Hartwigsen, S. Goedecker, and J. Hutter,
+   Phys. Rev. B 58, 3641 (1998)
+ - M. Krack,
+   Theor. Chem. Acc. 114, 145 (2005)
+
+ ****************************************************************
+ &END
+ &POTENTIAL
+     GOEDECKER
+           2                                    LMAX
+      0.180000000                                 RC
+   2    -8.857428766     3.941549816   #C  C1 C2
+      0.140214988  1  38.688249490 H(s) 11                 
+      0.148003651  1  -7.537068051 H(p) 11                 
+ &END

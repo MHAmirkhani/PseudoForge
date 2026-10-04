@@ -1,0 +1,5 @@
+# The HTTP transport. Nothing here is a dependency of PseudoForge itself --
+# the command line, the wizard and `pseudoforge api` all work without it.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20

@@ -1,0 +1,16 @@
+id=dacapo
+label=Dacapo / CAMPOS
+families=us
+provenance=external
+generator=dacapo
+upstream=CAMPOS / Dacapo plane-wave code
+author=CAMP, Technical University of Denmark
+reference=https://wiki.fysik.dtu.dk/dacapo/
+license=GPL-2.0-or-later
+summary=Ultrasoft pseudopotentials shipped with the Dacapo code, historically used for surface chemistry and magnetic property work.
+notes=Legacy Dacapo/CAMPOS set, distributed as finished files in a non-UPF native format and superseded in practice by GBRV and PSlibrary. No published generation inputs, so import only.
+engine=uspp
+xc_available=pz pbe
+rel_available=scalar
+families_note=US, legacy Dacapo set
+formats=uspp van upf xml

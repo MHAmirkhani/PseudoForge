@@ -1,0 +1,10 @@
+[Unit]
+Description=Warm the PseudoForge conversion cache nightly
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,17 @@
+id=qe-legacy
+label=Original Quantum ESPRESSO PP table
+families=nc us paw
+provenance=external
+generator=ld1
+engine=ld1
+upstream=https://pseudopotentials.quantum-espresso.org/legacy_tables
+author=various contributors
+reference=https://pseudopotentials.quantum-espresso.org/legacy_tables
+license=GPL-2.0-or-later
+summary=The clickable tables that used to ship with Quantum ESPRESSO, no longer maintained but still the reference for reproducing older published work.
+notes=Checked against the published files rather than assumed: Si.pz-vbc.UPF and Cu.pz-d-rrkjus.UPF contain no PP_INPUTFILE block at all, and their PP_INFO header is hollow -- no author, no generation date, and cut-off radii written as 0.000. The numbers that define these pseudopotentials were never recorded in them, so there is nothing to re-run. This is a real gap in the source material, not a missing feature here. PseudoForge downloads them and puts them through the same validation, cutoff scan and reporting as anything generated locally; if you want something equivalent that can be regenerated, psl-031 covers much of the same ground with recipes that do exist.
+available=Older functionals (pz, pbe) and schemes (vbc, rrkj, rrkjus, van), mixed NC/US/PAW, no uniform testing. Files are addressed by their exact historical name.
+xc_available=pz pbe
+rel_available=scalar
+families_note=mixed NC/US/PAW, historical names
+formats=upf xml

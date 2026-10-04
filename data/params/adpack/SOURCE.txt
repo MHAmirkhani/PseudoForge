@@ -1,0 +1,14 @@
+ADPACK per-element input decks, from the ADPACK 2.2 distribution (work/).
+
+These are the author's own parameters -- cut-off radii, reference
+configurations, pseudization scheme -- not PseudoForge's.  They are bundled so
+that generation works offline, in the same way fhi98PP's bin/Elements database
+is bundled.
+
+Upstream: http://www.openmx-square.org/adpack/adpack.html
+Author:   Taisuke Ozaki
+
+Unmodified.  The one deck that ADPACK itself declines (Te, whose
+Troullier-Martins root-finder rejects the shipped radii) is left exactly as
+distributed: adjusting those radii would be a physics change, and belongs in a
+separate, clearly labelled patch rather than in the bundled data.

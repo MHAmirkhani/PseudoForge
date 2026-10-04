@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# deploy/local/config -- machine-specific values.
+#
+#   cp deploy/local/.example deploy/local/config
+#
+# deploy/local/ is gitignored in full. Nothing in it reaches the repository:
+# not the domain, not the host, not a key, not a token.
+# ---------------------------------------------------------------------------
+
+# The domain Nginx answers for.
+PF_DOMAIN=pseudo.example.org
+
+# Where upload-native.sh and update-docs.sh rsync to. user@host, and the key
+# is your SSH config's business, not this file's.
+PF_REMOTE=deploy@pseudo.example.org
+
+# Paths on the VPS. The defaults are almost always right.
+PF_VAR_DIR=/var/lib/pseudoforge
+PF_OPT_DIR=/opt/pseudoforge
+PF_USER=pseudoforge
+PF_PORT=8099
+
+# The disk budget, in MB. The VPS has 10 GB; the layout is meant to sit under
+# 8 GB and tests/test_vps_layout.sh fails if it does not.
+PF_VPS_BUDGET_MB=8192

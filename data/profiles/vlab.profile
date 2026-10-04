@@ -1,0 +1,17 @@
+id=vlab
+label=VLab rare-earth PAW (Columbia)
+families=paw
+provenance=external
+generator=unknown
+engine=ld1
+upstream=http://www.mineralscloud.com/resources/repaw/index.shtml
+author=VLab, Columbia University
+reference=http://www.mineralscloud.com/resources/repaw/index.shtml
+license=see the distribution
+summary=PAW data sets for the rare earths, built for high-pressure mineral physics where the lanthanide f states have to be handled carefully.
+notes=PseudoForge has not been able to confirm a stable per-element download path for this set, so it is import-only: fetch the files yourself and run 'pseudoforge import'. SSSP selects from this set for a few elements.
+available=Rare earths, PAW. Check the site for the current element list.
+xc_available=pbe
+rel_available=scalar
+families_note=PAW, rare earths
+formats=upf xml

@@ -1,0 +1,2010 @@
+/* PseudoForge -- one stylesheet, no framework.
+   The site is four static pages and a JSON API; a build step would be more
+   machinery than the thing it builds. */
+
+:root {
+  --bg: #fbfbfd;
+  --fg: #16161d;
+  --muted: #5a5a6a;
+  --line: #e2e2ea;
+  --card: #ffffff;
+  --accent: #3b4cca;
+  --accent-fg: #ffffff;
+  --ok: #1a7f4b;
+  --warn: #9a6700;
+  --err: #b3261e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131318;
+    --fg: #e8e8ef;
+    --muted: #a0a0b0;
+    --line: #2a2a35;
+    --card: #1b1b22;
+    --accent: #8b9bff;
+    --accent-fg: #10101a;
+    --ok: #5fd39b;
+    --warn: #e6b455;
+    --err: #ff8a80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a { color: var(--accent); }
+
+/* ---- chrome ------------------------------------------------------------- */
+header.site {
+  display: flex; align-items: center; gap: 2rem;
+  padding: .9rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-size: 1.15rem; text-decoration: none; color: var(--fg); letter-spacing: -.02em; }
+.brand strong { color: var(--accent); }
+header.site nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+header.site nav a {
+  text-decoration: none; color: var(--muted); font-size: .95rem;
+  padding: .2rem 0; border-bottom: 2px solid transparent;
+}
+header.site nav a:hover { color: var(--fg); }
+header.site nav a.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+footer.site {
+  max-width: 1100px; margin: 3rem auto 2rem; padding: 1.5rem;
+  border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem;
+}
+footer.site p { margin: .35rem 0; }
+.quiet { color: var(--muted); font-size: .85rem; }
+
+/* ---- blocks ------------------------------------------------------------- */
+.intro h1 { font-size: 1.9rem; letter-spacing: -.02em; margin: 1rem 0 .5rem; }
+.intro p { color: var(--muted); max-width: 62ch; }
+
+.panel { margin: 2rem 0; }
+.panel h2 {
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); margin-bottom: .75rem; font-weight: 600;
+}
+
+.grid {
+  display: grid; gap: .9rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+label { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--muted); }
+select, input[type=file] {
+  padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--card); color: var(--fg); font: inherit; font-size: .92rem;
+}
+
+/* ---- the periodic table -------------------------------------------------- */
+.ptable { overflow-x: auto; padding-bottom: .5rem; }
+.ptable-grid {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(34px, 1fr));
+  gap: 3px; min-width: 700px;
+}
+.el {
+  aspect-ratio: 1; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--card); color: var(--fg); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0; font: inherit; line-height: 1.1;
+}
+.el:hover { border-color: var(--accent); }
+.el.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.el .z   { font-size: .55rem; color: var(--muted); }
+.el.on .z { color: var(--accent-fg); opacity: .8; }
+.el .sym { font-size: .82rem; font-weight: 600; }
+.el-s { border-bottom: 2px solid #e4a0a0; }
+.el-p { border-bottom: 2px solid #a0c4e4; }
+.el-d { border-bottom: 2px solid #a0e4b8; }
+.el-f { border-bottom: 2px solid #d8bce4; }
+.chosen { color: var(--muted); font-size: .9rem; margin-top: .75rem; }
+
+/* ---- the card ----------------------------------------------------------- */
+.card {
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--card); padding: 1.1rem 1.25rem;
+}
+.card-title { font-family: var(--mono); font-size: 1rem; margin-bottom: .9rem; }
+.actions { display: flex; gap: .55rem; flex-wrap: wrap; }
+
+.btn {
+  padding: .5rem .9rem; border: 1px solid var(--line); border-radius: 7px;
+  background: var(--card); color: var(--fg); font: inherit; font-size: .9rem;
+  cursor: pointer; text-decoration: none; display: inline-block;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+.hint { color: var(--muted); font-size: .85rem; margin-top: .9rem; max-width: 70ch; }
+
+/* ---- output ------------------------------------------------------------- */
+.output {
+  margin-top: 1.25rem; padding: 1.1rem 1.25rem;
+  border: 1px solid var(--line); border-left-width: 4px; border-radius: 9px;
+  background: var(--card);
+}
+.output h3 { margin: 0 0 .6rem; font-size: 1rem; }
+.output.ok       { border-left-color: var(--ok); }
+.output.refused  { border-left-color: var(--warn); }
+.output.error    { border-left-color: var(--err); }
+.output blockquote {
+  margin: .7rem 0; padding-left: .9rem; border-left: 2px solid var(--line);
+  color: var(--muted); font-size: .92rem;
+}
+.warn { color: var(--warn); }
+.error { color: var(--err); }
+
+pre {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 7px;
+  padding: .75rem .9rem; overflow-x: auto;
+  font-family: var(--mono); font-size: .85rem;
+}
+code { font-family: var(--mono); font-size: .9em; }
+
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+
+.loading { color: var(--muted); }
+
+/* Provenance on a result: which library, which engine, what is stored.
+   These are answers, not form fields -- the form stopped asking for them. */
+dl.prov {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0.75rem 0;
+}
+dl.prov dt { font-weight: 600; opacity: 0.75; }
+dl.prov dd { margin: 0; }
+
+/* ---------------------------------------------------------------------------
+ * Preview card -- what the Download button will hand over.
+ *
+ * Sits inside #summary-card, between the title and the buttons.  A definition
+ * list, not a table: two columns, quiet labels, the values that matter in
+ * monospace.  It is deliberately small -- the point is to remove a surprise,
+ * not to become the page.
+ * ------------------------------------------------------------------------- */
+.preview {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9rem;
+}
+.pv-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+.pv-label {
+  color: var(--quiet, #888);
+  font-size: 0.85rem;
+}
+.pv-value {
+  word-break: break-all;
+}
+.pv-value code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+
+/* ---------------------------------------------------------------------------
+ * Periodic table coverage.
+ *
+ * Three things here matter more than they look:
+ *
+ *   1. `.ptable .el` gets `position: relative`. The dot that reports coverage
+ *      is absolutely positioned, and without a positioned ancestor it was
+ *      being placed relative to the nearest ancestor that happened to have
+ *      position set -- which was the panel, not the cell. The first attempt
+ *      at this feature looked like nothing happened because the dots were
+ *      landing in the corner of the section, off-screen.
+ *
+ *   2. cov-none is dimmed and grayscaled rather than hidden. The block colour
+ *      still carries the element family, so it should stay readable as a
+ *      periodic table even when there is nothing to download. Only the
+ *      affordance weakens.
+ *
+ *   3. Hover raises the cell. A table of 100+ buttons needs a clear answer to
+ *      "which one is under my cursor", and a background change alone is not
+ *      enough at these sizes.
+ * ------------------------------------------------------------------------- */
+.ptable .el {
+  position: relative;
+  transition: transform 80ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+.ptable .el:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+.ptable .el:focus-visible {
+  outline: 2px solid var(--accent, #526cfe);
+  outline-offset: 2px;
+}
+.ptable .el.cov-none {
+  opacity: 0.30;
+  filter: grayscale(0.6);
+}
+.ptable .el.cov-none:hover {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+
+.ptable .el.cov-thin::after,
+.ptable .el.cov-some::after,
+.ptable .el.cov-rich::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.ptable .el.cov-thin::after { width: 4px; height: 4px; background: #b06868; }
+.ptable .el.cov-some::after { width: 6px; height: 6px; background: #c8a04c; }
+.ptable .el.cov-rich::after { width: 8px; height: 8px; background: #59a866; }
+
+/* Legend under the table. Same colours as the dots, with the counts spelled
+ * out so a reader does not have to infer what "green" means. */
+.ptable-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--quiet, #9aa);
+}
+.ptable-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.ptable-legend .dot {
+  display: inline-block;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+.ptable-legend .dot-rich { width: 8px; height: 8px; background: #59a866; }
+.ptable-legend .dot-some { width: 6px; height: 6px; background: #c8a04c; }
+.ptable-legend .dot-thin { width: 4px; height: 4px; background: #b06868; }
+.ptable-legend .dot-none { width: 6px; height: 6px; background: #444; opacity: 0.5; }
+
+/* Preview card on the results panel: make it feel like a real card, with
+ * a left rule that hints at the action it precedes. */
+.preview {
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-left: 3px solid var(--accent, #526cfe);
+  font-size: 0.9rem;
+}
+.preview .pv-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  align-items: baseline;
+}
+.preview .pv-label {
+  color: var(--quiet, #9aa);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.preview .pv-value { word-break: break-all; line-height: 1.5; }
+.preview .pv-value code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+ * The table tools -- search box and clickable legend.
+ *
+ * The legend is not decoration.  Three coverage levels plus "absent" is a
+ * classification a reader has to learn once, and once learned the legend
+ * becomes the natural place to click: "show me only what I can download"
+ * is the filter people actually want, and putting it on the legend means
+ * the thing that explains the dots is the thing that filters them.
+ *
+ * The search box is deliberately narrow.  A wide input on a page whose main
+ * content is a periodic table reads as the primary action, and it is not --
+ * choosing an element is.  Symbol, name or Z number all match, because
+ * people type all three.
+ * ------------------------------------------------------------------------- */
+.ptable-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin: 0.75rem 0 0;
+}
+
+.ptable-search {
+  position: relative;
+  flex: 0 1 14rem;
+  min-width: 10rem;
+}
+.ptable-search input {
+  width: 100%;
+  padding: 0.45rem 2rem 0.45rem 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.ptable-search input:focus {
+  border-color: var(--accent, #526cfe);
+  background: rgba(255, 255, 255, 0.06);
+}
+.ptable-search input::placeholder {
+  color: var(--quiet, #889);
+}
+.ptable-search .clear {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.4rem;
+  height: 1.4rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--quiet, #889);
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+}
+.ptable-search .clear:hover { background: rgba(255, 255, 255, 0.08); color: inherit; }
+.ptable-search.has-value .clear { display: inline-flex; }
+
+/* Legend items are buttons now. */
+.ptable-legend .lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+.ptable-legend .lg-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.ptable-legend .lg-item.on {
+  background: rgba(82, 108, 254, 0.12);
+  border-color: rgba(82, 108, 254, 0.4);
+  color: #fff;
+}
+.ptable-legend .lg-item.on .dot {
+  box-shadow: 0 0 0 1px var(--accent, #526cfe), 0 0 0 3px rgba(82, 108, 254, 0.15);
+}
+.ptable-legend .lg-clear {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--quiet, #889);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  display: none;
+}
+.ptable-legend .lg-clear:hover { color: inherit; background: rgba(255, 255, 255, 0.05); }
+.ptable-legend.has-filter .lg-clear { display: inline-block; }
+
+/* Filtered-out cells keep their place in the grid -- the periodic table's
+ * shape is the point -- but stop being interactive and recede hard.  The
+ * 0.15 opacity is chosen so the block colour still shows a ghost of itself:
+ * a filtered table should still look like a periodic table. */
+.ptable .el.filtered-out {
+  opacity: 0.13;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Double-click hint. The title bar of the results panel tells the user a
+ * double click downloads, but only while a table exists. */
+.dbl-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--quiet, #889);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dbl-hint kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  padding: 0.05rem 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Two-column layout: intro on the left, the periodic table on the right.
+ *
+ * The threshold is 60em because below that the table would be squeezed to
+ * fewer than ~26 pixels per cell, which is where the symbols stop being
+ * legible.  Above it, the table takes the larger share of the row because
+ * eighteen columns need the space and the intro does not.
+ * ------------------------------------------------------------------------- */
+/* Intro on the left, the element picker's head on the right.  The table
+ * itself is NOT in this split -- it lives in its own full-width section
+ * below, because eighteen columns need the whole row to stay legible.  The
+ * two halves of the old "1 · Element" panel are now separate sections so
+ * that the answer to "what element am I choosing" sits next to the answer
+ * to "what is this site", while the table itself gets the room it needs. */
+.layout-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 2rem 2.5rem;
+  align-items: start;
+}
+@media (max-width: 55em) {
+  .layout-split {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+.layout-split > .intro { margin-bottom: 0; }
+
+/* The head panel is compact: a title, one line of answer, and a search box.
+ * It does not try to match the intro's height. */
+.element-head { padding-bottom: 1rem; }
+.element-head .chosen {
+  margin: 0.4rem 0 0.75rem;
+  font-size: 0.95rem;
+}
+.element-head .ptable-tools {
+  margin: 0.5rem 0 0;
+  flex-direction: column;
+  align-items: stretch;
+}
+.element-head .ptable-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The table panel gets breathing room and centres its content. */
+.element-table {
+  margin-top: 1.5rem;
+}
+.element-table .ptable {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.element-table .ptable-legend {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.element-table .dbl-hint {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------------
+ * Colour theme.
+ *
+ * Default is light.  The dark variant is opt-in and remembered.  Both are
+ * built from the same set of tokens so a reader switching theme sees the
+ * same layout in different colours, not a slightly different layout -- the
+ * earlier version of this sheet gave the light theme its own panel padding,
+ * which changed the width available to the periodic table and made cells
+ * appear to "move" when the theme changed.
+ *
+ * The light palette uses near-white rather than pure-white for panels, and
+ * muted slate for text rather than near-black.  On a bright screen the
+ * combination of pure #ffffff panels and #0f172a body text reads as glare;
+ * the small step down to #fdfdfe and #334155 removes that without giving up
+ * legibility.
+ * ------------------------------------------------------------------------- */
+:root {
+  /* Shared tokens -- do not change per theme. */
+  --accent:       #4051b5;
+  --accent-hover: #303fa1;
+
+  /* Light theme is the :root default.  The dark block below overrides. */
+  --page-bg:      #f4f5f7;
+  --panel-bg:     #fdfdfe;
+  --panel-border: #cbd5e1;
+  --panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+  --fg:           #334155;
+  --fg-strong:    #1e293b;
+  --fg-muted:     #334155;
+  --fg-faint:     #475569;
+  --input-bg:     #ffffff;
+  --input-border: #94a3b8;
+  --hover-bg:     rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] {
+  --page-bg:      #14171c;
+  --panel-bg:     #1a1d24;
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-shadow: none;
+  --fg:           #c9cfd8;
+  --fg-strong:    #f1f3f6;
+  --fg-muted:     #8892a0;
+  --fg-faint:     #5a6270;
+  --input-bg:     rgba(255, 255, 255, 0.04);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --hover-bg:     rgba(255, 255, 255, 0.05);
+}
+
+/* Body and shell. */
+html, body { background: var(--page-bg); color: var(--fg); }
+[data-theme="light"] body { background: var(--page-bg); color: var(--fg); }
+[data-theme="dark"]  body { background: var(--page-bg); color: var(--fg); }
+
+/* The header and footer are a slightly different surface, not the same one. */
+header.site, footer.site {
+  background: var(--panel-bg);
+  border-color: var(--panel-border);
+}
+[data-theme="light"] header.site,
+[data-theme="light"] footer.site { box-shadow: 0 1px 0 var(--panel-border); }
+
+header.site nav a { color: var(--fg-muted); }
+header.site nav a.active,
+header.site nav a:hover { color: var(--accent); }
+.brand { color: var(--fg-strong); }
+.brand strong { color: var(--accent); }
+
+/* Panels.  Padding is IDENTICAL in both themes -- see the note at the top. */
+.panel, .card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+}
+/* Both themes read the same padding value from this rule. */
+.panel { padding: 1.25rem 1.5rem; }
+.card  { padding: 1rem 1.25rem; }
+
+.panel > h2 { color: var(--fg-strong); margin-top: 0; margin-bottom: 0.9rem; }
+.panel p, .panel li { color: var(--fg); }
+
+/* Preview card. */
+.preview {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--accent);
+}
+.preview .pv-label { color: var(--fg-muted); font-weight: 500; }
+.preview .pv-value { color: var(--fg-strong); }
+.preview .pv-value code {
+  background: var(--hover-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--fg-strong);
+}
+
+/* Small print. */
+.dbl-hint, .hint, .quiet, .loading { color: var(--fg-muted); }
+.hint kbd, .dbl-hint kbd {
+  background: var(--hover-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--fg-strong);
+}
+
+/* Search + legend. */
+.ptable-tools { background: transparent; border: 0; }
+.ptable-legend {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--fg-muted);
+}
+.ptable-search input {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--fg-strong);
+}
+.ptable-search input::placeholder { color: var(--fg-faint); }
+.ptable-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(64, 81, 181, 0.12);
+}
+.ptable-legend .lg-item { color: var(--fg); }
+.ptable-legend .lg-item:hover { background: var(--hover-bg); }
+.ptable-legend .lg-item.on {
+  background: rgba(64, 81, 181, 0.12);
+  border-color: rgba(64, 81, 181, 0.4);
+  color: var(--fg-strong);
+}
+.ptable-legend .lg-clear { color: var(--fg-muted); }
+.ptable-legend .lg-clear:hover { background: var(--hover-bg); color: var(--fg-strong); }
+
+/* Form controls. */
+input, select, textarea {
+  background: var(--input-bg);
+  color: var(--fg-strong);
+  border: 1px solid var(--input-border);
+}
+label { color: var(--fg); }
+
+/* Buttons. */
+.btn {
+  background: var(--input-bg);
+  color: var(--fg-strong);
+  border: 1px solid var(--input-border);
+}
+.btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--fg-faint);
+}
+.btn.primary {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+.btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.btn:disabled, .btn[disabled] {
+  background: var(--hover-bg);
+  color: var(--fg-faint);
+  border-color: var(--panel-border);
+  cursor: not-allowed;
+}
+
+/* Prose links. */
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+
+/* Error message.  Kept explicit so it is legible in both themes. */
+.error {
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #991b1b;
+}
+[data-theme="dark"] .error {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
+}
+
+/* ---------------------------------------------------------------------------
+ * Periodic table: block colours, one palette per theme.
+ *
+ * The dark palette carries muted blocks so the table reads as a quiet grid;
+ * the light palette uses the same hue families but at paper-friendly
+ * saturations.  Both keep the same hue for the same block, so a reader who
+ * switches theme still recognises the s-block by its amber, the p-block by
+ * its teal, and so on.
+ * ------------------------------------------------------------------------- */
+/* Dark theme (default colours, unchanged from the original design). */
+[data-theme="dark"] .el-s { background: #4a3d1f; color: #f7e2a3; border-color: #6a5828; }
+[data-theme="dark"] .el-p { background: #1f3d3a; color: #a3e6da; border-color: #2d5e58; }
+[data-theme="dark"] .el-d { background: #2a2a4a; color: #c4c8f0; border-color: #414170; }
+[data-theme="dark"] .el-f { background: #3d1f30; color: #f0c4d4; border-color: #602d48; }
+[data-theme="dark"] .el-x { background: #2a2d33; color: #c9cfd8; border-color: #3d424a; }
+
+/* Light theme.  Muted saturations -- these read as paper tabs, not flags. */
+[data-theme="light"] .el-s { background: #fef3c7; color: #78350f; border-color: #fde68a; }
+[data-theme="light"] .el-p { background: #ccfbf1; color: #115e59; border-color: #99f6e4; }
+[data-theme="light"] .el-d { background: #e0e7ff; color: #312e81; border-color: #c7d2fe; }
+[data-theme="light"] .el-f { background: #fce7f3; color: #831843; border-color: #fbcfe8; }
+[data-theme="light"] .el-x { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+
+/* Coverage tint applies in both themes -- it sits on top of the block
+ * colour via opacity, not via background replacement. */
+.ptable .el.cov-none { opacity: 0.35; filter: grayscale(0.55); }
+.ptable .el.filtered-out { opacity: 0.15; pointer-events: none; filter: grayscale(0.8); }
+[data-theme="light"] .ptable .el.cov-none { opacity: 0.45; filter: grayscale(0.5); }
+[data-theme="light"] .ptable .el.filtered-out { opacity: 0.20; }
+
+/* Hover.  The transform is small and identical in both themes -- the shift
+ * a reader saw was never the transform, it was the padding difference
+ * described at the top of this block. */
+.ptable .el:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+[data-theme="light"] .ptable .el:hover { box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14); }
+
+
+/* ---------------------------------------------------------------------------
+ * The theme toggle button.  Two icons, one shown at a time: a sun while the
+ * dark theme is active (click to go light), a moon while the light theme is
+ * active.  The convention is that the icon shows the state you would move to
+ * -- the same way a "play" button shows play, not pause.  If this turns out
+ * to be the other way round for readers, it is one CSS rule to flip.
+ * ------------------------------------------------------------------------- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: 0.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.theme-toggle:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid #526cfe;
+  outline-offset: 2px;
+}
+[data-theme="light"] .theme-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+.theme-icon { display: inline-flex; line-height: 1; }
+.theme-icon svg { display: block; }
+
+/* Default (dark active): show sun, hide moon. */
+.theme-icon-light { display: none; }
+.theme-icon-dark  { display: inline-flex; }
+
+/* Light active: show moon, hide sun. */
+[data-theme="light"] .theme-icon-light { display: inline-flex; }
+[data-theme="light"] .theme-icon-dark  { display: none; }
+
+/* Smooth the switch.  Applied only after the first paint, so a reader who
+ * had dark saved does not see a light flash before the script runs. */
+html.theme-anim,
+html.theme-anim body,
+html.theme-anim .panel,
+html.theme-anim .card,
+html.theme-anim header.site,
+html.theme-anim footer.site {
+  transition: background 180ms ease, color 180ms ease,
+              border-color 180ms ease;
+}
+
+/* ---------------------------------------------------------------------------
+ * Spacing between top-level sections.  Applies to both themes -- a dark
+ * panel with no margin below it has the same "squeezed" problem as a white
+ * one, just less visible.  Placed here rather than in the theme block so it
+ * cannot be lost when the light palette is edited.
+ * ------------------------------------------------------------------------- */
+main > section,
+main > .layout-split {
+  margin-bottom: 1.75rem;
+}
+main > section:last-child,
+main > .layout-split:last-child {
+  margin-bottom: 0;
+}
+main {
+  padding: 2rem 1.5rem 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 40em) {
+  main { padding: 1.25rem 0.9rem 2rem; }
+  main > section,
+  main > .layout-split { margin-bottom: 1.25rem; }
+}
+
+/* ---------------------------------------------------------------------------
+ * The "Also" buttons inside the preview card.
+ *
+ * Rendered as small chips rather than a comma list, because they are the
+ * only way for a reader to reach a file that exists under a different
+ * library's name -- text would make them read as a footnote, not a choice.
+ * Chips are neutral so the profile name stays the message; the accent is
+ * reserved for the primary action below.
+ * ------------------------------------------------------------------------- */
+.preview .pv-alt-row { align-items: center; }
+.preview .pv-alt {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.35rem 0.2rem 0;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+.preview .pv-alt:hover {
+  background: rgba(82, 108, 254, 0.16);
+  border-color: rgba(82, 108, 254, 0.55);
+}
+.preview .pv-alt-clear {
+  border-style: dashed;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+[data-theme="light"] .preview .pv-alt {
+  border-color: rgba(15, 23, 42, 0.16);
+  background: #ffffff;
+  color: #0f172a;
+}
+[data-theme="light"] .preview .pv-alt:hover {
+  background: rgba(64, 81, 181, 0.10);
+  border-color: rgba(64, 81, 181, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+ * The download list.
+ *
+ * The filter row is a flex container so the search box and the count sit on
+ * one line without either fighting the other for width.  The count is not a
+ * label for the search -- it is a report about the list -- so it goes on the
+ * right and dims.
+ * ------------------------------------------------------------------------- */
+.download-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+.download-search { flex: 1 1 20rem; max-width: 32rem; }
+.download-count {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--quiet, #889);
+  white-space: nowrap;
+}
+[data-theme="light"] .download-count { color: #475569; }
+
+/* The file table.  Row hover is what makes a 12,000-row list navigable --
+ * the eye uses it as a ruler. */
+table.files {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+table.files th,
+table.files td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+table.files th {
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--quiet, #889);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  position: sticky;
+  top: 0;
+  background: var(--panel-bg, #1a1d24);
+  z-index: 1;
+}
+table.files tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+table.files td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+}
+table.files .warn { color: #d0a04c; }
+table.files .btn {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+/* Light theme overrides for the table. */
+[data-theme="light"] table.files th,
+[data-theme="light"] table.files td {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+[data-theme="light"] table.files th {
+  color: #475569;
+  border-bottom-color: rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+}
+[data-theme="light"] table.files tbody tr:hover {
+  background: rgba(15, 23, 42, 0.03);
+}
+[data-theme="light"] table.files td code {
+  background: #eef1f5;
+  color: #0f172a;
+}
+[data-theme="light"] table.files .warn { color: #b45309; }
+
+/* Responsive: on narrow screens the table scrolls horizontally rather than
+ * wrapping cells to multiple lines, which would destroy the column reading. */
+@media (max-width: 60em) {
+  #list { overflow-x: auto; }
+  table.files { min-width: 720px; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Download page: filter row, pagination, file table.
+ *
+ * The filter row is a flex container with three items: the search box grows
+ * to fill, the pager and the page-size selector stay at their natural
+ * widths on the right.  Below 60em the row wraps and everything centres,
+ * because a phone does not have a "right side" to put things on.
+ * ------------------------------------------------------------------------- */
+.download-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+.download-search { flex: 1 1 18rem; max-width: 34rem; }
+.download-count {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.25rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+}
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+.pg-btn:hover:not(:disabled) { background: var(--hover-bg); color: var(--fg-strong); }
+.pg-btn:disabled { color: var(--fg-faint); cursor: not-allowed; }
+.pg-info {
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+  text-align: center;
+}
+.pg-size {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.pg-size > span { white-space: nowrap; }
+.pg-size select {
+  padding: 0.3rem 1.6rem 0.3rem 0.55rem;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  background-position: calc(100% - 10px) 50%, calc(100% - 6px) 50%;
+  background-size: 4px 4px, 4px 4px;
+  height: auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 60em) {
+  .download-search { flex-basis: 100%; }
+  .pager { order: 2; }
+  .pg-size { order: 3; margin-left: auto; }
+}
+
+/* File table. */
+table.files {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+table.files th,
+table.files td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--panel-border);
+  vertical-align: middle;
+}
+table.files th {
+  font-weight: 600;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  border-bottom-color: var(--input-border);
+  position: sticky;
+  top: 0;
+  background: var(--panel-bg);
+  z-index: 1;
+}
+table.files tbody tr:hover { background: var(--hover-bg); }
+table.files td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  background: var(--hover-bg);
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+}
+table.files .warn { color: #b45309; }
+[data-theme="dark"] table.files .warn { color: #d0a04c; }
+table.files .btn { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+
+@media (max-width: 60em) {
+  #list { overflow-x: auto; }
+  table.files { min-width: 720px; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Validate page.
+ *
+ * The drop zone is a large clickable label with a dashed border and a
+ * raised state when a file is over it.  Dashed is the conventional visual
+ * cue for "drop something here" and it is used consistently in the two
+ * other places on the site where a file can be dragged (nowhere yet, but
+ * the pattern is set).
+ * ------------------------------------------------------------------------- */
+.vform { display: block; }
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2.25rem 1.5rem;
+  border: 2px dashed var(--input-border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.dropzone:hover { border-color: var(--accent); }
+.dropzone.over {
+  border-color: var(--accent);
+  background: rgba(64, 81, 181, 0.06);
+}
+.dropzone.has-file {
+  border-style: solid;
+  border-color: var(--accent);
+  background: rgba(64, 81, 181, 0.04);
+}
+.dz-icon { color: var(--fg-faint); }
+.dropzone:hover .dz-icon,
+.dropzone.over  .dz-icon,
+.dropzone.has-file .dz-icon { color: var(--accent); }
+.dz-text { display: flex; flex-direction: column; gap: 0.15rem; }
+.dz-text strong { color: var(--fg-strong); font-size: 1rem; }
+.dz-hint { color: var(--fg-muted); font-size: 0.85rem; }
+.dz-name {
+  margin-top: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: var(--hover-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--fg-strong);
+}
+
+.vform-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* Result panel.  The title turns green or red so a reader can see the
+ * answer before reading the body. */
+#result-panel > h2.ok  { color: #047857; }
+#result-panel > h2.bad { color: #b91c1c; }
+[data-theme="dark"] #result-panel > h2.ok  { color: #6ee7b7; }
+[data-theme="dark"] #result-panel > h2.bad { color: #fca5a5; }
+
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+.badge.ok  { background: rgba(4, 120, 87, 0.10); color: #047857; border: 1px solid rgba(4, 120, 87, 0.25); }
+.badge.bad { background: rgba(185, 28, 28, 0.08); color: #b91c1c; border: 1px solid rgba(185, 28, 28, 0.25); }
+[data-theme="dark"] .badge.ok  { background: rgba(110, 231, 183, 0.10); color: #6ee7b7; border-color: rgba(110, 231, 183, 0.3); }
+[data-theme="dark"] .badge.bad { background: rgba(252, 165, 165, 0.10); color: #fca5a5; border-color: rgba(252, 165, 165, 0.3); }
+
+.vlist-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 1.2rem 0 0.5rem;
+}
+.vlist-title.bad  { color: #b91c1c; }
+.vlist-title.warn { color: #b45309; }
+[data-theme="dark"] .vlist-title.bad  { color: #fca5a5; }
+[data-theme="dark"] .vlist-title.warn { color: #fbbf24; }
+
+.vlist {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.vlist.bad  li { color: #7f1d1d; }
+.vlist.warn li { color: #78350f; }
+[data-theme="dark"] .vlist.bad  li { color: #fecaca; }
+[data-theme="dark"] .vlist.warn li { color: #fde68a; }
+
+/* File input reset: the label wraps the input, and clicking the label
+ * opens the picker.  No extra styling needed for the input itself. */
+.dropzone input[type="file"] { display: none; }
+
+
+/* ---------------------------------------------------------------------------
+ * Periodic table.
+ *
+ * Design decisions, since the previous attempt was cluttered:
+ *
+ *   1. Every cell is exactly the same size.  The size comes from a single
+ *      custom property (--el), so the whole table scales as one object.
+ *      The table never gets wider than its container: --el is computed
+ *      from the container width, clamped to a range that keeps the symbols
+ *      readable on a phone and the whole grid visible on a laptop.
+ *
+ *   2. One border, one background, one typographic hierarchy per cell:
+ *      atomic number small and quiet in the corner, symbol the loudest
+ *      thing in the cell, nothing else.  The element name is not shown in
+ *      the cell because at any size where it would fit, it would also be
+ *      fighting the symbol for the reader's attention.  It is available on
+ *      hover as a native tooltip, and it is printed in full in the
+ *      "Selected:" line under the table.
+ *
+ *   3. No transform on hover.  A row of eighteen buttons that lifts on
+ *      hover reads as a broken layout.  The hover state is a slightly
+ *      darker background plus a shadow, and nothing moves.
+ *
+ *   4. The selected state is an outline plus a background tint.  No scale,
+ *      no pulse.  The outline is thick enough to see from across the room
+ *      and the tint is subtle enough not to hide the block colour.
+ *
+ *   5. Group and period numbers sit in a band that is visually separate
+ *      from the cells -- muted, small, no background.  This is what real
+ *      printed tables do, and it is why they look calm.
+ * ------------------------------------------------------------------------- */
+.ptable-wrap {
+  /* The single source of truth for cell size.  Everything else is derived. */
+  --el: clamp(2.2rem, 4.8vw, 3.2rem);
+  --gap: 4px;
+  --label-col: 1.6rem;
+  --label-row: 1.2rem;
+}
+.ptable {
+  overflow-x: auto;
+  padding: 0 0 0.75rem;
+}
+.ptable-grid {
+  display: grid;
+  grid-template-columns: var(--label-col) repeat(18, var(--el));
+  grid-auto-rows: var(--el);
+  /* An extra row-band between the main block and the f-block, so the
+   * lanthanides read as detached without needing a border or a rule. */
+  gap: var(--gap);
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* Group numbers.  A row of small muted numbers above the cells. */
+.ptable-group-label {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  height: var(--label-row);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+  padding-bottom: 2px;
+}
+
+/* Period numbers.  A column of small muted numbers to the left. */
+.ptable-period-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--label-col);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+}
+
+/* "57–71" and "89–103" sit in the label column at the f-block rows.  This
+ * is the convention printed tables use to point at the two detached rows,
+ * and it keeps the label column the only thing that changes height. */
+.ptable-series-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+  white-space: nowrap;
+}
+
+/* The cell. */
+.el {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease,
+              border-color 120ms ease,
+              box-shadow 120ms ease;
+}
+.el .z {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 0.55rem;
+  line-height: 1;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+.el .sym {
+  font-size: calc(var(--el) * 0.34);
+  font-weight: 480;
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-numeric: normal;
+}
+
+/* Hover: darker background, a hair of shadow.  Nothing moves. */
+.el:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.el:hover { background-image: linear-gradient(rgba(0,0,0,0.06), rgba(0,0,0,0.06)); }
+[data-theme="dark"] .el:hover {
+  background-image: linear-gradient(rgba(255,255,255,0.06), rgba(255,255,255,0.06));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.el:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  z-index: 2;
+}
+
+/* Selected: outline + tint, no transform.  The outline is set with a
+ * box-shadow rather than outline so it does not get clipped by the grid's
+ * cell boundary, and the z-index raises the cell above its neighbours
+ * without moving anything. */
+.el.on {
+  z-index: 2;
+  box-shadow: 0 0 0 2px var(--accent);
+  background-image: linear-gradient(rgba(64, 81, 181, 0.14), rgba(64, 81, 181, 0.14));
+}
+[data-theme="dark"] .el.on {
+  background-image: linear-gradient(rgba(64, 81, 181, 0.26), rgba(64, 81, 181, 0.26));
+}
+.el.on .sym { font-weight: 700; }
+
+/* Coverage tint is applied as opacity on the whole cell, so it does not
+ * have to know about the block colour underneath. */
+.el.cov-none { opacity: 0.45; }
+[data-theme="light"] .el.cov-none { opacity: 0.55; }
+.el.filtered-out {
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+/* Block colours.  These are deliberately low-saturation: they are a key,
+ * not a decoration, and the reader's eye should land on the symbol, not
+ * on the tint behind it.  Each theme has its own pair so contrast holds
+ * in both. */
+[data-theme="light"] .el-s { background: #fff7e6; color: #7c4a03; border-color: #f5e0b7; }
+[data-theme="light"] .el-p { background: #e6f7f5; color: #0d5e58; border-color: #bde8e3; }
+[data-theme="light"] .el-d { background: #eef0fb; color: #333a7f; border-color: #d1d6f1; }
+[data-theme="light"] .el-f { background: #fbeaf1; color: #7c2c50; border-color: #f0cfe0; }
+[data-theme="light"] .el-x { background: #f4f6f8; color: #35414f; border-color: #e0e5ea; }
+
+[data-theme="dark"] .el-s { background: #3a3016; color: #f0dda0; border-color: #55461e; }
+[data-theme="dark"] .el-p { background: #163330; color: #9fdfd2; border-color: #245049; }
+[data-theme="dark"] .el-d { background: #232340; color: #c0c4ee; border-color: #363660; }
+[data-theme="dark"] .el-f { background: #331a29; color: #ecc0d5; border-color: #51273e; }
+[data-theme="dark"] .el-x { background: #242830; color: #c6cdd7; border-color: #333843; }
+
+/* The key below the table.  A single row of swatches, centred, quiet. */
+.ptable-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+  margin: 1rem auto 0;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+}
+.ptable-key .key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ptable-key .key-swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  border: 1px solid var(--panel-border);
+}
+[data-theme="light"] .ptable-key .key-s { background: #fff7e6; }
+[data-theme="light"] .ptable-key .key-p { background: #e6f7f5; }
+[data-theme="light"] .ptable-key .key-d { background: #eef0fb; }
+[data-theme="light"] .ptable-key .key-f { background: #fbeaf1; }
+[data-theme="dark"] .ptable-key .key-s { background: #3a3016; }
+[data-theme="dark"] .ptable-key .key-p { background: #163330; }
+[data-theme="dark"] .ptable-key .key-d { background: #232340; }
+[data-theme="dark"] .ptable-key .key-f { background: #4d1f3a; }
+
+/* ---------------------------------------------------------------------------
+ * Validate page: info panel.
+ *
+ * The panel is what the reader sees the moment a file is chosen, before
+ * they press anything.  It has to be more than a table of key/value pairs
+ * or it will be read as filler -- hence the element square, the badge,
+ * and the three-column grouping of fields by what question they answer.
+ * ------------------------------------------------------------------------- */
+.info-panel { margin-top: 1rem; }
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--panel-border);
+  flex-wrap: wrap;
+}
+.info-element {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+.info-kind {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.info-file {
+  color: var(--fg-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.info-tag {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--hover-bg);
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.25rem 2rem;
+}
+.info-col h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg-muted);
+}
+.info-grid {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.88rem;
+}
+.info-row { display: contents; }
+.info-grid dt {
+  color: var(--fg-muted);
+  font-size: 0.8rem;
+  align-self: center;
+}
+.info-grid dd {
+  margin: 0;
+  color: var(--fg-strong);
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Raw preview shown when parse fails -- a details element so it does not
+ * dominate the panel by default. */
+.raw-preview { margin-top: 1rem; }
+.raw-preview summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+  padding: 0.3rem 0;
+}
+.raw-preview summary:hover { color: var(--fg-strong); }
+.raw-preview pre {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: var(--hover-bg);
+  border: 1px solid var(--panel-border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Prose blocks on the generate page.
+ *
+ * The intro is long enough that ragged-right makes the paragraph feel like
+ * a column of separate lines rather than one thought.  Justify, with
+ * hyphens on, keeps the right edge even without the loose river of
+ * whitespace that justify creates when hyphens are off.
+ *
+ * The physics hint was being truncated because it inherited a narrower
+ * max-width from the old `.hint` rule meant for a small line of explanatory
+ * text under a form control.  It is a full paragraph; it gets full width.
+ * ------------------------------------------------------------------------- */
+.intro .lede,
+.intro > p {
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  max-width: none;
+}
+
+/* The physics panel's explanatory text -- full width, justified, same
+ * treatment as the intro so the two read as one voice. */
+.panel > .hint,
+.panel > p.hint {
+  max-width: none;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------------------------
+ * "Available here" badge and any similar status chips in the results panel.
+ *
+ * These were built with the dark theme's colours hard-coded, so on the
+ * light theme they looked like they belonged to a different page.  The
+ * colours now come from the theme tokens; the two states (available /
+ * unavailable) are still distinguishable at a glance, which is the whole
+ * point of a status chip.
+ * ------------------------------------------------------------------------- */
+.badge,
+.status-chip,
+.available-tag {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  background: var(--hover-bg);
+  color: var(--fg);
+  border: 1px solid var(--panel-border);
+}
+
+.badge.ok,
+.status-chip.ok,
+.available-tag.ok {
+  background: rgba(4, 120, 87, 0.10);
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.28);
+}
+[data-theme="dark"] .badge.ok,
+[data-theme="dark"] .status-chip.ok,
+[data-theme="dark"] .available-tag.ok {
+  background: rgba(110, 231, 183, 0.10);
+  color: #6ee7b7;
+  border-color: rgba(110, 231, 183, 0.28);
+}
+
+.badge.bad,
+.status-chip.bad,
+.available-tag.bad {
+  background: rgba(185, 28, 28, 0.08);
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
+}
+[data-theme="dark"] .badge.bad,
+[data-theme="dark"] .status-chip.bad,
+[data-theme="dark"] .available-tag.bad {
+  background: rgba(252, 165, 165, 0.10);
+  color: #fca5a5;
+  border-color: rgba(252, 165, 165, 0.28);
+}
+
+/* The buttons at the bottom of the results card.  The "Download" button
+ * is the primary action; the other two are secondary.  In the light theme
+ * the disabled state was inheriting a colour that made the label almost
+ * invisible on white -- this restores a readable grey. */
+.btn:disabled,
+.btn[disabled] {
+  opacity: 1;
+  background: var(--hover-bg);
+  color: var(--fg-faint);
+  border-color: var(--panel-border);
+  cursor: not-allowed;
+}
+[data-theme="light"] .btn:disabled,
+[data-theme="light"] .btn[disabled] {
+  background: #eef1f5;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+}
+
+/* ---------------------------------------------------------------------------
+ * The "Available here" card, and its twin "Not available here".
+ *
+ * These are rendered from a template literal in main.js, into #output.
+ * The block is: an <h3> header, a <dl> of key/value pairs, a sentence, and
+ * a link.  Previous attempts to style it guessed at class names; these
+ * selectors are based on the actual markup, read from the running page.
+ *
+ * The colours come from the theme tokens, so the card looks like the rest
+ * of the page in both themes.  Before this, it carried the dark theme's
+ * hard-coded surface into the light theme, which is why it read as a
+ * foreign object on the light page.
+ * ------------------------------------------------------------------------- */
+#output > *:has(> h3) {
+  background: var(--panel-bg);
+  color: var(--fg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--panel-shadow);
+}
+
+/* If :has() is not supported, fall back to styling every direct child of
+ * #output the same way -- which is what we want anyway. */
+@supports not selector(:has(*)) {
+  #output > * {
+    background: var(--panel-bg);
+    color: var(--fg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    box-shadow: var(--panel-shadow);
+  }
+}
+
+#output > * > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-strong);
+}
+#output > * > h3:first-child::before {
+  /* Small coloured dot before the header, to signal "this is a status". */
+  content: '';
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #059669;
+  margin-right: 0.5rem;
+  vertical-align: 0.05em;
+}
+/* "Not available here" gets an amber dot instead of green. */
+#output > * > h3:not(:first-child),
+#output > *:has(> h3:not(:first-child)) > h3:first-child::before {
+  /* leave alone -- the second h3 is inside a different block */
+}
+
+/* Two-column layout for the definition list that follows the header. */
+#output > * > dl {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0.5rem 0 0.85rem;
+  padding: 0;
+}
+#output > * > dl > dt {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 0.82rem;
+  align-self: center;
+}
+#output > * > dl > dd {
+  margin: 0;
+  color: var(--fg-strong);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+/* The sentence after the list. */
+#output > * > p {
+  margin: 0.75rem 0 0;
+  color: var(--fg);
+  line-height: 1.6;
+  max-width: none;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* The link at the bottom.  In the light theme it read as body text
+ * because it had no underline; here it is unmistakably a link. */
+#output > * > p > a,
+#output > * > a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  word-break: break-all;
+}
+#output > * > p > a:hover,
+#output > * > a:hover {
+  color: var(--accent-hover);
+}
+
+/* The "Not available here" variant: same card, amber accent dot.  The
+ * markup distinguishes the two by the header text, not by a class; a
+ * rule keyed on the text itself is fragile, so instead the dot is set
+ * by an attribute JS can add.  See showMiss() for where to add it. */
+#output > *[data-status="miss"] > h3:first-child::before {
+  background: #b45309;
+}
+
+/* ---------------------------------------------------------------------------
+ * Hints, all of them, full width.
+ * The results panel's hint ("Download serves...") was inside #output, not
+ * in a .panel, so the earlier rule did not reach it.  This is the union of
+ * every location a hint can be, so a hint added later is still styled.
+ * ------------------------------------------------------------------------- */
+main .hint,
+main p.hint,
+.panel .hint,
+#summary-card .hint,
+#output .hint {
+  max-width: none;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------------------------
+ * The results card -- #output, and its two states.
+ *
+ * The markup, read from the running page:
+ *
+ *   <div id="output" class="output ok">
+ *     <h3>Available here</h3>
+ *     <dl class="prov">
+ *       <dt>Library</dt><dd>psl-high</dd>
+ *       ...
+ *     </dl>
+ *     <p>This is what <strong>psl-high</strong> publishes.
+ *        You can take the authors' own copy instead: <a ...>...</a></p>
+ *   </div>
+ *
+ * The card is #output itself, not a child of it.  Earlier attempts styled
+ * "#output > *" (the children), which left the card surface untinted and
+ * therefore kept the dark theme's colours on the light page.  These rules
+ * apply the surface to #output directly.
+ *
+ * The "ok" class marks availability.  The miss case uses "miss"; both are
+ * handled here so the two cards look related but distinguishable.
+ * ------------------------------------------------------------------------- */
+
+#output {
+  /* Card surface.  Same tokens as every other panel, so it moves with the
+   * theme instead of carrying its own colours. */
+  background: var(--panel-bg);
+  color: var(--fg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 1.1rem 1.35rem;
+  box-shadow: var(--panel-shadow);
+  margin-top: 1rem;
+  /* A vertical accent on the left, colour keyed to the state.  Only this
+   * stripe changes between ok and miss; the rest of the card stays the
+   * same, which is what makes them read as two states of one thing. */
+  border-left-width: 4px;
+}
+#output.ok    { border-left-color: #059669; }
+#output.miss  { border-left-color: #b45309; }
+
+#output > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-strong);
+}
+#output.ok   > h3 { color: #047857; }
+#output.miss > h3 { color: #92400e; }
+[data-theme="dark"] #output.ok   > h3 { color: #6ee7b7; }
+[data-theme="dark"] #output.miss > h3 { color: #fbbf24; }
+
+/* Definition list: Library / Engine / Stored as, two columns. */
+#output > dl.prov,
+#output > dl {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.35rem 1.1rem;
+  margin: 0.5rem 0 0.9rem;
+  padding: 0;
+}
+#output > dl > dt {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 0.82rem;
+  align-self: center;
+}
+#output > dl > dd {
+  margin: 0;
+  color: var(--fg-strong);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+/* The sentence after the list.  Full width, justified -- it is prose, and
+ * it should read like the intro. */
+#output > p {
+  margin: 0.85rem 0 0;
+  color: var(--fg);
+  line-height: 1.65;
+  max-width: none;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+#output > p strong {
+  color: var(--fg-strong);
+  font-weight: 600;
+}
+
+/* The link.  In the light theme it read as body text because it had no
+ * underline; here it is unmistakably a link. */
+#output a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  word-break: break-all;
+}
+#output a:hover { color: var(--accent-hover); }
+
+/* A <p> that follows the last dd is the last line; if the card ends up
+ * with extra bottom padding because the <p> has margin-top from another
+ * rule, trim it. */
+#output > *:last-child { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------------------
+ * Radial plots on the validate page.
+ *
+ * One SVG per file, in a responsive grid.  Colours are darker in the light
+ * theme than the page's own text, because a plot is read at a glance --
+ * a faint tick is a missing tick.  In the dark theme the same values are
+ * lifted back up so they are not black-on-black.
+ * ------------------------------------------------------------------------- */
+.plots-panel { margin-top: 1rem; }
+
+.plot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.plot-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  box-shadow: var(--panel-shadow);
+}
+.plot-svg { display: block; width: 100%; height: auto; }
+
+.plot-title       { fill: #0f172a; font-size: 12px; font-weight: 600; }
+.plot-axis-label  { fill: #1e293b; font-size: 10px; font-weight: 500; }
+.plot-tick        { fill: #1e293b; font-size: 9px; font-variant-numeric: tabular-nums; }
+.plot-legend-text { fill: #0f172a; font-size: 10px; font-weight: 500; }
+.plot-frame       { fill: none; stroke: #475569; stroke-width: 1; }
+.plot-line        { stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+
+/* The grid lines inside the SVG.  Note: .plot-grid also names the CSS grid
+ * that lays the cards out.  Two different things, one name; the selector
+ * below scopes to inside an SVG so they do not collide. */
+svg .plot-grid { stroke: #94a3b8; stroke-width: 0.5; opacity: 0.5; }
+
+/* Dark theme: lift the fills back up. */
+[data-theme="dark"] .plot-title       { fill: #f1f5f9; }
+[data-theme="dark"] .plot-axis-label  { fill: #cbd5e1; }
+[data-theme="dark"] .plot-tick        { fill: #cbd5e1; }
+[data-theme="dark"] .plot-legend-text { fill: #f1f5f9; }
+[data-theme="dark"] .plot-frame       { stroke: #94a3b8; }
+[data-theme="dark"] svg .plot-grid    { stroke: #475569; opacity: 0.55; }
+
+
+/* ---------------------------------------------------------------------------
+ * Print stylesheet.
+ *
+ * A researcher who has just chosen a pseudopotential may want a paper copy
+ * of the settings they used.  The interactive chrome -- nav, buttons,
+ * theme toggle, coverage legend, search box -- is meaningless on paper and
+ * wastes the top of the page.  What should survive is the physics: the
+ * chosen element, the summary, the preview card, and (on validate) the
+ * header fields.
+ *
+ * Colours are forced to black on white, regardless of theme, because
+ * printers charge for ink and readers of a printed page expect a document,
+ * not a screenshot of a dark UI.
+ * ------------------------------------------------------------------------- */
+@media print {
+  /* Hide the interactive shell. */
+  header.site,
+  footer.site,
+  .theme-toggle,
+  .ptable-tools,
+  .ptable-legend,
+  .ptable-key,
+  .dbl-hint,
+  .vform,
+  .actions,
+  .pager,
+  .pg-size,
+  .download-head,
+  .ptable-legend .lg-clear { display: none !important; }
+
+  /* Force black on white everywhere. */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .panel, .card, #output, .preview, .plot-card, .info-panel {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  a { color: #000 !important; text-decoration: underline; }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444;
+  }
+
+  /* Keep the table readable on paper: black-outline cells, no tints that
+   * would print as grey mud. */
+  .ptable-grid { gap: 1px; }
+  .el {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #333 !important;
+    break-inside: avoid;
+  }
+  .el .z, .el .sym { color: #000 !important; }
+
+  /* Section headings should not orphan from their content. */
+  h1, h2, h3 { break-after: avoid; }
+
+  /* Wider margins for readability. */
+  main { padding: 0; max-width: 100%; }
+  @page { margin: 1.5cm; }
+}
+
+.cite-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  background: transparent;
+  color: var(--fg-muted);
+  border: 1px solid var(--input-border);
+}
+.cite-btn:hover {
+  background: var(--hover-bg);
+  color: var(--fg-strong);
+  border-color: var(--accent);
+}
+.cite-btn:disabled {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: transparent;
+  cursor: default;
+}
+
+#btn-copy-cmd {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+}

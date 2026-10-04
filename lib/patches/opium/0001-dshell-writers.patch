@@ -1,0 +1,306 @@
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_casino.c opium-patched/src/output/do_casino.c
+--- opium-clean/src/output/do_casino.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_casino.c	2026-09-29 19:26:39.397852405 +0330
+@@ -38,6 +38,8 @@
+ void interp2_(int *, double *,double *, double *);
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ int do_casino(param_t *param, FILE *fp_param, char *logfile){
+ 
+   int i,j,k,ic,icount,ncore;
+@@ -63,7 +65,13 @@
+   /* section 0 : check if this potential format is supported */
+   /* casino doesn't support DNL potentials */
+ 
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+   /* new routine to set the arrays for semicore states */
+ 
+   if (param->nboxes > 0) {
+@@ -81,7 +89,12 @@
+   }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+ 
+     fp = fopen(filename, "rb");
+     fread(dumm, sizeof(double), param->ngrid, fp);    
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_champ.c opium-patched/src/output/do_champ.c
+--- opium-clean/src/output/do_champ.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_champ.c	2026-09-29 19:26:39.398283299 +0330
+@@ -42,6 +42,8 @@
+ void interp2_(double *,double *);
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ int do_champ(param_t *param, FILE *fp_param, char *logfile){
+ 
+   int i,j,k,ic,icount,ncore,ii;
+@@ -91,7 +93,13 @@
+     ilk[i]=0;
+ 
+   ncore=param->norb-param->nval;
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+ 
+   fp_log = fopen(logfile, "a");
+   fprintf(fp_log,"<<<do_champ -- champ>>>\n");  
+@@ -116,14 +124,24 @@
+ 
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.psi.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.psi.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.psi.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp_file = fopen(filename, "rb");
+     fread(rnl[i], sizeof(double), param->ngrid, fp_file);
+     fclose(fp_file);
+   }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp_file = fopen(filename, "rb");
+     fread(rvv[i], sizeof(double), param->ngrid, fp_file);
+     fclose(fp_file);
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_cpmd.c opium-patched/src/output/do_cpmd.c
+--- opium-clean/src/output/do_cpmd.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_cpmd.c	2026-09-29 19:26:39.398554916 +0330
+@@ -31,6 +31,8 @@
+ 
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ int do_cpmd(param_t *param, FILE *fp_param, char *logfile){
+ 
+   int i, l, k, j;
+@@ -57,10 +59,21 @@
+ 
+   ncore=param->norb - param->nval;
+ 
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rvcore[i], sizeof(double), param->ngrid, fp);
+     fseek(fp,sizeof(double) ,param->ngrid);
+@@ -68,7 +81,12 @@
+   }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.psi.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.psi.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.psi.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rnl[i], sizeof(double), param->ngrid, fp);
+     fclose(fp);
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_fhi.c opium-patched/src/output/do_fhi.c
+--- opium-clean/src/output/do_fhi.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_fhi.c	2026-09-29 19:26:39.399607702 +0330
+@@ -26,11 +26,14 @@
+ #include "parameter.h"
+ #include "uniPPlib.h"
+ #include "cdim.h"        /* fortran code parameters */
++#include "common_blocks.h"
+ #include "do_fhi.h"
+ #include "nlm.h"
+ 
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ 
+ int do_fhi(param_t *param, FILE *fp_param, char *logfile){
+ 
+@@ -59,11 +62,22 @@
+   
+   /* read in the local potential from a binary file created by do_nl() */
+ 
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+ 
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rvcore[i], sizeof(double), param->ngrid, fp);
+     fseek(fp,sizeof(double) ,param->ngrid);
+@@ -71,7 +85,12 @@
+   }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.psi.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.psi.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.psi.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rnl[i], sizeof(double), param->ngrid, fp);
+     fclose(fp);
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_ncpp.c opium-patched/src/output/do_ncpp.c
+--- opium-clean/src/output/do_ncpp.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_ncpp.c	2026-09-29 19:26:39.399679395 +0330
+@@ -34,6 +34,7 @@
+ 
+ #include "parameter.h"        /* defines structure: 'param_t' */
+ #include "cdim.h"        /* fortran code parameters */
++#include "common_blocks.h"
+ #include "do_ncpp.h"          /* the module's own header */
+ #include "nlm.h"
+ 
+@@ -42,6 +43,8 @@
+ 
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ int do_ncpp(param_t *param, FILE *fp_param, char *logfile){
+ 
+   int i,j,k,ic,icount,ncore;
+@@ -73,7 +76,13 @@
+   /* section 0 : check if this potential format is supported */
+   /* ncpp doesn't support DNL potentials */
+ 
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+ 
+   if (param->nboxes > 0) {
+     fp_log = fopen(logfile, "a");
+@@ -89,7 +98,12 @@
+   fclose(fp);
+   
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rvcore[i], sizeof(double), param->ngrid, fp);
+     fseek(fp,sizeof(double) ,param->ngrid);
+@@ -97,7 +111,12 @@
+   }
+ 
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.psi.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.psi.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.psi.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     fp = fopen(filename, "rb");
+     fread(rnl[i], sizeof(double), param->ngrid, fp);
+     fclose(fp);
+diff -urN '--exclude=*.o' '--exclude=*.a' '--exclude=opium' '--exclude=*.log' '--exclude=config.status' '--exclude=config.log' '--exclude=makevars' '--exclude=objects' opium-clean/src/output/do_siesta.c opium-patched/src/output/do_siesta.c
+--- opium-clean/src/output/do_siesta.c	2021-03-26 23:58:08.000000000 +0430
++++ opium-patched/src/output/do_siesta.c	2026-09-29 19:26:39.399408389 +0330
+@@ -44,6 +44,8 @@
+ void interp2_(int *, double *,double *, double *);
+ void writeparam(param_t *param, FILE *fp, FILE *fp_param);
+ void nrelsproj(param_t *param, char *);
++void nrelorbnl(param_t *param, int, char *);
++void relorbnl(param_t *param, int, char *);
+ int do_siesta(param_t *param, FILE *fp_param, char *logfile){
+ 
+   int i,j,k,ic,icount,ncore,ii;
+@@ -88,7 +90,13 @@
+ 
+   ncore=param->norb-param->nval;
+ 
+-  nrelsproj(param,logfile);
++  int config=-1;
++  if ((!strcmp(param->reltype, "nrl")) || (!strcmp(param->reltype, "srl"))) {
++    nrelorbnl(param,config,logfile);
++    nrelsproj(param,logfile);
++  } else {
++    relorbnl(param,config,logfile);
++  }
+ 
+   fp_log = fopen(logfile, "a");
+   fprintf(fp_log,"<<<do_siesta -- psf>>>\n");  
+@@ -118,7 +126,12 @@
+   interp2_(rvloc,rvloc2);*/
+     
+   for (i=0; i<param->nll; i++) {
+-    sprintf(filename, "%s.pot.ps.l=%d", param->name,i);
++    if (!strcmp(param->reltype, "frl")) {
++      sprintf(filename, "%s.pot.ps.l=%d%c", param->name, aorb_.lo[i],
++              (adat_.so[i] > 0) ? '+' : '-');
++    } else {
++      sprintf(filename, "%s.pot.ps.l=%d", param->name, aorb_.lo[i]);
++    }
+     
+     fp_file = fopen(filename, "rb");
+     fread(dumm, sizeof(double), param->ngrid, fp_file);    

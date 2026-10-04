@@ -1,0 +1,6 @@
+mv na_ae_s0.adat     Mg_ae_1.adat	 
+mv na_ae_s0p1.adat	  Mg_ae_2.adat	 
+mv na_ae_s1.adat	  Mg_ae_ref.adat	 
+mv na_ps.adat	  Mg_ps.adat	 
+mv na_test_s0.adat	  Mg_test_1.adat	 
+mv na_test_s0p1.adat Mg_test_2.adat

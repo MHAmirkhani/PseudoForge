@@ -1,0 +1,16 @@
+id=wentzcovitch
+label=Wentzcovitch / VLab
+families=us paw
+provenance=external
+generator=mixed
+upstream=VLab (Virtual Laboratory for Earth and Planetary Materials)
+author=R. M. Wentzcovitch and collaborators
+reference=https://www.materialscloud.org/discover/sssp/
+license=see source
+summary=Pseudopotentials developed for high-pressure mineral physics, notably for rare earths and several transition metals; SSSP selects them for a handful of elements.
+notes=Distributed through SSSP as finished files; PseudoForge has found no published generation inputs for this set, so it imports and validates rather than claiming to reproduce it.
+engine=uspp
+xc_available=pbe
+rel_available=scalar
+families_note=US and PAW
+formats=uspp van upf xml

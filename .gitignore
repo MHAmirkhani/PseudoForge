@@ -1,0 +1,65 @@
+# psmaker / pseudoforge output and scratch.  A run's output goes under a
+# timestamped directory here, and none of it belongs in a repository: the
+# store is the place for finished pseudopotentials, and this is the work
+# area a run writes into on its way there.
+psmaker-output/
+pseudoforge-output/
+*.UPF
+WORK/
+TEST/
+PSEUDOPOTENTIALS/
+
+# editor / OS noise
+*~
+*.swp
+.DS_Store
+input_tmp.in
+atom.ae
+fort.*
+*.o
+
+# ABINIT artefacts when a build or run fails part way
+CRASH
+abitk.out
+dummy
+
+# Machine-specific deployment configuration: the real domain, hosts and paths.
+# Only the template and its README are tracked.
+deploy/local/*
+!deploy/local/.example
+!deploy/local/README.md
+
+# Built documentation
+site/
+
+# Python artefacts from the transport layer. The core is Bash; these are
+# byproducts of running server/app.py and of the venv the README tells you to
+# create, and neither belongs in the tree.
+__pycache__/
+*.pyc
+server/.venv/
+
+# editor / manual backups
+*.bak
+*.bak.*
+*.bak5
+*.bak6
+*.bak7
+*.bak8
+*.bak9
+*.bak10
+*.bak11
+*.bak12
+*.bak13
+*.bak14
+*.orig
+*.rej
+
+# Audit output.  Not ignored: these are the record of what the last full
+# audit found, and the CHANGELOG entries reference them by name.  They
+# regenerate in a second via tools/audit.sh, but the committed copy is what
+# the release notes point at.
+# (Nothing to add here: the files are named explicitly below, so a future
+# *.tsv rule does not silently swallow AUDIT-raw.tsv.)
+!AUDIT.md
+!AUDIT-raw.tsv

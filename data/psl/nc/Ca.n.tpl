@@ -1,0 +1,20 @@
+ &input
+   title='Ca',
+   zed=20.,
+   rel={{NREL}},
+   config='[Ar] 4s2.0 4p0.0 3d-2.0',
+   iswitch=3,
+   dft='{{GFUN}}'
+ /
+ &inputp
+   pseudotype=2,
+   file_pseudopw='Ca.{{FCT}}-n-nc.UPF',
+   author='TM',
+   lloc=0,
+   nlcc=.true.,
+   tm=.true.
+ /
+3
+4P  2  1  0.00  0.00  3.30  3.30  0.0
+3D  3  2 -1.00  0.10  3.30  3.30  0.0
+4S  1  0  2.00  0.00  3.30  3.30  0.0

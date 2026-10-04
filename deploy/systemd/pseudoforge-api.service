@@ -1,0 +1,38 @@
+[Unit]
+Description=PseudoForge REST transport
+Documentation=https://pseudo.amirkhani.me/docs/architecture/http/
+After=network.target
+
+[Service]
+Type=simple
+User=pseudoforge
+Group=pseudoforge
+WorkingDirectory=/opt/pseudoforge/server
+
+Environment=PF_BIN=/opt/pseudoforge/pseudoforge
+Environment=PF_VAR_DIR=/var/lib/pseudoforge
+Environment=PF_RATE_LIMIT=60
+Environment=OMP_NUM_THREADS=1
+
+ExecStart=/opt/pseudoforge/server/.venv/bin/uvicorn app:app \
+          --host 127.0.0.1 --port 8099 --workers 1
+
+Restart=on-failure
+RestartSec=5s
+
+# One core, 1 GB. A runaway conversion must not take the machine with it.
+MemoryMax=512M
+CPUQuota=80%
+
+# It serves files and shells out to one program. It needs nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pseudoforge/cache /var/lib/pseudoforge/db
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

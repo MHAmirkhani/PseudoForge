@@ -1,0 +1,17 @@
+ &input
+   title='Tc',
+   zed=43.0,
+   rel={{NREL}},
+   config='[Kr] 4d5.0 5s2 5p0',
+   iswitch=2,
+ /
+ &test
+   file_pseudo='{{PSDIR}}/Tc.{{FCT}}-spn-rrkjus_psl.1.0.0.UPF',
+   nconf=5
+   frozen_core={{FROZEN_CORE}},
+   configts(1)='4s2 4p6 4d5 5s2'
+   configts(2)='4s2 4p6 4d5 5s1 5p1'
+   configts(3)='4s2 4p6 4d5 5s1 5p0'
+   configts(4)='4s2 4p6 4d4 5s2'
+   configts(5)='4s2 4p6 4d6 5s1'
+ /

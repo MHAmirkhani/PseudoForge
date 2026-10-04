@@ -1,0 +1,13 @@
+GIPAW pseudopotential input decks, from Davide Ceresoli's published repository.
+
+  https://github.com/dceresoli/gipaw-pseudopotentials
+  Directory: pseudos/<Z>-<El>/<name>/<El>.in
+
+17 ld1.x decks: aluminium (PBE and PZ, Troullier-Martins) and the fifteen
+lanthanides (PBE, ultrasoft with semicore states).  Every one sets
+lgipaw_reconstruction, which is what makes the result usable for NMR and EPR.
+
+Unmodified.  These are the author's parameters; PseudoForge runs them and
+retargets only the functional and relativity the run asked for.
+
+Licence: see LICENSE in this directory, as distributed with the repository.

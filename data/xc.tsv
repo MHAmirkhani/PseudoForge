@@ -1,0 +1,34 @@
+#id	tag	qe_dft	family	label	status	proxy	note
+pz	pz	LDA	LDA	Perdew-Zunger (LDA)	native	-	QE's LDA short name is sla+pz, i.e. Perdew-Zunger; PSlibrary's pz set writes dft='LDA' and pseudoforge matches it so the decks stay identical.
+pw	pw	PW	LDA	Perdew-Wang (LDA)	native	-	
+vwn	vwn	SLA VWN	LDA	Vosko-Wilk-Nusair (LDA)	native	-	PHYSICS CHANGE 2026-09-28: was 'VWN'. QE 7.x has no short name VWN (qe_dft_list.f90 defines PZ, PW, VWN-RPA), so 'VWN' was parsed token by token as correlation only; ld1.x wrote 'NOX VWN NOGX NOGC' -- no exchange -- into every file. 'SLA VWN' is Slater exchange with VWN correlation, the LDA this entry names.
+vwn-rpa	vwnrpa	VWN-RPA	LDA	VWN parameterised on the RPA	native	-	Correlation used inside B3LYP.
+pbe	pbe	PBE	GGA	Perdew-Burke-Ernzerhof	native	-	The default and by far the best tested choice.
+pbesol	pbesol	PBESOL	GGA	PBEsol (solids)	native	-	
+revpbe	revpbe	REVPBE	GGA	revPBE	native	-	Exchange partner of vdW-DF.
+pw91	pw91	PW91	GGA	Perdew-Wang 91	native	-	
+bp	bp	BP	GGA	Becke88 exchange + Perdew86 correlation	native	-	
+blyp	blyp	BLYP	GGA	Becke-Lee-Yang-Parr	native	-	
+wc	wc	WC	GGA	Wu-Cohen	native	-	
+b86b	b86b	OPTB86B	GGA	optB86b exchange	native	-	Exchange partner of vdW-DF2-B86R.
+optb88	optb88	OPTBK88	GGA	optB88 exchange	native	-	Exchange partner of optB88-vdW.
+sogga	sogga	SOGGA	GGA	Second-order GGA	native	-	
+q2d	q2d	Q2D	GGA	Q2D (quasi-2D systems)	native	-	
+tpss	tpss	TPSS	metaGGA	TPSS	proxy	pbe	ld1.x has no meta-GGA generator; PBE is the accepted generator functional.
+revtpss	revtpss	TPSS	metaGGA	revTPSS	proxy	pbe	Not a QE short name of its own; generate with PBE.
+scan	scan	SCAN	metaGGA	SCAN	proxy	pbe	SCAN calculations are routinely run with PBE-generated pseudopotentials.
+r2scan	r2scan	R2SCAN	metaGGA	r2SCAN	proxy	pbe	As SCAN; r2SCAN is the numerically better behaved variant.
+m06l	m06l	M06L	metaGGA	M06-L	proxy	pbe	
+tb09	tb09	TB09	metaGGA	Tran-Blaha modified Becke-Johnson	proxy	pbe	Potential-only functional; no total energy.
+pbe0	pbe0	PBE0	hybrid	PBE0	proxy	pbe	ld1.x cannot generate hybrids; hybrid runs use the PBE pseudopotential.
+hse	hse	HSE	hybrid	HSE06	proxy	pbe	
+b3lyp	b3lyp	B3LYP	hybrid	B3LYP	proxy	blyp	BLYP is the semilocal parent of B3LYP.
+x3lyp	x3lyp	X3LYP	hybrid	X3LYP	proxy	blyp	
+scan0	scan0	SCAN0	hybrid	SCAN0	proxy	pbe	
+gaupbe	gaupbe	GAUPBE	hybrid	Gau-PBE	proxy	pbe	
+vdw-df	vdw-df	VDW-DF	vdW	vdW-DF (Dion et al.)	proxy	revpbe	The nonlocal correlation kernel is absent from ld1.x; revPBE is vdW-DF's exchange.
+vdw-df2	vdw-df2	VDW-DF2	vdW	vdW-DF2	proxy	pbe	rPW86 exchange is not available standalone in ld1.x.
+vdw-df-cx	vdw-df-cx	VDW-DF-CX	vdW	vdW-DF-cx	proxy	pbe	LV-PW86r exchange is not available standalone in ld1.x.
+optb88-vdw	optb88-vdw	VDW-DF-OBK8	vdW	optB88-vdW	proxy	optb88	optB88 exchange is available in ld1.x and is the right semilocal parent.
+vdw-df2-b86r	vdw-df2-b86r	VDW-DF2-B86R	vdW	vdW-DF2-B86R (rev-vdW-DF2)	proxy	b86b	
+rvv10	rvv10	RVV10	vdW	rVV10	proxy	pbe	

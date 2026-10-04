@@ -1,0 +1,25 @@
+#id	label	engines	extension	keyword	note
+upf	UPF (Quantum ESPRESSO v2)	ld1 oncvpsp uspp opium atompaw ape	UPF	upf	The default. Read by Quantum ESPRESSO and, increasingly, by other codes.
+# DISABLED: upf1	UPF v1 (legacy text)	ld1	UPF	-	Older text layout. Only for tools that cannot read UPF v2.  # convert-only; not built into the store
+psp8	psp8 (ABINIT)	oncvpsp	psp8	-	ABINIT's native norm-conserving format.
+# DISABLED: psml	PSML	oncvpsp	psml	-	Portable XML interchange format used by SIESTA and ABINIT.  # ONCVPSP rejects psfile=psml; see check_data.f90:57
+fhi	FHI / abinit	opium	fhi	fhi	The fhi98PP layout, read by ABINIT and older codes.
+recpot	CASTEP recpot	opium	recpot	recpot	CASTEP's reciprocal-space format.
+siesta	SIESTA psf	opium	psf	siesta	SIESTA's own format.
+cpmd	CPMD	opium	cpmd	cpmd	CPMD's numeric pseudopotential format.
+casino	CASINO	opium	casino	casino	Quantum Monte Carlo, CASINO code.
+champ	CHAMP	opium	champ	champ	Quantum Monte Carlo, CHAMP code.
+teter	Teter	opium	teter	teter	Teter's format, an older ABINIT input.
+qso	QSO / Qbox XML	opium	xml	qso	Qbox and the quantum-simulation.org schema.
+ncpp	NCPP	opium	ncpp	ncpp	Plain norm-conserving tabulation.
+xml	UPF XML schema	ld1 oncvpsp uspp fhi98pp opium	xml	-	Converted from UPF with QE's upfconv.x -x.
+cpi	cpi (FHI/abinit)	fhi98pp	cpi	-	What fhi98PP itself writes; see docs/ENGINES.md on converting it.
+uspp	Vanderbilt .uspp	uspp	uspp	-	The uspp code's own binary format, before conversion.
+van	Vanderbilt .van (ASCII)	uspp	van	-	The ASCII form QE's upfconv.x can read.
+gth	GTH coefficients (CP2K)	gth	gth	-	The CP2K potential block: an analytic coefficient table, not a radial grid. Read directly by CP2K.
+gth-cpmd	GTH coefficients (CPMD)	gth	cpmd	-	The same coefficients in the CPMD &ATOM layout.
+gth-abinit	GTH coefficients (ABINIT)	gth	abinit	-	The same coefficients as an ABINIT psp3/HGH input.
+paw-abinit	PAW dataset (ABINIT)	atompaw	abinit	-	ABINIT PAW dataset, written from the same solve as the UPF.
+paw-xml	PAW-XML schema	atompaw	xml	-	The PAW-XML schema read by GPAW and ABINIT.
+openmx	OpenMX .vps	adpack	vps	-	ADPACK's native norm-conserving format, read by OpenMX. Not UPF; see docs/ENGINES.md.
+openmx-pao	OpenMX pseudo-atomic orbitals	adpack	pao	-	The basis that accompanies a .vps set.

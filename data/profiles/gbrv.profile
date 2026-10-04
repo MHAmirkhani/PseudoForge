@@ -1,0 +1,20 @@
+id=gbrv
+label=GBRV (Garrity-Bennett-Rabe-Vanderbilt)
+families=us paw
+provenance=reproducible
+generator=uspp (Vanderbilt)
+upstream=GBRV high-throughput library
+author=K. F. Garrity, J. W. Bennett, K. M. Rabe, D. Vanderbilt
+reference=https://www.physics.rutgers.edu/gbrv/
+license=GPL-2.0-or-later
+summary=Very soft ultrasoft pseudopotentials tuned for high-throughput work; converged at 40 Ry wavefunction / 200 Ry charge-density cutoff for essentially the whole set.
+notes=Ultrasoft, generated with Vanderbilt's uspp code. GBRV publishes the Work_GBRV tree it generated from, so PseudoForge downloads that and runs the same decks through the uspp build it makes. Converged at 40 Ry wavefunction / 200 Ry charge-density cutoff across the set.
+default_ecutwfc=40
+default_ecutrho=200
+engine=uspp
+available=PBE, PBEsol and LDA, ultrasoft and PAW. Bundled: 209 uspp generation decks.
+# xc_available: Every GBRV deck here sets exfact 5 (PBE). GBRV also publishes LDA and PBEsol sets, but their inputs are not in this tree; the pz and pbesol runs produced PBE files under those names.
+xc_available=pbe
+rel_available=scalar
+families_note=US and PAW, high-throughput set
+formats=uspp van upf xml

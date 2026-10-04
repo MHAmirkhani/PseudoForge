@@ -1,0 +1,154 @@
+site_name: PseudoForge
+site_description: >-
+  A Bash-native, multi-engine pseudopotential generator, validator and
+  converter. Nine engines, nine layers, three interfaces, one provenance trail.
+site_author: M. H. Amirkhani
+# Served under /docs/ on the same domain as the application, not at a
+# domain root: canonical URLs and the sitemap have to carry the prefix.
+site_url: https://pseudo.amirkhani.me/docs/
+use_directory_urls: true
+repo_url: https://github.com/MHAmirkhani/pseudoforge
+repo_name: MHAmirkhani/pseudoforge
+edit_uri: ""
+
+docs_dir: docs
+site_dir: site
+
+# A broken internal link or a page missing from the navigation must fail the
+# build, not produce a site with a dead link in it.
+strict: true
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+extra:
+  # The "Back to PseudoForge" route: Material links the site logo at
+  # extra.homepage, so every page has a way out of the documentation.
+  homepage: /
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/MHAmirkhani
+
+# The Diátaxis split: learning (tutorials), goals (how-to), information
+# (reference), understanding (explanation). A page belongs to exactly one.
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Quick start: getting-started/quickstart.md
+      - Concepts: getting-started/concepts.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - 1. Carbon, the simplest case: tutorials/01-carbon.md
+      - 2. Silicon and transferability: tutorials/02-silicon.md
+      - 3. Iron, semicore and PAW: tutorials/03-iron.md
+      - 4. Copper with a core hole: tutorials/04-copper.md
+      - 5. Gold, fully relativistic: tutorials/05-gold.md
+      - 6. Meta-GGA with AtomPAW: tutorials/06-scan.md
+      - 7. A batch of the periodic table: tutorials/07-batch.md
+  - How-to:
+      - Choose an engine: how-to/choose-an-engine.md
+      - Choose a functional: how-to/choose-a-functional.md
+      - Validate a pseudopotential: how-to/validate.md
+      - Convert between formats: how-to/convert-formats.md
+      - Save and share a recipe: how-to/write-a-recipe.md
+      - Plot the diagnostics: how-to/plot.md
+      - Change the parameters: how-to/custom-parameters.md
+      - Optimise the cut-off radii: how-to/optimise-radii.md
+      - Troubleshoot a failure: how-to/troubleshoot.md
+      - Use the website: how-to/use-the-website.md
+      - Deploy the website: how-to/deploy.md
+  - Reference:
+      - Command line: reference/cli.md
+      - The wizard: reference/wizard.md
+      - Engines:
+          - Overview: reference/engines.md
+          - ld1.x: reference/engines/ld1.md
+          - ONCVPSP: reference/engines/oncvpsp.md
+          - USPP: reference/engines/uspp.md
+          - fhi98PP: reference/engines/fhi98pp.md
+          - OPIUM: reference/engines/opium.md
+          - GTH: reference/engines/gth.md
+          - AtomPAW: reference/engines/atompaw.md
+          - APE: reference/engines/ape.md
+          - ADPACK: reference/engines/adpack.md
+      - Formats and conversions: reference/formats.md
+      - Library profiles: reference/profiles.md
+      - Coverage: reference/coverage.md
+      - The native store: reference/store.md
+      - Limitations: reference/limitations.md
+      - Upstream: reference/upstream.md
+      - Errata: reference/errata.md
+      - Recipe files: reference/recipes.md
+      - Elements and selectors: reference/elements.md
+      - Data provenance: reference/data-provenance.md
+      - HTTP API: reference/http-api.md
+  - Explanation:
+      - The physics of the choices: explanation/physics.md
+      - The libraries: explanation/libraries.md
+      - Format conversion: explanation/conversion.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - The sink contract: architecture/sink-contract.md
+      - The engine interface: architecture/engine-interface.md
+      - Validation: architecture/validation.md
+      - Provenance: architecture/provenance.md
+      - The website: architecture/http.md
+  - Contributing:
+      - Adding an engine: contributing/adding-an-engine.md
+      - Adding a format: contributing/adding-a-format.md
+      - Adding a test: contributing/adding-a-test.md
+      - Writing documentation: contributing/writing-docs.md
+      - Roadmap: contributing/roadmap.md
+      - Changelog: contributing/changelog.md

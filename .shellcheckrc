@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# ShellCheck configuration for PseudoForge.
+#
+# The architecture is a set of modules sourced into one shell (see
+# lib/core.sh and lib/sink.sh for the reasoning).  ShellCheck analyses one
+# file at a time and cannot follow `source "$PF_LIB/$m.sh"` into the file
+# that defines what the current file reads; three of its checks therefore
+# fire on nearly every line and mean nothing here.
+#
+# Each disable says what it is for.  The checks that remain on are the ones
+# that catch real bugs: SC2178/SC2128 (array/string confusion), SC2221/SC2222
+# (duplicate case), SC2209 (assignment to something that looks like a
+# command), and the parse errors.
+
+# 1. Dynamic source.  Every module is loaded through a loop variable, so the
+#    path is not a literal.  There is no static file to point at, and the
+#    alternative -- listing each source call by hand -- would defeat the
+#    point of the loader.
+disable=SC1090,SC1091
+
+# 2. Variable assigned but unused.  In a single-file script this means dead
+#    code.  Here it means the variable is read from another module in the
+#    same shell: ENG_BIN_VAR[oncvpsp]="ONCVPSP_BIN" in lib/engines.sh reads
+#    a name that lib/build.sh assigns, and ShellCheck sees only one of the
+#    two.  Dead code in the sense that matters -- a function no caller
+#    reaches -- is checked separately, by hand and by tools/audit.sh.
+disable=SC2034
+
+# 3. Variable referenced but not assigned.  Same reason: the assignment is in
+#    the module that defines the registry entry, the reference is in the
+#    module that reads it.
+disable=SC2154
