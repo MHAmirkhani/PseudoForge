@@ -34,6 +34,12 @@ USAGE
     recipe list             list saved recipes
     recipe export <name>    write a recipe out to share it
     recipe import <file>    take one in
+    compare <a> <b>         compare two pseudopotentials side by side
+    citation <library>      the citations for a library (--all for every one)
+    params <sub>            status | fetch | path | extract (library inputs)
+    profile <sub>           list | new | edit | remove (library profiles)
+    xc <sub>                list | add | remove (functionals)
+    api <method> <path>     call the local API server (api --routes lists them)
     optimise -e EL [opts]   sweep --rcut-scale and pick the softest radii that
                             still pass transferability (ld1 oncvpsp opium ape)
     plot <project>          draw log derivatives and wavefunctions for a run
@@ -1172,6 +1178,18 @@ cli_print_attribution() {
 # is what makes a run a reproduction rather than an approximation.
 # ---------------------------------------------------------------------------
 cmd_params() {
+    case "${1:-}" in -h|--help)
+        cat <<'XC_EOF'
+usage: pseudoforge params <sub> [args]
+
+Subcommands:
+  status [LIB]     what inputs are held, what can be fetched
+  fetch <LIB>      download a library's published generation inputs
+  path <LIB>       print where a library's inputs live
+  extract <DIR> [LIB]   recover generation decks from published UPF files
+XC_EOF
+        return 0 ;;
+    esac
     local sub=${1:-status}; [ $# -gt 0 ] && shift
     pf_params_load
     pf_profiles_load
@@ -1214,6 +1232,21 @@ cmd_params() {
 # PseudoForge cannot overwrite them.
 # ---------------------------------------------------------------------------
 cmd_profile() {
+    case "${1:-}" in -h|--help)
+        cat <<'XC_EOF'
+usage: pseudoforge profile <sub> [args]
+
+Subcommands:
+  list             every profile, shipped and user
+  new <id>         create a user profile
+  edit <id>        edit a user profile
+  remove <id>      remove a user profile
+
+User profiles live in $HOME/.pseudoforge/profiles and override shipped
+ones of the same name.
+XC_EOF
+        return 0 ;;
+    esac
     local sub=${1:-list}; [ $# -gt 0 ] && shift
     pf_profiles_load
     local udir=${PF_USER_DATA:-$HOME/.pseudoforge}/profiles
@@ -1313,6 +1346,19 @@ cmd_profile() {
 # should not mean editing a file that the next update overwrites.
 # ---------------------------------------------------------------------------
 cmd_xc() {
+    case "${1:-}" in -h|--help)
+        cat <<'XC_EOF'
+usage: pseudoforge xc <sub> [args]
+
+Subcommands:
+  list             every functional, with its family and status
+  add <id>         add a user functional
+  remove <id>      remove a user functional
+
+User functionals live in $HOME/.pseudoforge/xc.tsv.
+XC_EOF
+        return 0 ;;
+    esac
     local sub=${1:-list}; [ $# -gt 0 ] && shift
     pf_xc_load
     local ufile=${PF_USER_DATA:-$HOME/.pseudoforge}/xc.tsv
@@ -1386,6 +1432,17 @@ cmd_xc() {
 # grids for identical physics.
 # ---------------------------------------------------------------------------
 cmd_compare() {
+    case "${1:-}" in -h|--help)
+        cat <<'CMP_EOF'
+usage: pseudoforge compare <a> <b> [--ecut N]
+
+Compare two pseudopotentials.  Both files are read, their log derivatives
+are computed and drawn side by side, and the differences in cutoff
+convergence are reported.
+
+CMP_EOF
+        return 0 ;;
+    esac
     local a=${1:-} b=${2:-} ecut=""
     [ -n "$a" ] && [ -n "$b" ] || die "usage: pseudoforge compare <a.UPF> <b.UPF> [--ecut N]"
     shift 2

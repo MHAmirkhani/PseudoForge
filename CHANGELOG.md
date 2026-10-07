@@ -1,5 +1,85 @@
 # Changelog
 
+## The interfaces, checked against the core after the changes
+
+The five weeks of changes -- format disambiguation, AtomPAW's r2SCAN path,
+the `--projector` and `--rcut-scale` restrictions, `--variant` and
+`--author` and `--rho0`, the renamed element-selection tag, the store's
+`encoding` field -- landed in the core.  The question was whether they
+landed in the CLI, the TUI and the wizard, where a user meets them.
+
+They had not, in five places.
+
+### Five bugs the diagnostic found
+
+- **The TUI's step titles were wrong.** The dialogs said "Step 1 of 6",
+  "Step 2 of 6", and so on, through the pseudopotential settings.  The
+  TUI has nine layers, not six.  The number was written once and never
+  updated as the flow grew.  The wizard keeps its own "Step N of 6:"
+  because its flow really is six numbered questions.  The TUI titles are
+  now just the layer's name -- no count.
+
+- **`pseudoforge params --help` answered "unknown subcommand '--help'".**
+  So did `profile --help` and `xc --help`.  Each of those subcommands has
+  its own sub-subcommands (status, fetch, path / list, new, edit, remove),
+  and the parser treated `--help` as an unknown one.  All three now have
+  a case handler for `-h|--help` before the subcommand dispatch.
+
+- **`pseudoforge compare --help` printed "ERROR usage: ..."** -- the
+  usage line came from `die`, which prefixes with the word ERROR.  A user
+  who asks for help has not made a mistake.  `compare` now answers with
+  plain usage text and returns zero.
+
+- **Six subcommands were missing from `./pseudoforge help`.**  The
+  dispatcher accepted `compare`, `citation`, `params`, `profile`, `xc`
+  and `api`; the help page did not mention them.  `cli_usage` now lists
+  all six with a one-line summary each.
+
+- **`tests/run_tests.sh` still expected the old TUI titles.**  Once the
+  "Step N of 6" prefix came off, the mock-whiptail answers no longer
+  matched.  Five `dlg` calls in the run suite updated.
+
+### `tools/audit-interfaces.sh` -- the audit that keeps them caught
+
+A permanent script, in the spirit of `tools/audit.sh` but organized by
+interface.  Six sections:
+
+- **A. CLI help completeness** -- every subcommand answers `--help` with
+  non-empty output; every canonical subcommand appears in `pseudoforge
+  help`; every top-level flag in `cli.sh` is either in the help text or
+  on an explicit list of subcommand-specific flags, with the reason it is
+  on the list.
+- **B. TUI screen reachability** -- every entry in `tui_layers()` has a
+  handler function that exists; every `ui_pick_*` a layer names exists;
+  the element-selection menu emits the renamed `finish` tag.
+- **C. TUI advanced screen reaches SPEC** -- one check per user-settable
+  key, driving the advanced screen with the scripted whiptail and
+  asserting the key lands in SPEC.
+- **D. Wizard text-mode entry** -- the wizard's plain-text flow reaches
+  the family prompt with `PF_FORCE_TEXT=1` and piped input.
+- **E. Doc paths from shell code** -- every `docs/*.md` path named in
+  `lib/tui.sh`, `lib/wizard.sh`, `lib/ui.sh` or `lib/cli.sh` exists.
+- **F. CLI subcommand smoke** -- thirteen commands that must return zero:
+  `native list`, `engines path`, `convert --why`, the four `list` pages,
+  `doctor`, `config --show`, `citation`.
+
+The slow per-engine TUI matrix is stubbed behind
+`PF_SLOW_INTERFACES=1`; it will fill in as the individual screens are
+written up.
+
+`run_tests.sh` now runs the fast sections on every invocation.  The
+suite is 169 checks.
+
+### One property the audit keeps, on purpose
+
+The five bugs above share a shape: the code changed, the interface did
+not, and nothing failed loudly.  A help page that omits a working
+subcommand is not a crash; a step count that is off by three is not a
+crash; a `--help` that answers "unknown subcommand" is annoying but not
+broken.  The user notices all of them, and none of them are the sort of
+thing a unit test usually reaches.  `audit-interfaces.sh` is a place to
+put them.
+
 ## Dead code removed, shellcheck clean, three real bugs found
 
 The code review the user asked for: every module read, every function

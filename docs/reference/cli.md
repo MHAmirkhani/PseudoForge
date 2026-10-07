@@ -42,6 +42,12 @@ is the same as `pseudoforge generate -e Si …`.
 | `recipe` | `list` | list saved recipes |
 | `recipe` | `export <name>` | write a recipe out to share it |
 | `recipe` | `import <file>` | take one in |
+| `compare` | `<a> <b>` | compare two pseudopotentials side by side |
+| `citation` | `<library>` | the citations for a library (--all for every one) |
+| `params` | `<sub>` | status \| fetch \| path \| extract (library inputs) |
+| `profile` | `<sub>` | list \| new \| edit \| remove (library profiles) |
+| `xc` | `<sub>` | list \| add \| remove (functionals) |
+| `api` | `<method> <path>` | call the local API server (api --routes lists them) |
 | `optimise` | `-e EL [opts]` | sweep --rcut-scale and pick the softest radii that |
 | `plot` | `<project>` | draw log derivatives and wavefunctions for a run |
 | `doctor` | -- | check the environment and the recipe database |

@@ -432,11 +432,11 @@ MOCK_DE=0.0004 bash "$HERE/drive_tui.sh" "$ROOT" >"$TMP/tui.out" 2>&1
 
 dlg() { awk -F'\t' -v t="$1" '$2 == t { print $3; exit }' "$MOCK_WT_LOG"; }
 assert_match "main menu offers generate" "generate" printf '%s' "$(dlg PseudoForge)"
-assert_eq "type menu lists all three families" "paw us nc" "$(dlg 'Step 1 of 6 -- Pseudopotential type')"
-assert_eq "functional families listed" "LDA GGA metaGGA hybrid vdW" "$(dlg 'Step 2 of 6 -- Functional family')"
-assert_match "GGA functionals listed" "pbesol" printf '%s' "$(dlg 'Step 2 of 6 -- Functional (GGA)')"
-assert_eq "relativity options" "scalar full nonrel" "$(dlg 'Step 3 of 6 -- Relativity')"
-assert_match "profile menu lists psl-high" "psl-high" printf '%s' "$(dlg 'Step 5 of 6 -- Library')"
+assert_eq "type menu lists all three families" "paw us nc" "$(dlg 'Pseudopotential type')"
+assert_eq "functional families listed" "LDA GGA metaGGA hybrid vdW" "$(dlg 'Functional family')"
+assert_match "GGA functionals listed" "pbesol" printf '%s' "$(dlg 'Functional (GGA)')"
+assert_eq "relativity options" "scalar full nonrel" "$(dlg 'Relativity')"
+assert_match "profile menu lists psl-high" "psl-high" printf '%s' "$(dlg 'Library')"
 
 # The library list is filtered by the family, functional and relativity already
 # chosen, so a library that cannot honour them is never offered.
@@ -500,6 +500,17 @@ if bash "$HERE/test_ui.sh" >/dev/null 2>&1; then
     ok_ "the wizard builds the command the CLI would have built"
 else
     bad_ "guided interface" "run: tests/test_ui.sh"
+fi
+
+# Interface audit: every subcommand answers --help, every TUI layer has a
+# handler, every advanced-screen key reaches SPEC, every doc path named by
+# the shell code exists.  Runs the fast sections only; the per-engine TUI
+# matrix stays opt-in via PF_SLOW_INTERFACES=1 on the audit script itself.
+section "interface audit"
+if bash "$ROOT/tools/audit-interfaces.sh" >/dev/null 2>&1; then
+    ok_ "the CLI, TUI and wizard agree with the core"
+else
+    bad_ "interface audit" "run: tools/audit-interfaces.sh"
 fi
 
 if [ "${1:-}" = --all ]; then

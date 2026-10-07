@@ -326,7 +326,7 @@ ui_pick_source() {
         build_line="Build here -- needs ${ENG_LABEL[$eng]}; PseudoForge can install it"
     fi
 
-    choice=$(ui_menu "Step 6 of 6 -- Where the files come from" \
+    choice=$(ui_menu "Where the files come from" \
 "\nHow should PseudoForge obtain ${PROF_LABEL[$prof]}?\n\nA published file has usually been tested far more thoroughly than\nanything generated on the spot.  Build locally when you need a\nsetting nobody publishes.\n" 16 2 \
         online "Download   -- mirror first, then the library's own site" \
         local  "$build_line") || return 1
@@ -394,7 +394,7 @@ ui_ensure_engine() {
 
 ui_pick_family() {
     local c
-    c=$(ui_menu "Step 1 of 6 -- Pseudopotential type" \
+    c=$(ui_menu "Pseudopotential type" \
 "\nWhich construction should ld1.x use?\n" 19 6 \
         paw "PAW    Projector-augmented wave (Kresse-Joubert)  -- most accurate" \
         us  "US     Ultrasoft (RRKJ / Vanderbilt)              -- softest, fastest" \
@@ -405,7 +405,7 @@ ui_pick_family() {
 
 ui_pick_xc() {
     local fam id c items=()
-    fam=$(ui_menu "Step 2 of 6 -- Functional family" "\nChoose the family, then the functional.\n" 18 6 \
+    fam=$(ui_menu "Functional family" "\nChoose the family, then the functional.\n" 18 6 \
         LDA     "Local density approximation" \
         GGA     "Generalised gradient approximation (recommended)" \
         metaGGA "Meta-GGA -- generated with its semilocal parent" \
@@ -419,7 +419,7 @@ ui_pick_xc() {
             items+=("$id" "${XC_LABEL[$id]} -> generated with $(xc_qe_string "$id")")
         fi
     done
-    c=$(ui_menu "Step 2 of 6 -- Functional ($fam)" \
+    c=$(ui_menu "Functional ($fam)" \
 "\nld1.x can only solve the atom with LDA or GGA. For the other families pseudoforge
 generates with the accepted semilocal parent and records that in the UPF and
 in the report -- which is what every public library does too.\n" 22 10 "${items[@]}") || return 1
@@ -442,7 +442,7 @@ pseudopotential was not generated self-consistently with ${XC_QE[$c]}." 15 74
 
 ui_pick_rel() {
     local c
-    c=$(ui_menu "Step 3 of 6 -- Relativity" \
+    c=$(ui_menu "Relativity" \
 "\nFull-relativistic (spin-orbit) treatment is normally required from about
 Z = 37 upwards, and essential for 5d elements and actinides.\n" 17 5 \
         scalar "Scalar-relativistic  -- no spin-orbit (rel=1)" \
@@ -524,7 +524,7 @@ ui_pick_profile() {
     [ ${#hidden[@]} -gt 0 ] && \
         items+=("hidden" "$(printf '%s hidden by these settings' "${#hidden[@]}")")
 
-    c=$(ui_menu "Step 5 of 6 -- Library" \
+    c=$(ui_menu "Library" \
 "\n$total element(s), $(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")").
 The number is how many of your elements each library actually covers.\n" 20 9 "${items[@]}") || return $?
 
@@ -652,7 +652,7 @@ ui_pick_elements() {
 
     while : ; do
         UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
-        c=$(ui_menu "Step 4 of 6 -- Elements" \
+        c=$(ui_menu "Elements" \
 "\n$(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}")
 can be made for $n element(s).  Which library covers which is decided next.
 \nCurrent selection: ${CLI_ELEMENTS:-<none>}\n" 21 9 \
