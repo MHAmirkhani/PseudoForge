@@ -25,8 +25,8 @@ is the same as `pseudoforge generate -e Si …`.
 
 | Command | Arguments | What it does |
 |---|---|---|
-| `wizard` | -- | guided flow (this is what PseudoForge runs by default) |
-| `tui` | -- | the same flow, plus browse/settings menus |
+| `wizard` | -- | guided flow, straight to the first layer |
+| `tui` | -- | the full menu (guided, quick, browse, settings) |
 | `engines` | `<sub>` | list \| build <name>\|all \| show <name> \| path <name> |
 | `generate` | -- | generate pseudopotentials |
 | `validate` | `<file>...` | structural check of existing files (any format) |

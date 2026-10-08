@@ -48,7 +48,7 @@ spec_init
 # ---- dispatch -------------------------------------------------------------
 cmd=${1:-}
 case $cmd in
-    ''|tui|menu|wizard)
+    ''|tui|menu)
         [ -n "$cmd" ] && shift
         # --help / -h before the terminal check: help works in a script.
         case "${1:-}" in -h|--help) cli_usage; exit 0 ;; esac

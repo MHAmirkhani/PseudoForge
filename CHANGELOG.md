@@ -1,5 +1,103 @@
 # Changelog
 
+## One guided flow, and an audit that reaches the corners it used to miss
+
+The TUI had grown three entry points that all claimed to do the same
+thing: `tui`, `wizard`, and an `oldtui` nobody remembered adding.  They
+had drifted.  `tui` ran nine layers; `wizard` ran a ten-step list of its
+own; `oldtui` ran a legacy menu.  A user reading the help page could not
+tell which one was current.
+
+And the interface audit that was supposed to catch this stopped at the
+review screen.  Every check ran through the layers and looked at SPEC;
+none of them asked what happened when the user pressed Run.
+
+### The flow is one flow now
+
+- **`tui_main` is the only entry point.**  `pseudoforge tui`,
+  `pseudoforge wizard`, and a bare `pseudoforge` on a terminal all end
+  up there.  `wizard` is the shortcut past the menu; when there is no
+  whiptail or dialog, both fall through to the plain-text
+  `wizard_main`.  The dispatcher had `wizard` in the `''|tui|menu|wizard`
+  case, so its own case further down never ran and `pseudoforge wizard`
+  opened the full menu instead of the guided flow.  That is fixed.
+
+- **The menu gained the eight entries it was missing.**  `validate`,
+  `import`, `reports`, `settings`, `profiles`, `recipes`, `xc`, and a
+  separate `browse` -- fourteen in all.  A menu item that exists in the
+  CLI and not in the TUI is a user told to learn the command line.
+
+- **The guided flow gained the source layer.**  A run that used to
+  build locally without ever asking now offers "download, or build
+  here" as its own screen, between profile and engine.
+
+- **The engine layer asks before skipping.**  `tui_layer_engine` calls
+  `ui_ensure_engine` first; an uninstalled engine used to be silently
+  dropped from the list.
+
+- **Dead code removed.**  `ui_main`, `ui_wizard`, `ui_doctor`,
+  `pf_spec_init_safe`, and the `oldtui` dispatcher entry.  A scan of all
+  586 functions in `lib/` for zero external references returns 0 --
+  except `deps_report`, which `cmd_doctor` still uses.
+
+### Two bugs the audit's own drive-through found
+
+- **`cli_check_spec` preferred the profile's format declaration over
+  the engine's ability.**  A TUI run for APE picked `upf` because APE
+  writes only `upf`; the profile declared `upf xml`; `cli_check_spec`
+  believed the profile and refused with "APE cannot write xml".  The
+  order is now: an explicit `--format`, then the profile's declaration
+  *if the engine can honour it*, then SPEC, then the default.
+
+- **`ui_pick_format` skipped without setting SPEC.**  For engines that
+  write one format (APE -> upf, fhi98PP -> cpi, ADPACK -> openmx), the
+  menu never opened and `SPEC[formats]` kept the `spec_init` default,
+  which the next stage then refused.  It now sets what the engine
+  writes before returning.
+
+### The audit grew from 87 checks to 155
+
+The new sections are about the surfaces a user meets, not the surfaces
+a developer tests:
+
+- **C -- the TUI advanced screen**, 6 keys -> 23.  Every user-settable
+  key is driven through the scripted whiptail and asserted in SPEC.
+- **D -- wizard steps**, 1 -> 15.  Each of the seven steps runs in its
+  own shell, so a `SPEC` it sets is still there when the next one runs.
+- **G -- TUI per-engine generation**, new, 9 checks.  For each engine,
+  the audit sets SPEC the way the layer walk would have, calls
+  `tui_review` directly, and asserts the engine produced files and a
+  report.  Before this, the TUI had never been driven past review.
+- **H -- TUI top-level menu.**  Every menu tag has a case handler;
+  every handler function exists; `tui_main` offers at least fourteen
+  entries.
+- **I -- config file.**  `--show` / `--path` / `--set` / `--edit`
+  round-trip, and the `.psmakerrc` -> `.pseudoforgerc` migration in an
+  isolated `$HOME`.
+- **J -- recipe round-trip across the interfaces.**  A recipe saved by
+  the CLI reloads byte-identical from the TUI, and vice versa; a file
+  that claims a newer format, or carries a key this version does not
+  know, is refused rather than read with the older one.
+- **K -- engine-specific menus.**  `fmt_for_engine` returns exactly the
+  registry's list for each of the nine engines; `ui_pick_format` on a
+  single-format engine opens no dialog and sets SPEC; `ui_pick_engine`
+  on `psl-high`/`paw` is ld1 only, on `sg15`/`nc` is oncvpsp or opium,
+  on `gbrv`/`us` is uspp only.
+- **L -- refusal matrix in the TUI.**  `--projector` on oncvpsp,
+  `--upf 1`, `family=paw` on oncvpsp, `--rcut-scale` on uspp, and a
+  meta-GGA on AtomPAW are refused after the Review screen and before
+  anything is written.  The CLI refuses the same five.
+
+### A help text bug found while updating the help text
+
+`cli_usage` prints through an *unquoted* heredoc, so anything in
+backticks runs.  The new line "also what a bare `pseudoforge` runs"
+made every `--help` invocation try to execute the word `pseudoforge`,
+which is not on `PATH`, and print `command not found` over the usage
+text.  The reference is now plain text.
+
+---
+
 ## The interfaces, checked against the core after the changes
 
 The five weeks of changes -- format disambiguation, AtomPAW's r2SCAN path,
