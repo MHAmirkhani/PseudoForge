@@ -591,6 +591,139 @@ for row in "${TUI_MATRIX[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+section "H. TUI top-level menu"
+
+# Every tag the main menu offers must have a case handler; every function
+# a case handler calls must exist.  This is the interface surface, so it
+# is worth stating: a tag with no handler is a menu item that does
+# nothing when you click it.
+TAGS=$(awk '/^tui_main\(\)/,/^}/' "$PF_LIB/tui.sh" \
+       | awk '/^[[:space:]]+[a-z]+[[:space:]]+"/ {print $1}' | sort -u)
+CASES=$(awk '/^tui_main\(\)/,/^}/' "$PF_LIB/tui.sh" \
+        | awk '/^[[:space:]]+[a-z]+\)/ {sub(/\)/,""); print $1}' | sort -u)
+
+missing_case=""
+for t in $TAGS; do
+    printf '%s\n' "$CASES" | grep -qx "$t" || missing_case="$missing_case $t"
+done
+missing_case=$(printf '%s\n' $missing_case | tr '\n' ' ' | sed 's/^ //;s/ $//')
+[ -z "$missing_case" ] \
+    && ok_ "every menu tag has a case handler" \
+    || bad_ "menu tag(s) with no handler:$missing_case"
+
+# Handlers that must exist as functions.  `advanced` is an inline toggle,
+# not a function, and is checked separately by the count below.
+missing_fn=""
+for fn in tui_wizard ui_quick ui_browse_profiles ui_browse_recipes \
+          ui_browse_xc ui_validate ui_import ui_reports ui_settings \
+          tui_doctor_panel tui_history_show tui_help tui_load_recipe; do
+    declare -F "$fn" >/dev/null 2>&1 || missing_fn="$missing_fn $fn"
+done
+missing_fn=$(printf '%s\n' $missing_fn | tr '\n' ' ' | sed 's/^ //;s/ $//')
+[ -z "$missing_fn" ] \
+    && ok_ "every tui_main case handler is defined" \
+    || bad_ "missing handler function(s):$missing_fn"
+
+# A TUI that offers fewer entries than the CLI can do makes the user
+# fall back to the command line.  The number is a floor, not a target.
+n=$(printf '%s\n' "$TAGS" | grep -c . || true)
+[ "$n" -ge 14 ] \
+    && ok_ "tui_main menu offers $n entries" \
+    || bad_ "tui_main menu offers only $n entries (14 expected)"
+
+# ---------------------------------------------------------------------------
+section "I. config file"
+
+# Isolated config so nothing here touches the user's real one.  PF_RC is
+# the file pseudoforge reads and writes; every subcommand honours it.
+CFG=$TMP/pseudoforge.rc
+mig_home=$TMP/migrate-home
+mkdir -p "$mig_home"
+
+cfg() { PF_RC=$CFG "$PSM" config "$@"; }
+
+# --show on a fresh file: creates it, prints every key.  The file has to
+# exist after the call -- pf_config_load creates it if missing, and
+# `config --show` should leave it there.
+out=$(cfg --show 2>&1)
+[ -f "$CFG" ] \
+    && ok_ "config --show creates the file" \
+    || bad_ "config --show did not create $CFG"
+printf '%s' "$out" | grep -q 'DEFAULT_XC' \
+    && ok_ "config --show lists DEFAULT_XC" \
+    || bad_ "config --show output has no DEFAULT_XC"
+
+# --path prints the path and nothing else.
+p=$(cfg --path 2>&1)
+[ "$p" = "$CFG" ] \
+    && ok_ "config --path prints the path" \
+    || bad_ "config --path printed '$p', not '$CFG'"
+
+# --set writes one key.
+cfg --set DEFAULT_XC=PBEsol >/dev/null 2>&1
+grep -qE '^DEFAULT_XC=\"?PBEsol\"?' "$CFG" \
+    && ok_ "config --set writes a key" \
+    || bad_ "config --set did not write DEFAULT_XC=PBEsol"
+
+# --set accepts several KEY=VALUE pairs in one call.
+cfg --set DEFAULT_PROFILE=psl-low DEFAULT_PSEUDOTYPE=paw >/dev/null 2>&1
+if grep -qE '^DEFAULT_PROFILE=\"?psl-low\"?' "$CFG" \
+   && grep -qE '^DEFAULT_PSEUDOTYPE=\"?paw\"?' "$CFG"; then
+    ok_ "config --set accepts several KEY=VALUE pairs"
+else
+    bad_ "config --set did not apply the second pair"
+fi
+
+# Round-trip: read back what was set.
+out=$(cfg --show 2>&1)
+printf '%s' "$out" | grep -q 'PBEsol' \
+    && ok_ "config round-trip: PBEsol survives" \
+    || bad_ "config round-trip lost PBEsol"
+
+# --edit invokes $EDITOR with the path.  `true` is a no-op editor: it
+# returns 0 without touching the file, which is all this interface test
+# needs.  The content is covered by --set and --show.
+EDITOR=true cfg --edit >/dev/null 2>&1 \
+    && ok_ "config --edit runs the editor" \
+    || bad_ "config --edit failed"
+
+# An unknown flag is refused rather than silently ignored.
+cfg --not-a-real-flag >/dev/null 2>&1 \
+    && bad_ "config accepted an unknown flag" \
+    || ok_ "config refuses an unknown flag"
+
+# Migration: a psmaker configuration in an isolated HOME is carried over.
+cat > "$mig_home/.psmakerrc" <<'PSM'
+LD1_BIN=/opt/qe/ld1.x
+DEFAULT_XC=PBE
+PSM
+
+# A file, not `bash -c "..."`: the inner loop needed backslash-dollar
+# escaping that the outer shell ate.  A plain script takes its paths
+# from the environment and needs no escaping at all.
+cat > "$TMP/mig-check.sh" <<'MIGSH'
+for m in core sink config; do
+    . "$PF_LIB/$m.sh"
+done
+pf_config_migrate 2>&1
+MIGSH
+
+mig_out=$(
+    HOME=$mig_home PF_RC=$mig_home/.pseudoforgerc PF_LIB=$PF_LIB \
+    bash "$TMP/mig-check.sh"
+)
+
+[ -f "$mig_home/.pseudoforgerc" ] \
+    && ok_ "config migration creates the new file" \
+    || bad_ "config migration created nothing (output: $mig_out)"
+[ -f "$mig_home/.psmakerrc" ] \
+    && ok_ "config migration leaves the old file alone" \
+    || bad_ "config migration deleted the old file"
+grep -q 'DEFAULT_XC=PBE' "$mig_home/.pseudoforgerc" 2>/dev/null \
+    && ok_ "config migration carries the values across" \
+    || bad_ "config migration lost the values"
+
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
