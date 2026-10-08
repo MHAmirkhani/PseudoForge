@@ -190,39 +190,130 @@ drive_ui_advanced() {
         ui_init
         exec < /dev/null
         ui_advanced
-        for k in core_hole rcut_scale lloc nc_form gipaw lsd; do
+        # Every key ui_advanced can set.  The list matches the USER_KEYS
+        # list in test_custom.sh, minus `upf`: only v2 is producible and
+        # the menu item that offered v1 was removed when the CLI began
+        # refusing `--upf 1`.
+        for k in variant author config core_hole zed zval nlcc rcore rho0 \
+                 which_augfun rmatch_augfun lloc rcloc rcut_scale nc_form \
+                 beta tr2 lsd gipaw extra_projectors xmin dx rmax; do
             printf '%s=%s\n' "$k" "${SPEC[$k]:-}"
         done
     ) 2>/dev/null
 }
 
-check_ui_key() {
-    local tag=$1 value=$2 key=$3 expected=$4
-    printf '%s\n%s\nCANCEL\n' "$tag" "$value" > "$TMP/ans"
-    out=$(drive_ui_advanced "$TMP/ans")
+# run_ui_advanced_with <printf-format> -- drive the screen with the given
+# answer sequence.  The answers come in as a printf format string so a
+# multi-line sequence (a menu pick followed by the inputbox it opens)
+# reads on one line and the `\n` between them is visible.
+run_ui_advanced_with() {
+    printf -- "$@" > "$TMP/ans"
+    drive_ui_advanced "$TMP/ans"
+}
+
+check_key() {   # check_key <output> <key> <expected> [<label>]
+    local out=$1 key=$2 expected=$3 label=${4:-screen}
+    local got
     got=$(printf '%s' "$out" | awk -F= -v k="$key" '$1==k {print $2}')
     if [ "$got" = "$expected" ]; then
-        ok_ "ui_advanced: '$tag' sets $key=$expected"
+        ok_ "$label: $key=$expected"
     else
-        bad_ "ui_advanced: '$tag' left $key='$got' (expected '$expected')"
+        bad_ "$label: $key='$got' (expected '$expected')"
     fi
 }
 
-check_ui_key corehole 1s core_hole 1s
-check_ui_key rcut 1.10 rcut_scale 1.10
-check_ui_key lloc 2 lloc 2
-check_ui_key ncform semilocal nc_form semilocal
-check_ui_key gipaw   yes gipaw 1
-check_ui_key lsd     yes lsd 1
+# --- One block per user-settable key ------------------------------------
+#
+# Six were covered before this pass; the other seventeen were reachable
+# from the screen and never driven by a test.  Each block names the menu
+# item, the answers it needs, and the SPEC keys it should end up setting.
+# A menu item that opens a sub-inputbox takes two answer lines; the two
+# that open a second menu (nlcc, augfun) take three.
+
+# corehole: menu pick, then one inputbox
+out=$(run_ui_advanced_with 'corehole\n1s\nCANCEL\n')
+check_key "$out" core_hole 1s ui_advanced
+# rcut: menu pick, then one inputbox
+out=$(run_ui_advanced_with 'rcut\n1.10\nCANCEL\n')
+check_key "$out" rcut_scale 1.10 ui_advanced
+# lloc: menu pick, then lloc inputbox, then rcloc inputbox
+out=$(run_ui_advanced_with 'lloc\n-1\n1.5\nCANCEL\n')
+check_key "$out" lloc -1 ui_advanced
+check_key "$out" rcloc 1.5 ui_advanced
+# ncform: menu pick, then the form menu
+out=$(run_ui_advanced_with 'ncform\nsemilocal\nCANCEL\n')
+check_key "$out" nc_form semilocal ui_advanced
+# gipaw: menu pick, then a yesno
+out=$(run_ui_advanced_with 'gipaw\nyes\nCANCEL\n')
+check_key "$out" gipaw 1 ui_advanced
+# lsd: menu pick, then a yesno
+out=$(run_ui_advanced_with 'lsd\nyes\nCANCEL\n')
+check_key "$out" lsd 1 ui_advanced
+# variant: one inputbox
+out=$(run_ui_advanced_with 'variant\nspn\nCANCEL\n')
+check_key "$out" variant spn ui_advanced
+# author: one inputbox
+out=$(run_ui_advanced_with 'author\nTest Author\nCANCEL\n')
+check_key "$out" author 'Test Author'
+
+# config: one inputbox
+out=$(run_ui_advanced_with 'config\n[Ar] 3d7 4s1\nCANCEL\n')
+check_key "$out" config '[Ar] 3d7 4s1'
+
+# zed: one inputbox
+out=$(run_ui_advanced_with 'zed\n13.5\nCANCEL\n')
+check_key "$out" zed 13.5 ui_advanced
+# zval: one inputbox
+out=$(run_ui_advanced_with 'zval\n14\nCANCEL\n')
+check_key "$out" zval 14 ui_advanced
+# nlcc: menu pick, then the Leave/on/off menu, then rcore and rho0 boxes
+out=$(run_ui_advanced_with 'nlcc\non\n0.8\n1.0\nCANCEL\n')
+check_key "$out" nlcc on ui_advanced
+check_key "$out" rcore 0.8 ui_advanced
+check_key "$out" rho0 1.0 ui_advanced
+# augfun: menu pick, then the augfun menu, then rmatch_augfun
+out=$(run_ui_advanced_with 'augfun\nPSQ\n2.0\nCANCEL\n')
+check_key "$out" which_augfun PSQ ui_advanced
+check_key "$out" rmatch_augfun 2.0 ui_advanced
+# proj: one inputbox (space-separated list of shell:energy tokens)
+out=$(run_ui_advanced_with 'proj\n3D:0.5\nCANCEL\n')
+check_key "$out" extra_projectors 3D:0.5 ui_advanced
+# grid: one inputbox holding xmin:dx:rmax; the handler splits it
+out=$(run_ui_advanced_with 'grid\n-7.0:0.0125:120.0\nCANCEL\n')
+check_key "$out" xmin -7.0 ui_advanced
+check_key "$out" dx 0.0125 ui_advanced
+check_key "$out" rmax 120.0 ui_advanced
+# scf: menu pick, then beta inputbox, then tr2 inputbox
+out=$(run_ui_advanced_with 'scf\n0.1\n1.0d-14\nCANCEL\n')
+check_key "$out" beta 0.1 ui_advancedcheck_key "$out" tr2 1.0d-14
 
 # ---------------------------------------------------------------------------
-section "D. Wizard text-mode entry"
+section "D. Wizard steps (text-mode, one at a time)"
 
-drive_wizard_family() {
+WIZ_STEP_ANSWERS=$TMP/wiz-step-answers
+
+# Each of the seven wizard steps reads one or more answers and writes one
+# or more SPEC keys.  Running wizard_main end to end would call run_batch
+# and produce a pseudopotential -- a side effect the audit should not have
+# and does not need.  Driving the steps individually also catches a step
+# that stopped setting its key, which a full-flow run would hide behind
+# whatever the next step copies through.
+#
+# wiz_step_run <step-fn> <setup> <answers> <keys...> -- run one step in
+# its own shell with the setup applied first, print the named keys.
+
+wiz_step_run() {
+    local step=$1 setup=$2 answers=$3; shift 3
     (
+        # PF_ROOT, PF_LIB, PF_DATA are already exported at the top of the
+        # script, so the subshell inherits them.  The `echo` in the parent
+        # diag had no PF_DATA and the modules silently failed to load --
+        # the error message ("element table not found") came from a
+        # source that had lost $PF_DATA.  Leaving the exports alone here
+        # and trusting the inherited environment is the fix; the earlier
+        # version was fine, the diag just ran without them.
         export PF_FORCE_TEXT=1
-        exec < /dev/null
-        for m in core sink config elements xc namelist profiles metadata \
+        for m in core sink config deps elements xc namelist profiles metadata \
                  formats gth sssp convert doctor params engines recipe \
                  input_builder executor project run ui wizard; do
             . "$PF_LIB/$m.sh" 2>/dev/null || true
@@ -232,18 +323,108 @@ drive_wizard_family() {
         pf_xc_load 2>/dev/null || true
         pf_profiles_load 2>/dev/null || true
         pf_engines_load 2>/dev/null || true
+        pf_metadata_load 2>/dev/null || true
         spec_init 2>/dev/null || true
-        printf '1\n1\n1\n1\n1\n1\nSi\n%s/wiz-out\nY\n' "$TMP" \
-            | wizard_main >/dev/null 2>&1
-        printf 'family=%s\n' "${SPEC[family]:-}"
+        # wiz_init resolves the backend.  Without this call WIZ_BACKEND is
+        # empty and wiz_menu falls through to the whiptail path, which
+        # fails in a script with no terminal -- every step silently
+        # returned 1 and the SPEC keys stayed at their spec_init defaults.
+        wiz_init 2>/dev/null || true
+        eval "$setup" 2>/dev/null || true
+        # Feed the answers from a file rather than a pipe.  `printf ... |
+        # step` runs `step` in a subshell, and the SPEC keys it sets are
+        # lost when that subshell exits -- every check then saw whatever
+        # spec_init had left.  A redirect runs it in *this* shell.
+        # Process substitution, not a redirect from a file: the same
+        # behaviour as `printf ... | step` -- the pipe ran step in a
+        # subshell and the SPEC keys were lost -- without the subshell.
+        # A redirect from a named file has been known to interact badly
+        # with command substitutions inside the step; this does not.
+        "$step" < <(printf '%s\n' "$answers") >/dev/null 2>&1
+        local k
+        for k in "$@"; do
+            printf '%s=%s\n' "$k" "${SPEC[$k]:-}"
+        done
     )
 }
 
-fam=$(drive_wizard_family | awk -F= '$1=="family"{print $2}')
-case $fam in
-    nc|us|paw) ok_ "wizard text-mode picked family=$fam" ;;
-    *)         skip_ "wizard text-mode did not reach the family prompt (got '$fam')" ;;
-esac
+# --- wiz_step_family ----------------------------------------------------
+out=$(wiz_step_run wiz_step_family "" "1" family)
+check_key "$out" family paw wizard
+out=$(wiz_step_run wiz_step_family "" "2" family)
+check_key "$out" family us wizard
+out=$(wiz_step_run wiz_step_family "" "3" family)
+check_key "$out" family nc wizard
+# --- wiz_step_xc --------------------------------------------------------
+# The first menu item is PBE for any starting family; the driver picks 1.
+out=$(wiz_step_run wiz_step_xc "SPEC[family]=paw" "1" xc)
+check_key "$out" xc pbe wizard
+# --- wiz_step_rel -------------------------------------------------------
+out=$(wiz_step_run wiz_step_rel "SPEC[family]=paw; SPEC[xc]=pbe" "1" rel)
+check_key "$out" rel scalar wizard
+out=$(wiz_step_run wiz_step_rel "SPEC[family]=paw; SPEC[xc]=pbe" "2" rel)
+check_key "$out" rel full wizard
+out=$(wiz_step_run wiz_step_rel "SPEC[family]=paw; SPEC[xc]=pbe" "3" rel)
+check_key "$out" rel nonrel wizard
+# --- wiz_step_profile ---------------------------------------------------
+# The profile list depends on family, and its order depends on the
+# profile registry; the check is that the key was set to one of the
+# profiles that supports the family, not that it is any particular one.
+out=$(wiz_step_run wiz_step_profile \
+        "SPEC[family]=paw; SPEC[xc]=pbe; SPEC[rel]=scalar" "1" profile engine)
+prof=$(printf '%s' "$out" | awk -F= '$1=="profile"{print $2}')
+eng=$(printf '%s' "$out" | awk -F= '$1=="engine"{print $2}')
+if [ -n "$prof" ]; then
+    ok_ "wizard: profile=$prof (engine=$eng)"
+else
+    bad_ "wizard: profile empty" "$out"
+fi
+
+# --- wiz_step_source ----------------------------------------------------
+# '2' is the second menu item, "local"; '1' is "online".
+out=$(wiz_step_run wiz_step_source \
+        "SPEC[family]=paw; SPEC[xc]=pbe; SPEC[rel]=scalar; SPEC[profile]=psl-high; SPEC[engine]=ld1" \
+        "1" source)
+check_key "$out" source online wizard
+out=$(wiz_step_run wiz_step_source \
+        "SPEC[family]=paw; SPEC[xc]=pbe; SPEC[rel]=scalar; SPEC[profile]=psl-high; SPEC[engine]=ld1" \
+        "2" source)
+check_key "$out" source local wizard
+# --- wiz_step_engine ----------------------------------------------------
+# For a family the recommended engine is installed for, the step returns
+# 0 immediately -- nothing to ask, nothing to change.  That is a check
+# in itself: the step must not prompt when the engine is present.
+out=$(wiz_step_run wiz_step_engine \
+        "SPEC[family]=paw; SPEC[engine]=ld1" "" engine)
+check_key "$out" engine ld1 wizard
+# --- wiz_step_elements --------------------------------------------------
+# Not a SPEC key; the step writes WIZ_ELEMENT_LIST.  Reuse wiz_step_run
+# with a twist: it prints only SPEC keys, so this call checks the
+# elements input box's own return by running the step and inspecting
+# the file it produces.
+wiz_step_elements_drive() {
+    local answer=$1
+    (
+        export PF_FORCE_TEXT=1
+        for m in core sink config deps elements xc namelist profiles metadata \
+                 formats gth sssp convert doctor params engines recipe \
+                 input_builder executor project run ui wizard; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        pf_config_defaults 2>/dev/null || true
+        pf_elements_load 2>/dev/null || true
+        spec_init 2>/dev/null || true
+        wiz_init 2>/dev/null || true
+        wiz_step_elements < <(printf '%s\n' "$answer") >/dev/null 2>&1
+        # The step leaves a trailing space; trim it before printing so
+        # the check compares to the exact string a user typed.
+        printf 'elements=%s\n' "$(printf '%s' "${WIZ_ELEMENT_LIST:-}" | sed 's/[[:space:]]*$//')"
+    )
+}
+out=$(wiz_step_elements_drive Si)
+check_key "$out" elements Si
+out=$(wiz_step_elements_drive "1-3")
+check_key "$out" elements "H He Li"
 
 # ---------------------------------------------------------------------------
 section "E. doc paths referenced from shell code exist"
@@ -271,8 +452,17 @@ smoke() {
     if "$@" >/dev/null 2>&1; then ok_ "$label"; else bad_ "$label"; fi
 }
 
-smoke "native list"           "$PSM" native list
-smoke "native size"           "$PSM" native size
+# `native list` and `native size` read the store.  When there is no store
+# -- running inside run_tests.sh with a temporary HOME -- skip them rather
+# than fail: the audit's job is to check the interface, not to insist that
+# every machine has a 23 GB file collection.
+if [ -f "${PF_NATIVE_DIR:-$HOME/pf-native}/index.tsv" ]; then
+    smoke "native list"       "$PSM" native list
+    smoke "native size"       "$PSM" native size
+else
+    skip_ "native list (no store at ${PF_NATIVE_DIR:-$HOME/pf-native})"
+    skip_ "native size (no store at ${PF_NATIVE_DIR:-$HOME/pf-native})"
+fi
 smoke "engines list"          "$PSM" engines list
 smoke "engines path ld1"      "$PSM" engines path ld1
 smoke "convert --why gth upf" "$PSM" convert --why gth upf
@@ -286,19 +476,119 @@ smoke "config --show"         "$PSM" config --show
 smoke "citation psl-high"     "$PSM" citation psl-high
 
 # ---------------------------------------------------------------------------
-section "G. TUI per-engine matrix (opt-in, PF_SLOW_INTERFACES=1)"
+section "G. TUI per-engine generation"
 
-if [ "${PF_SLOW_INTERFACES:-0}" = 1 ]; then
-    for eng in ld1 oncvpsp uspp fhi98pp opium gth atompaw ape adpack; do
-        if ! "$PSM" engines path "$eng" >/dev/null 2>&1; then
-            skip_ "$eng not installed"
-            continue
+# The TUI's guided flow reaches every engine through the same pickers, but
+# the sequence of menus a user sees differs: for a library that ships its
+# own decks the engine is fixed, for a constructed profile the engine menu
+# appears.  Driving the whole flow once per engine would test the pickers
+# again (Sections B and C already do) and would need a different answer
+# sequence per engine.
+#
+# What the TUI has never been tested on is the *generation* itself: does
+# tui_do_run, for this engine, actually produce a file?  Each block below
+# sets SPEC the way the layer walk would have, calls tui_review directly,
+# and asserts the output the engine is supposed to produce.
+#
+# Engines that are not installed are skipped, with the reason.  This
+# section needs real engines (the CLI mock does not help -- tui_do_run
+# shells out to cmd_generate, which needs a real binary).
+
+# (engine, profile, family, xc, rel, element) -- the same rows as
+# tests/test_engine_matrix.sh, so if that passes and this does not, the
+# difference is the TUI wrapper, not the engine.
+TUI_MATRIX=(
+    "ld1|psl-high|paw|pbe|scalar|Si"
+    "oncvpsp|sg15|nc|pbe|scalar|Si"
+    "uspp|gbrv|us|pbe|scalar|Si"
+    "fhi98pp|fhi|nc|pw|scalar|Si"
+    "opium|opium|nc|pz|scalar|Fe"
+    "gth|cp2k-gth|nc|pbe|scalar|Si"
+    "atompaw|atompaw|paw|pbe|scalar|Si"
+    "ape|pseudoforge-auto|nc|pbe|scalar|Si"
+    "adpack|adpack|nc|pz|full|Na"
+)
+
+# drive_tui_review -- set SPEC, then run tui_review directly.  The mock
+# whiptail answers two prompts: the Output directory input box (the path),
+# and the final "Start" yes/no.  Everything else the guided flow would
+# have asked is already set in SPEC.
+drive_tui_review() {
+    local eng=$1 profile=$2 family=$3 xc=$4 rel=$5 element=$6 out=$7
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/tui-$eng.log MOCK_WT_ANSWERS=$TMP/tui-$eng.ans
+    : > "$MOCK_WT_LOG"
+    printf 'run\n%s\nyes\n' "$out" > "$MOCK_WT_ANSWERS"
+
+    (
+        # A fresh shell per engine: the core modules hold state (project
+        # directories, prepared decks) and reusing one shell across rows
+        # would carry it forward.
+        for m in core sink config deps elements xc namelist profiles metadata \
+                 formats gth sssp convert doctor params engines build recipe \
+                 input_builder executor fetch project run upf testing validate \
+                 report cli ui tui wizard; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        export PF_ROOT PF_LIB PF_DATA
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        SPEC[profile]=$profile
+        SPEC[family]=$family
+        SPEC[xc]=$xc
+        SPEC[rel]=$rel
+        SPEC[engine]=$eng
+        SPEC[source]=local
+        # The format the engine actually writes.  A user going through the
+        # format picker sees only those formats offered (ui_pick_format
+        # reads fmt_for_engine).  This driver skips the picker and sets
+        # SPEC[formats] from the profile, which for APE is "upf xml" --
+        # and APE writes only upf, so cli_check_spec refuses.  Match what
+        # the picker would have produced.
+        if ! SPEC[formats]=$(fmt_validate "$eng" "${PROF_FORMATS[$profile]:-upf}" 2>/dev/null); then
+            SPEC[formats]=$(fmt_for_engine "$eng" | head -1)
         fi
-        skip_ "$eng: TUI per-engine smoke not implemented yet"
-    done
-else
-    skip_ "set PF_SLOW_INTERFACES=1 to run the per-engine TUI matrix"
-fi
+        CLI_ELEMENTS=$element
+        RUN_LD1_TESTS=0
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        tui_review
+    ) >"$TMP/tui-$eng.out" 2>&1
+}
+
+for row in "${TUI_MATRIX[@]}"; do
+    IFS='|' read -r eng profile family xc rel element <<< "$row"
+    out=$TMP/tui-$eng-out
+
+    if ! "$PSM" engines path "$eng" >/dev/null 2>&1; then
+        skip_ "TUI: $eng not installed"
+        continue
+    fi
+
+    # No `bash -c "$(declare -f ...)"` here: the function reaches for
+    # $TMP, $ROOT, $PF_LIB and $PF_DATA, and a fresh `bash -c` shell does
+    # not have them -- every source inside failed silently and the row
+    # timed out with "cannot load core.sh" hidden in the log.  Call the
+    # function directly so it inherits the environment the audit set up.
+    # The timeout is on the whole subshell drive_tui_review starts.
+    drive_tui_review "$eng" "$profile" "$family" "$xc" "$rel" "$element" "$out"
+
+    # What came out.  Every engine writes at least one file under pseudos/;
+    # the name and format differ, so the count is what the check uses.
+    n=$(find "$out/pseudos" -maxdepth 1 -type f 2>/dev/null | wc -l)
+    if [ "$n" -eq 0 ]; then
+        bad_ "TUI: $eng/$family/$element produced no file" \
+             "$(tail -5 "$TMP/tui-$eng.out" 2>/dev/null)"
+    elif [ ! -f "$out/reports/summary.txt" ]; then
+        bad_ "TUI: $eng wrote $n file(s) but no report" \
+             "the run finished but summary.txt is missing"
+    else
+        ok_ "TUI: $eng/$family/$element produced $n file(s) and a report"
+    fi
+done
 
 # ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \

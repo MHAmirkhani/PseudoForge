@@ -507,7 +507,11 @@ fi
 # the shell code exists.  Runs the fast sections only; the per-engine TUI
 # matrix stays opt-in via PF_SLOW_INTERFACES=1 on the audit script itself.
 section "interface audit"
-if bash "$ROOT/tools/audit-interfaces.sh" >/dev/null 2>&1; then
+# Hand the audit the same store path the store-integrity section uses.
+# Without it, HOME points at the temporary directory and Section F's
+# native-list smoke fails for want of an index.
+audit_store=${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}
+if PF_NATIVE_DIR=$audit_store bash "$ROOT/tools/audit-interfaces.sh" >/dev/null 2>&1; then
     ok_ "the CLI, TUI and wizard agree with the core"
 else
     bad_ "interface audit" "run: tools/audit-interfaces.sh"

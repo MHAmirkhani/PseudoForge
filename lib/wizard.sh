@@ -168,6 +168,8 @@ The file PseudoForge writes is genuinely a $(upper "$(xc_qe_string "$choice")") 
 That is deliberate and it is what you want: use it for your
 ${XC_LABEL[$choice]} calculation and cite it as such."
     fi
+}
+
 # ---------------------------------------------------------------------------
 # Step 3 -- relativity
 # ---------------------------------------------------------------------------
@@ -184,8 +186,6 @@ spin-orbit calculations -- worth the extra cost above roughly Z=37
         full   "Full-relativistic   -- with spin-orbit (j-dependent projectors)" \
         nonrel "Non-relativistic    -- light elements, or for comparison") || return 1
     SPEC[rel]=$choice
-}
-
 }
 
 # ---------------------------------------------------------------------------

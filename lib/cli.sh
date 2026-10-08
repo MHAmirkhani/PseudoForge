@@ -496,14 +496,34 @@ cli_check_spec() {
     # Output formats are validated against the engine that will actually run,
     # so a request the engine cannot honour is refused here rather than
     # silently producing a UPF under a different name.
+    # Output formats, in order of authority:
+    #
+    #   1. --format on the command line -- an explicit request.
+    #   2. what the profile declares its engine should emit, IF the engine
+    #      can honour it.  opium declares its ten formats here; ld1 and
+    #      oncvpsp declare upf xml; that is where the multiple-format
+    #      default comes from.
+    #   3. SPEC[formats] as the TUI, a recipe, or a direct assignment set
+    #      it -- validated against the engine.  Some profiles declare a
+    #      format their engine cannot write (pseudoforge-auto says "upf
+    #      xml" but APE writes only upf), and the format picker sets the
+    #      engine's own answer.  Falling through to it keeps the TUI's
+    #      choice.
+    #   4. the global default.
+    #
+    # The old order put the profile in front of SPEC[formats] without the
+    # "IF the engine can honour it" guard, so a TUI run that had picked
+    # upf for APE had SPEC[formats]=upf overwritten by the profile's
+    # "upf,xml" and cli_check_spec refused with "APE cannot write xml".
     if [ -n "${CLI_FORMATS:-}" ]; then
         SPEC[formats]=$(fmt_validate "${SPEC[engine]}" "$CLI_FORMATS") || exit 1
-    elif [ -n "${PROF_FORMATS[${SPEC[profile]}]:-}" ]; then
-        # A profile may declare the formats its engine should emit by default
-        # (opium declares its ten).  Declared space-separated in the profile,
-        # comma-separated for fmt_validate.  An explicit --format still wins.
-        local _pf_fmts=${PROF_FORMATS[${SPEC[profile]}]// /,}
-        SPEC[formats]=$(fmt_validate "${SPEC[engine]}" "$_pf_fmts") || exit 1
+    elif [ -n "${PROF_FORMATS[${SPEC[profile]}]:-}" ] \
+         && _v=$(fmt_validate "${SPEC[engine]}" \
+                       "${PROF_FORMATS[${SPEC[profile]}]// /,}" 2>/dev/null); then
+        SPEC[formats]=$_v
+    elif [ -n "${SPEC[formats]:-}" ] \
+         && _v=$(fmt_validate "${SPEC[engine]}" "${SPEC[formats]}" 2>/dev/null); then
+        SPEC[formats]=$_v
     else
         SPEC[formats]=${DEFAULT_FORMATS:-upf}
     fi

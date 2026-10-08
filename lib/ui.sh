@@ -1309,7 +1309,16 @@ ui_pick_format() {
         n=$((n + 1))
     done < <(fmt_for_engine "$eng")
 
-    [ "$n" -le 1 ] && return 3
+    # One format means no menu; set the SPEC and skip.  The old code
+    # returned without touching SPEC[formats], so a profile whose engine
+    # writes a non-upf format alone (fhi98pp writes cpi, adpack writes
+    # openmx) ended up with the spec_init default `upf` and was refused
+    # downstream.  Setting what the engine actually writes is what the
+    # user would have picked from a single-item menu.
+    if [ "$n" -le 1 ]; then
+        SPEC[formats]=$(fmt_for_engine "$eng")
+        return 3
+    fi
 
     items+=("more" "Several formats at once")
     c=$(ui_menu "Output format" \
