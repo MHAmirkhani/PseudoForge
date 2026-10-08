@@ -1317,6 +1317,112 @@ else
     ok_ "sub-subcommand --help wrote nothing named after itself"
 fi
 # ---------------------------------------------------------------------------
+section "N. every flag parses into the variable it names"
+
+# cli_parse is where a flag becomes a variable, and that variable is what
+# every stage after it reads.  A flag that is documented and does not
+# reach its destination is a silent no-op: the user asked for something,
+# the tool accepted the argument, and nothing happened.  This is the
+# failure mode the audit exists to make loud.
+
+parse_show() {
+    local var=$1; shift
+    (
+        for m in $PICK_LIBS; do . "$PF_LIB/$m.sh" 2>/dev/null || true; done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        CLI_ELEMENTS=
+        cli_parse "$@" 2>/dev/null || true
+        eval "printf '%s\n' \"\${$var:-}\""
+    )
+}
+
+check_flag() {   # <varname> <expected> <label> <flag> [value]
+    local var=$1 want=$2 label=$3; shift 3
+    local got
+    got=$(parse_show "$var" "$@" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [ "$got" = "$want" ]; then
+        ok_ "flag $label: $var = $want"
+    else
+        bad_ "flag $label: $var = '$got' (want '$want')"
+    fi
+}
+
+# Spec identity -------------------------------------------------------
+check_flag SPEC[family]  nc      "family (-t)"          -t nc
+check_flag SPEC[family]  paw     "family (--family)"    --family paw
+check_flag SPEC[family]  us      "family (--type)"      --type us
+check_flag SPEC[profile] psl-high "profile"             -p psl-high
+check_flag SPEC[xc]      pbe     "xc (-x)"              -x pbe
+check_flag SPEC[xc]      pbesol  "xc (--functional)"    --functional pbesol
+check_flag SPEC[rel]     scalar  "rel (-r)"             -r scalar
+check_flag SPEC[rel]     full    "rel (--relativity)"   --relativity full
+check_flag SPEC[variant] dn      "variant"              --variant dn
+check_flag SPEC[upf]     2       "upf"                  --upf 2
+
+# Output and run shape ------------------------------------------------
+check_flag CLI_ELEMENTS  "Fe"    "elements (-e)"        -e Fe
+check_flag CLI_ELEMENTS  "Fe Si" "elements (-e twice)"  -e Fe -e Si
+check_flag CLI_OUTPUT    /tmp/x  "output"               -o /tmp/x
+check_flag MAX_PARALLEL_JOBS 8   "jobs (-j)"            -j 8
+
+# User-settable keys on the advanced screen ---------------------------
+check_flag SPEC[author]        "Me"          "author"       --author Me
+check_flag SPEC[config]        "[Ne] 3s2"    "config"       --config "[Ne] 3s2"
+check_flag SPEC[core_hole]     1s            "core-hole"    --core-hole 1s
+check_flag SPEC[zed]           13.5          "zed"          --zed 13.5
+check_flag SPEC[zval]          4             "zval"         --zval 4
+check_flag SPEC[nlcc]          1             "nlcc"         --nlcc 1
+check_flag SPEC[rcore]         1.25          "rcore"        --rcore 1.25
+check_flag SPEC[rho0]          0.015         "rho0"         --rho0 0.015
+check_flag SPEC[which_augfun]  BESSEL        "augfun"       --augfun BESSEL
+check_flag SPEC[which_augfun]  GAUSS         "which-augfun" --which-augfun GAUSS
+check_flag SPEC[rmatch_augfun] 1.10          "rmatch"       --rmatch 1.10
+check_flag SPEC[lloc]          s             "lloc"         --lloc s
+check_flag SPEC[rcloc]         1.0           "rcloc"        --rcloc 1.0
+check_flag SPEC[extra_projectors] "d l=2"    "projector"    --projector "d l=2"
+check_flag SPEC[rcut_scale]    1.05          "rcut-scale"   --rcut-scale 1.05
+check_flag SPEC[nc_form]       separable     "nc-form"      --nc-form separable
+check_flag SPEC[lsd]           1             "lsd"          --lsd
+check_flag SPEC[gipaw]         1             "gipaw"        --gipaw
+check_flag SPEC[beta]          0.3           "beta"         --beta 0.3
+check_flag SPEC[tr2]           1e-12         "tr2"          --tr2 1e-12
+
+# --grid carries three keys in one argument ---------------------------
+check_flag SPEC[xmin] -7    "grid xmin" --grid -7:0.01:100
+check_flag SPEC[dx]   0.01  "grid dx"   --grid -7:0.01:100
+check_flag SPEC[rmax] 100   "grid rmax" --grid -7:0.01:100
+
+# Engine, source, format ----------------------------------------------
+check_flag CLI_ENGINE   ld1     "engine"    --engine ld1
+check_flag CLI_SOURCE   online  "source"    --source online
+check_flag CLI_FORMATS  upf     "format"    --format upf
+check_flag CLI_FORMATS  "upf xml" "formats" --formats "upf xml"
+
+# Execution toggles ---------------------------------------------------
+check_flag RUN_LD1_TESTS      0  "no-test"          --no-test
+check_flag RUN_LD1_TESTS      1  "test"             --test
+check_flag RUN_CUTOFF_SCAN    1  "cutoff-scan"      --cutoff-scan
+check_flag RUN_CUTOFF_SCAN    0  "no-cutoff-scan"   --no-cutoff-scan
+check_flag CUTOFF_SCAN_LIST   "60,80,100" "cutoffs" --cutoffs 60,80,100
+check_flag AUTOFIX_ENABLED    0  "no-autofix"       --no-autofix
+check_flag AUTOFIX_ENABLED    1  "autofix"          --autofix
+check_flag AUTOFIX_MAX_ATTEMPTS 5 "attempts"        --attempts 5
+check_flag RESUME             1  "resume"           --resume
+check_flag RESUME             0  "no-resume"        --no-resume
+check_flag PF_QUIET           1  "quiet"            -q
+check_flag PF_VERBOSE         1  "verbose"          -v
+
+# Sanity: with no flags, spec_init still leaves a value in SPEC[family].
+out=$(parse_show SPEC[family])
+if [ -n "$out" ]; then
+    ok_ "no flags: spec_init sets SPEC[family]"
+else
+    bad_ "no flags: SPEC[family] is empty"
+fi
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
