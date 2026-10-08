@@ -1132,6 +1132,110 @@ else
     bad_ "ui_pick_engine gbrv/us: rc=$rc engine=$eng"
 fi
 # ---------------------------------------------------------------------------
+section "L. refusal matrix in the TUI"
+
+# cli_check_spec refuses a spec that cannot run: --projector on an engine
+# whose deck builder ignores it, --upf 1 (no engine here writes v1),
+# --rcut-scale on an engine that does not implement it, a family the
+# engine cannot make, an engine path that cannot express the functional.
+#
+# The TUI reaches that refusal through cmd_generate, after the review
+# screen and the Start prompt.  These checks drive tui_review with the
+# scripted whiptail and assert that (a) the subshell exits non-zero,
+# (b) nothing is written to the chosen output directory, and (c) the
+# CLI refuses the same SPEC -- so the two interfaces are not deciding
+# differently about the same run.
+
+run_tui_refusal() {
+    local tag=$1 specset=$2
+    local outdir=$TMP/refuse-$tag
+    rm -rf "$outdir"
+
+    printf 'run\n%s\nyes\n' "$outdir" > "$TMP/rf-$tag.ans"
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/rf-$tag.log MOCK_WT_ANSWERS=$TMP/rf-$tag.ans
+    : > "$MOCK_WT_LOG"
+
+    local rc=0
+    (
+        for m in $PICK_LIBS; do . "$PF_LIB/$m.sh" 2>/dev/null || true; done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        CLI_ELEMENTS=Si
+        SPEC[profile]=pseudoforge-auto
+        SPEC[family]=nc
+        SPEC[xc]=pbe
+        SPEC[rel]=scalar
+        SPEC[source]=local
+        SPEC[engine]=oncvpsp
+        SPEC[formats]=upf
+        case $specset in
+            projector)   SPEC[extra_projectors]='d l=2' ;;
+            upf1)        SPEC[upf]=1 ;;
+            wrongfam)    SPEC[family]=paw; SPEC[engine]=oncvpsp ;;
+            rcutscale)   SPEC[family]=us; SPEC[engine]=uspp
+                         SPEC[rcut_scale]=1.10 ;;
+            metagga)     SPEC[family]=paw; SPEC[engine]=atompaw
+                         SPEC[xc]=tpss ;;
+        esac
+        RUN_LD1_TESTS=0
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        tui_review
+    ) > "$TMP/rf-$tag.out" 2>&1
+    rc=$?
+
+    if [ "$rc" -ne 0 ]; then
+        ok_ "TUI refuses $tag (exit $rc)"
+    else
+        bad_ "TUI accepted $tag -- exit 0" "$(tail -5 "$TMP/rf-$tag.out")"
+    fi
+
+    if [ -d "$outdir" ] && find "$outdir" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+        bad_ "TUI wrote files for $tag before refusing" "$(find "$outdir" -type f | head -3)"
+    else
+        ok_ "TUI wrote nothing for $tag"
+    fi
+
+    # The mock log: the review menu was shown, so the user saw what was
+    # about to run before the refusal.  That is the point of refusing
+    # here rather than silently fixing it.
+    if grep -q $'^menu\tReview' "$TMP/rf-$tag.log"; then
+        ok_ "TUI showed the Review screen before refusing $tag"
+    else
+        bad_ "TUI refused $tag without showing the Review screen" "$(cat "$TMP/rf-$tag.log")"
+    fi
+}
+
+run_tui_refusal projector projector
+run_tui_refusal upf1      upf1
+run_tui_refusal wrongfam  wrongfam
+run_tui_refusal rcutscale rcutscale
+run_tui_refusal metagga   metagga
+
+# The CLI refuses the same SPEC.  Same cli_check_spec, but reached from
+# the command line rather than from cmd_generate; if the two ever
+# disagree, the audit says so here.
+cli_refusal() {   # cli_refusal <tag> <args...>
+    local tag=$1; shift
+    local outdir=$TMP/cli-refuse-$tag
+    rm -rf "$outdir"
+    if "$PSM" generate -e Si -o "$outdir" --no-test -q "$@" >/dev/null 2>&1; then
+        bad_ "CLI accepted $tag"
+    else
+        ok_ "CLI refuses $tag"
+    fi
+}
+
+cli_refusal projector -p pseudoforge-auto --engine oncvpsp --projector 'd l=2'
+cli_refusal upf1      -p pseudoforge-auto --upf 1
+cli_refusal wrongfam  -p pseudoforge-auto --engine oncvpsp -t paw
+cli_refusal rcutscale -p pseudoforge-auto --engine uspp -t us --rcut-scale 1.10
+cli_refusal metagga   -p pseudoforge-auto --engine atompaw -t paw -x tpss
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
