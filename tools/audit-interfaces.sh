@@ -724,6 +724,207 @@ grep -q 'DEFAULT_XC=PBE' "$mig_home/.pseudoforgerc" 2>/dev/null \
     || bad_ "config migration lost the values"
 
 # ---------------------------------------------------------------------------
+section "J. recipe round-trip across the interfaces"
+
+# The recipe file is the one serialized form both interfaces agree on.
+# The CLI writes one with `recipe save` and reads one with `--recipe`;
+# the TUI writes one with "Save these choices" and reads one with
+# "Load a recipe".  Both call rcp_save / rcp_load.  If the SPEC that
+# comes back differs from the SPEC that went in, one of the two is
+# describing a run it will not produce -- and the user, told to
+# "reload it later with --recipe <name>", is being lied to.
+
+RECIPE_DIR=$TMP/recipes
+export RECIPE_DIR
+mkdir -p "$RECIPE_DIR"
+
+RECIPE_LIBS="core sink config deps elements xc namelist profiles metadata
+             formats gth sssp convert doctor params engines build recipe
+             input_builder executor project run upf testing validate
+             report cli ui tui wizard"
+
+# Every user-settable key, so a field that goes missing in either
+# direction shows up as a difference in the canonical line.
+spec_fixture() {
+    SPEC[family]=paw
+    SPEC[profile]=psl-high
+    SPEC[xc]=pbe
+    SPEC[rel]=scalar
+    SPEC[engine]=ld1
+    SPEC[source]=local
+    SPEC[formats]=upf
+    SPEC[core_hole]=1s
+    SPEC[zval]=4
+    SPEC[nlcc]=1
+    SPEC[rcore]=1.20
+    SPEC[rho0]=0.015
+    SPEC[which_augfun]=BESSEL
+    SPEC[rmatch_augfun]=1.10
+    SPEC[lloc]=s
+    SPEC[rcloc]=1.00
+    SPEC[rcut_scale]=1.05
+    SPEC[beta]=0.30
+    SPEC[tr2]=1e-12
+    SPEC[lsd]=0
+    SPEC[gipaw]=0
+    SPEC[extra_projectors]='d l=2'
+    SPEC[xmin]=-7.0
+    SPEC[dx]=0.01
+    SPEC[rmax]=100.0
+}
+
+# A fresh shell with every module loaded; "$@" runs inside it.
+recipe_shell() {
+    (
+        for m in $RECIPE_LIBS; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        CLI_ELEMENTS=Si
+        "$@"
+    )
+}
+
+save_fixture() { spec_fixture; rcp_save "$1" "round-trip fixture" >/dev/null 2>&1; spec_cmdline; }
+load_fixture() { rcp_load "$1" >/dev/null 2>&1 || { echo LOADFAIL; return 1; }; spec_cmdline; }
+
+before=$(recipe_shell save_fixture roundtrip 2>/dev/null)
+after=$(recipe_shell load_fixture roundtrip 2>/dev/null)
+
+if [ -n "$before" ] && [ "$before" = "$after" ]; then
+    ok_ "recipe: CLI save -> CLI load is byte-identical"
+else
+    bad_ "recipe: CLI save -> CLI load differs" "before: $before
+        after:  $after"
+fi
+
+# The file itself must be a real recipe: header, elements, custom keys.
+rf=$RECIPE_DIR/roundtrip.recipe
+if [ -f "$rf" ] \
+   && grep -q '^elements=Si$' "$rf" \
+   && grep -qE '^spec\.rcore=1\.20' "$rf" \
+   && grep -qE '^spec\.extra_projectors=d l=2' "$rf"; then
+    ok_ "recipe file: header, elements and custom keys are on disk"
+else
+    bad_ "recipe file is missing header or custom keys" "$(head -20 "$rf" 2>&1)"
+fi
+
+# --- TUI save -> CLI load ------------------------------------------------
+
+drive_tui_save_recipe() {
+    local name=$1
+    printf '%s\nok\n' "$name" > "$TMP/ans-recipe-save"
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/wt-recipe-save.log MOCK_WT_ANSWERS=$TMP/ans-recipe-save
+    : > "$MOCK_WT_LOG"
+    (
+        for m in $RECIPE_LIBS; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        CLI_ELEMENTS=Si
+        spec_fixture
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        tui_save_recipe
+    ) 2>/dev/null
+}
+
+drive_tui_load_recipe() {
+    local name=$1
+    printf '%s\nok\n' "$name" > "$TMP/ans-recipe-load"
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/wt-recipe-load.log MOCK_WT_ANSWERS=$TMP/ans-recipe-load
+    : > "$MOCK_WT_LOG"
+    (
+        for m in $RECIPE_LIBS; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        tui_load_recipe >/dev/null 2>&1
+        spec_cmdline
+    ) 2>/dev/null
+}
+
+rm -f "$RECIPE_DIR/from-tui.recipe"
+drive_tui_save_recipe from-tui >/dev/null
+if [ -f "$RECIPE_DIR/from-tui.recipe" ]; then
+    after=$(recipe_shell load_fixture from-tui 2>/dev/null)
+    if [ -n "$after" ] && [ "$after" = "$before" ]; then
+        ok_ "recipe: TUI save -> CLI load is byte-identical"
+    else
+        bad_ "recipe: TUI save -> CLI load differs" "expected: $before
+        got:      $after"
+    fi
+else
+    bad_ "recipe: tui_save_recipe did not write a file"
+fi
+
+# --- CLI save -> TUI load ------------------------------------------------
+
+recipe_shell save_fixture cli-to-tui >/dev/null 2>&1
+after=$(drive_tui_load_recipe cli-to-tui)
+if [ -n "$after" ] && [ "$after" = "$before" ]; then
+    ok_ "recipe: CLI save -> TUI load is byte-identical"
+else
+    bad_ "recipe: CLI save -> TUI load differs" "expected: $before
+        got:      $after"
+fi
+
+# --- refusals ------------------------------------------------------------
+
+# rcp_list shows what was saved.
+listing=$(recipe_shell rcp_list 2>/dev/null)
+if printf '%s' "$listing" | grep -q '^roundtrip'; then
+    ok_ "recipe list: saved recipes appear"
+else
+    bad_ "recipe list: roundtrip not listed" "$listing"
+fi
+
+# A file that claims a newer format must be refused, not read with the
+# older one.
+magic_line=$(grep -m1 -E '^[a-zA-Z]' "$rf" 2>/dev/null)
+magic_key=${magic_line%%=*}; magic_val=${magic_line#*=}
+future=$RECIPE_DIR/future.recipe
+sed "s/^$magic_key=.*$/$magic_key=$((magic_val + 100))/" "$rf" > "$future"
+if recipe_shell load_fixture future >/dev/null 2>&1; then
+    bad_ "recipe: future format was accepted"
+else
+    ok_ "recipe: future format refused"
+fi
+
+# An unknown spec.* key is a setting this version does not know.  Refuse
+# rather than generate a run that silently drops it.
+unknown=$RECIPE_DIR/unknown.recipe
+{ cat "$rf"; printf 'spec.what_is_this=42\n'; } > "$unknown"
+if recipe_shell load_fixture unknown >/dev/null 2>&1; then
+    bad_ "recipe: unknown spec key was accepted"
+else
+    ok_ "recipe: unknown spec key refused"
+fi
+
+# An unknown top-level key, same rule.
+stranger=$RECIPE_DIR/stranger.recipe
+{ cat "$rf"; printf 'mystery=1\n'; } > "$stranger"
+if recipe_shell load_fixture stranger >/dev/null 2>&1; then
+    bad_ "recipe: unknown top-level key was accepted"
+else
+    ok_ "recipe: unknown top-level key refused"
+fi
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
