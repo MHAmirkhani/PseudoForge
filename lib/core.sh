@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------
 
 # Version 1.3.x -- x increments with each revision of the tool.
-PSEUDOFORGE_VERSION="1.3.0"
+PSEUDOFORGE_VERSION="1.3.2"
 PSEUDOFORGE_NAME="PseudoForge"
 PSEUDOFORGE_TAGLINE="multi-engine pseudopotential generator and validator"
 PSEUDOFORGE_AUTHOR="Mohammad H. Amirkhani"
