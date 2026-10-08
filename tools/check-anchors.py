@@ -32,25 +32,48 @@ DOCS = ROOT / "docs"
 
 
 def slugify(text: str) -> str:
-    """The GitHub/MkDocs heading slug.
+    """The MkDocs heading slug.
+
+    This is Python-Markdown's toc extension, which is what MkDocs uses,
+    and not GitHub's variant.  The two differ in three ways that all
+    show up in this project's headings:
+
+      * runs of whitespace *and* hyphens collapse to a single hyphen,
+        so `The --projector flag` slugs as `the-projector-flag`, not
+        `the---projector-flag`;
+      * leading and trailing hyphens are kept, so `--projector` slugs
+        as `-projector`, not `projector`;
+      * a heading that slugs to a value already on the page gets `_1`,
+        `_2` appended -- handled in `collect_slugs`, below.
 
     NFKD-normalise, drop accents, lower-case, strip everything that is
-    not a word character, whitespace or hyphen, collapse whitespace to
-    single hyphens, trim leading/trailing hyphens.  The one subtlety
-    is that an em-dash surrounded by spaces becomes a single hyphen,
-    not two, which is why `Path A — the proxy` slugs as
-    `path-a-the-proxy` and not `path-a--the-proxy`.
+    not a word character, whitespace or hyphen, strip whitespace, then
+    collapse `[-\\s]+` to a single hyphen.
     """
     text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
-    text = re.sub(r"[^\w\s-]", "", text.lower())
-    return re.sub(r"\s+", "-", text).strip("-")
+    text = re.sub(r"[^\w\s-]", "", text.lower()).strip()
+    return re.sub(r"[-\s]+", "-", text)
 
 
 def collect_slugs() -> dict[Path, set[str]]:
+    """Every heading slug, per page.
+
+    Duplicate headings get `_1`, `_2` ... appended the way
+    Python-Markdown's toc extension does.  A page with two `Notes`
+    headings has anchors `notes` and `notes_1`; a link to `#notes_1` is
+    valid and a link to `#notes_2` on that page is not.
+    """
     slugs: dict[Path, set[str]] = {}
     for md in DOCS.rglob("*.md"):
         headings = re.findall(r"^#{1,6}\s+(.+)$", md.read_text(encoding="utf-8"), re.MULTILINE)
-        slugs[md.relative_to(DOCS)] = {slugify(h) for h in headings}
+        page: set[str] = set()
+        seen: dict[str, int] = {}
+        for h in headings:
+            base = slugify(h)
+            n = seen.get(base, 0)
+            seen[base] = n + 1
+            page.add(base if n == 0 else f"{base}_{n}")
+        slugs[md.relative_to(DOCS)] = page
     return slugs
 
 

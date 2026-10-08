@@ -130,7 +130,7 @@ it was asked: build a deck in its own format, which does not have a
 place for an extra projector. The bug was in PseudoForge accepting the
 flag and promising a change it did not make. `--projector` is now
 refused on every engine except `ld1`, before anything runs. See
-[Limitations](limitations.md#projector).
+[Limitations](limitations.md#-projector).
 
 ### --rcut-scale on engines that ignore it
 
