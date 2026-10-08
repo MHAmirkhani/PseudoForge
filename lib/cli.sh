@@ -1082,6 +1082,17 @@ cmd_config() {
 cmd_engines() {
     case "${1:-}" in -h|--help) cli_help_for engines; return 0 ;; esac
     local sub=${1:-list}; [ $# -gt 0 ] && shift
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                list)  printf 'usage: pseudoforge engines list\n' ;;
+                build) printf 'usage: pseudoforge engines build <name>|all [--yes]\n' ;;
+                show)  printf 'usage: pseudoforge engines show <name>\n' ;;
+                path)  printf 'usage: pseudoforge engines path <name>\n' ;;
+                *)     printf 'usage: pseudoforge engines list|build|show|path\n' ;;
+            esac
+            return 0 ;;
+    esac
     pf_engines_load
     case $sub in
         list|ls|"")
@@ -1212,6 +1223,17 @@ XC_EOF
         return 0 ;;
     esac
     local sub=${1:-status}; [ $# -gt 0 ] && shift
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                status|list) printf 'usage: pseudoforge params status [LIB]\n' ;;
+                fetch|get)   printf 'usage: pseudoforge params fetch <LIB> [elements]\n' ;;
+                path)        printf 'usage: pseudoforge params path <LIB>\n' ;;
+                extract)     printf 'usage: pseudoforge params extract <dir-of-upf> [LIB]\n' ;;
+                *)           printf 'usage: pseudoforge params status|fetch|path|extract\n' ;;
+            esac
+            return 0 ;;
+    esac
     pf_params_load
     pf_profiles_load
     case $sub in
@@ -1269,6 +1291,17 @@ XC_EOF
         return 0 ;;
     esac
     local sub=${1:-list}; [ $# -gt 0 ] && shift
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                list)   printf 'usage: pseudoforge profile list\n' ;;
+                new)    printf 'usage: pseudoforge profile new <id> [--label ... --families ... --engine ...]\n' ;;
+                edit)   printf 'usage: pseudoforge profile edit <id>\n' ;;
+                remove) printf 'usage: pseudoforge profile remove <id>\n' ;;
+                *)      printf 'usage: pseudoforge profile list|new|edit|remove\n' ;;
+            esac
+            return 0 ;;
+    esac
     pf_profiles_load
     local udir=${PF_USER_DATA:-$HOME/.pseudoforge}/profiles
     case $sub in
@@ -1381,6 +1414,16 @@ XC_EOF
         return 0 ;;
     esac
     local sub=${1:-list}; [ $# -gt 0 ] && shift
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                list)   printf 'usage: pseudoforge xc list\n' ;;
+                add)    printf 'usage: pseudoforge xc add <id> --qe <DFT-STRING> [--family ... --label ...]\n' ;;
+                remove) printf 'usage: pseudoforge xc remove <id>\n' ;;
+                *)      printf 'usage: pseudoforge xc list|add|remove\n' ;;
+            esac
+            return 0 ;;
+    esac
     pf_xc_load
     local ufile=${PF_USER_DATA:-$HOME/.pseudoforge}/xc.tsv
     case $sub in
@@ -1490,7 +1533,36 @@ CMP_EOF
 # collide.  tests/test_recipe_roundtrip.sh asserts that.
 # ---------------------------------------------------------------------------
 cmd_recipe_store() {
+    case "${1:-}" in
+        -h|--help|'')
+            cat <<'RCP_EOF'
+usage: pseudoforge recipe save <name> [options]
+       pseudoforge recipe load <name>
+       pseudoforge recipe show <name>
+       pseudoforge recipe list
+       pseudoforge recipe delete <name>
+       pseudoforge recipe export <name> [file]
+       pseudoforge recipe import <file> [name]
+       pseudoforge recipe path [name]
+RCP_EOF
+            return 0 ;;
+    esac
     local sub=${1:-}; shift || true
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                save)   printf 'usage: pseudoforge recipe save <name> [options] [--description DESC]\n' ;;
+                load)   printf 'usage: pseudoforge recipe load <name>\n' ;;
+                show)   printf 'usage: pseudoforge recipe show <name>\n' ;;
+                list|ls) printf 'usage: pseudoforge recipe list\n' ;;
+                delete|rm) printf 'usage: pseudoforge recipe delete <name>\n' ;;
+                export) printf 'usage: pseudoforge recipe export <name> [file]\n' ;;
+                import) printf 'usage: pseudoforge recipe import <file> [name]\n' ;;
+                path)   printf 'usage: pseudoforge recipe path [name]\n' ;;
+                *)      printf 'usage: pseudoforge recipe save|load|show|list|delete|export|import|path\n' ;;
+            esac
+            return 0 ;;
+    esac
     case $sub in
         save)
             local name=${1:-}; shift || true
@@ -1661,6 +1733,16 @@ cmd_api() {
 cmd_native() {
     case "${1:-}" in -h|--help) cli_help_for native; return 0 ;; esac
     local sub=${1:-}; shift || true
+    case "${1:-}" in
+        -h|--help)
+            case $sub in
+                index) printf 'usage: pseudoforge native index [dir]\n' ;;
+                list)  printf 'usage: pseudoforge native list [dir]\n' ;;
+                size)  printf 'usage: pseudoforge native size [dir]\n' ;;
+                *)     printf 'usage: pseudoforge native index|list|size [dir]\n' ;;
+            esac
+            return 0 ;;
+    esac
     local dir=${1:-$PF_NATIVE_DIR}
     case $sub in
         index) native_index_build "$dir" ;;

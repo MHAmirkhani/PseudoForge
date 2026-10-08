@@ -1236,6 +1236,87 @@ cli_refusal wrongfam  -p pseudoforge-auto --engine oncvpsp -t paw
 cli_refusal rcutscale -p pseudoforge-auto --engine uspp -t us --rcut-scale 1.10
 cli_refusal metagga   -p pseudoforge-auto --engine atompaw -t paw -x tpss
 # ---------------------------------------------------------------------------
+section "M. sub-subcommand --help"
+
+# A subcommand that answers `--help` when asked on its own (`native --help`)
+# and treats `--help` as a real argument one level deeper (`native index
+# --help`) is half a help system.  The user typing the second form is
+# asking the same question and deserves the same answer -- not "no native
+# directory: --help", and certainly not a --help.prof created in their
+# profile directory.
+
+# EDITOR points at a no-op.  `profile edit --help` used to run $EDITOR
+# against a file named --help; without this it would block in vim.
+EDITOR=/bin/true
+export EDITOR
+
+# A fresh $HOME so a run that ignores `--help` and does what it was told
+# cannot write into the user's real configuration.
+hh=$TMP/help-home
+mkdir -p "$hh"
+
+# Each entry: `<sub> <subsub>`.
+SUBSUB="
+native index
+native list
+native size
+params status
+params fetch
+params path
+params extract
+profile list
+profile new
+profile edit
+profile remove
+xc list
+xc add
+xc remove
+recipe save
+recipe load
+recipe list
+recipe export
+recipe import
+recipe path
+engines list
+engines build
+engines show
+engines path
+"
+
+# while read, not `for spec in $SUBSUB`: the loop variable is per line,
+# so `native index` stays two fields instead of collapsing to the word
+# "native" and the word "index" as separate iterations.
+while IFS= read -r spec; do
+    [ -n "$spec" ] || continue
+    sub=${spec%% *}
+    ssub=${spec#* }
+    out=$(HOME=$hh PF_USER_DATA=$hh/.pseudoforge "$PSM" "$sub" "$ssub" --help 2>&1)
+    rc=$?
+    if [ "$rc" != 0 ]; then
+        bad_ "$sub $ssub --help: exit $rc" "$(printf '%s\n' "$out" | head -3)"
+        continue
+    fi
+    if ! printf '%s\n' "$out" | grep -q '^usage:'; then
+        bad_ "$sub $ssub --help: no usage line" "$(printf '%s\n' "$out" | head -3)"
+        continue
+    fi
+    ok_ "$sub $ssub --help"
+done <<< "$SUBSUB"
+
+# The side-effect check.  A sub-subcommand that runs the command rather
+# than printing help leaves something behind; the audit is the place
+# that says so.
+# `pf_config_load` creates $HOME/.pseudoforgerc on any run; that is by
+# design.  What must not appear is a file or directory named after the
+# sub-subcommand the user asked to see help for -- `--help.prof`,
+# `--help/index.tsv`, and so on.
+if find "$hh" -name '*--help*' -print -quit 2>/dev/null | grep -q .; then
+    bad_ "a sub-subcommand --help wrote a file named after itself" \
+         "$(find "$hh" -name '*--help*' | head -5)"
+else
+    ok_ "sub-subcommand --help wrote nothing named after itself"
+fi
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
