@@ -1536,6 +1536,141 @@ case $fam in
     *)         bad_ "wizard: accepted 9 for family as '$fam'" ;;
 esac
 # ---------------------------------------------------------------------------
+section "P. store browse API"
+
+# The HTTP interface is the fourth way a user meets the core, and the one
+# a web front-end or a script would use.  Its read endpoints have to
+# answer what the CLI answers, refuse what it refuses, and -- for the
+# download route -- never turn an id into a path.
+
+# A small, self-contained native store.  Building one from real files
+# would need a run; the endpoints only look at the index and the path
+# column, so a two-line index and a two-byte file are enough.
+nat=$TMP/native
+mkdir -p "$nat/UPF"
+printf '<UPF version="2.0.1"/>' > "$nat/UPF/Si.pbe-n-nc.UPF"
+printf '<UPF version="2.0.1"/>' > "$nat/UPF/Fe.pbe-spn-kjpaw.UPF"
+
+# The columns are the ones NAT_COL declares; keep them in that order.
+{
+    printf '#id\telement\txc\tfamily\trelativity\tengine\tformat\tprofile\tencoding\tpath\tsize\tsha256\tprovenance\n'
+    size1=$(stat -c%s "$nat/UPF/Si.pbe-n-nc.UPF")
+    size2=$(stat -c%s "$nat/UPF/Fe.pbe-spn-kjpaw.UPF")
+    sha1=$(sha256sum "$nat/UPF/Si.pbe-n-nc.UPF" | cut -d' ' -f1)
+    sha2=$(sha256sum "$nat/UPF/Fe.pbe-spn-kjpaw.UPF" | cut -d' ' -f1)
+    printf 'Si.pbe-n-nc.UPF\tSi\tpbe\tnc\tscalar\toncvpsp\tupf\tpsl-high\tplain\tUPF/Si.pbe-n-nc.UPF\t%s\t%s\t-\n' "$size1" "$sha1"
+    printf 'Fe.pbe-spn-kjpaw.UPF\tFe\tpbe\tpaw\tscalar\tld1\tupf\tpsl-high\tplain\tUPF/Fe.pbe-spn-kjpaw.UPF\t%s\t%s\t-\n' "$size2" "$sha2"
+} > "$nat/index.tsv"
+
+# A request helper: PF_NATIVE_DIR points at the fixture, so the check is
+# the same on a machine with a full store and on one with none.
+api_status() {   # api_status <method> <path> [body]
+    local m=$1 p=$2 b=${3:-} err
+    err=$TMP/apierr
+    PF_NATIVE_DIR=$nat "$PSM" api "$m" "$p" ${b:+"$b"} >/dev/null 2>"$err"
+    awk '/^status:/ { print $2; exit }' "$err"
+}
+api_body() {   # api_body <method> <path> [body]
+    local m=$1 p=$2 b=${3:-}
+    PF_NATIVE_DIR=$nat "$PSM" api "$m" "$p" ${b:+"$b"} 2>/dev/null
+}
+
+# --- GET /api/native ------------------------------------------------------
+st=$(api_status GET /api/native)
+[ "$st" = 200 ] && ok_ "GET /api/native is 200" || bad_ "GET /api/native -> $st"
+
+body=$(api_body GET /api/native)
+if printf '%s' "$body" | grep -q 'Si.pbe-n-nc.UPF' \
+   && printf '%s' "$body" | grep -q 'Fe.pbe-spn-kjpaw.UPF'; then
+    ok_ "GET /api/native lists both fixture files"
+else
+    bad_ "GET /api/native missing a fixture file" "$(printf '%s' "$body" | head -c 400)"
+fi
+
+# Every advertised field is one of the index columns.  A new column the
+# JSON does not carry is a field a script cannot read.
+for field in id element xc family relativity engine format profile encoding size sha256; do
+    printf '%s' "$body" | grep -q "\"$field\"" \
+        && ok_ "GET /api/native carries '$field'" \
+        || bad_ "GET /api/native has no '$field' field"
+done
+
+# --- GET /api/native/:id --------------------------------------------------
+st=$(api_status GET /api/native/Si.pbe-n-nc.UPF)
+[ "$st" = 200 ] && ok_ "GET /api/native/<known id> is 200" || bad_ "native one -> $st"
+
+body=$(api_body GET /api/native/Si.pbe-n-nc.UPF)
+if printf '%s' "$body" | grep -q '"element":"Si"' \
+   && printf '%s' "$body" | grep -q '"family":"nc"'; then
+    ok_ "GET /api/native/<id> returns the row's fields"
+else
+    bad_ "native one body is missing fields" "$(printf '%s' "$body" | head -c 300)"
+fi
+
+st=$(api_status GET /api/native/no-such-file.UPF)
+[ "$st" = 404 ] && ok_ "GET /api/native/<unknown> is 404" || bad_ "unknown id -> $st"
+
+# --- GET /api/download/:id -----------------------------------------------
+st=$(api_status GET /api/download/Si.pbe-n-nc.UPF)
+[ "$st" = 200 ] && ok_ "GET /api/download/<known id> is 200" || bad_ "download -> $st"
+
+body=$(api_body GET /api/download/Si.pbe-n-nc.UPF)
+# The transport serves the bytes; this only says where they are.  The
+# path must be inside PF_NATIVE_DIR, not the caller's cwd or "/".
+if printf '%s' "$body" | grep -q "\"path\":\"$nat/UPF/Si.pbe-n-nc.UPF\""; then
+    ok_ "GET /api/download points inside PF_NATIVE_DIR"
+else
+    bad_ "download path is wrong" "$(printf '%s' "$body" | head -c 300)"
+fi
+
+st=$(api_status GET /api/download/no-such-file.UPF)
+[ "$st" = 404 ] && ok_ "GET /api/download/<unknown> is 404" || bad_ "download unknown -> $st"
+
+# Path traversal.  The handler checks for ".." and a leading "/" before
+# it looks anywhere; a missing check would turn the endpoint into an
+# arbitrary-file read.
+for bad_id in "..%2Fetc%2Fpasswd" "../etc/passwd" "/etc/passwd" ".."; do
+    st=$(api_status GET "/api/download/$bad_id")
+    case $st in
+        400|404) ok_ "GET /api/download/$bad_id refused ($st)" ;;
+        *)       bad_ "GET /api/download/$bad_id accepted ($st)" ;;
+    esac
+done
+
+# --- no index on this server ---------------------------------------------
+#
+# A machine that has not built a store is a normal state, not a crash.
+# The endpoint says 503 and names the command that fixes it.
+empty=$TMP/native-empty
+mkdir -p "$empty"
+err=$TMP/apierr2
+PF_NATIVE_DIR=$empty "$PSM" api GET /api/native >/dev/null 2>"$err"
+st=$(awk '/^status:/ { print $2; exit }' "$err")
+[ "$st" = 503 ] \
+    && ok_ "GET /api/native with no index is 503" \
+    || bad_ "empty store -> $st (want 503)"
+
+# The fix hint is part of the contract: an endpoint that says only
+# "unavailable" makes the user guess.
+body=$(PF_NATIVE_DIR=$empty "$PSM" api GET /api/native 2>/dev/null)
+if printf '%s' "$body" | grep -q 'pseudoforge native index'; then
+    ok_ "the 503 body names the fix"
+else
+    bad_ "the 503 body does not say how to fix it" "$(printf '%s' "$body" | head -c 300)"
+fi
+
+# --- the routes endpoint lists what is served ----------------------------
+#
+# `/api --routes` is the source of truth for what the API claims to be.
+# The four store routes have to appear in it, or a client reads a route
+# list that omits the endpoint it is about to call.
+routes=$("$PSM" api --routes 2>/dev/null)
+for r in /api/native /api/native/:id /api/download/:id...; do
+    printf '%s\n' "$routes" | grep -q -- "$r" \
+        && ok_ "route $r is declared" \
+        || bad_ "route $r is missing from /api --routes"
+done
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
