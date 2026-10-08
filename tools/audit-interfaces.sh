@@ -1423,6 +1423,119 @@ else
     bad_ "no flags: SPEC[family] is empty"
 fi
 # ---------------------------------------------------------------------------
+section "O. wizard text-mode, end to end"
+
+# The wizard's flow, driven through PF_FORCE_TEXT so no terminal is
+# needed.  tests/test_custom.sh has a shallow version that stops at the
+# first prompt.  This one answers every question, then checks the whole
+# identity the user picked and the file layout the confirm screen would
+# create -- or not, when the user says no.
+
+WIZ_LIBS="core sink config deps elements xc namelist profiles metadata
+          formats gth sssp convert doctor params engines build recipe
+          input_builder executor fetch project run upf testing validate
+          report cli ui tui wizard"
+
+drive_wizard_full() {
+    local input=$1
+    (
+        export PF_FORCE_TEXT=1
+        for m in $WIZ_LIBS; do . "$PF_LIB/$m.sh" 2>/dev/null || true; done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        wiz_init
+        # Process substitution, not a pipe: `printf ... | wizard_main`
+        # runs wizard_main in a subshell, and every SPEC value it sets
+        # is lost when that subshell exits -- the caller then reads the
+        # spec_init defaults and reports them as the wizard's answer.
+        wizard_main < <(printf -- "$input") >/dev/null 2>&1
+        printf 'wrc=%s\n' "$?"
+        for k in family xc rel profile source; do
+            printf 'SPEC[%s]=%s\n' "$k" "${SPEC[$k]:-}"
+        done
+    ) 2>/dev/null
+}
+
+# --- Cancel at confirmation ----------------------------------------------
+#
+# Answers land in the order the prompts appear:
+#   1: family (3 = nc)
+#   2: functional (1 = pbe, always first in the short list)
+#   3: relativity (1 = scalar)
+#   4: profile (1 = first the family offers; checked as non-empty)
+#   5: source (1 = online; skips the engine prompt)
+#   6: elements (Si)
+#   7: output directory
+#   8: confirm (n)
+wiz_out=$TMP/wiz-cancel
+rm -rf "$wiz_out"
+
+out=$(drive_wizard_full "3\n1\n1\n1\n1\nSi\n$wiz_out\nn\n")
+
+fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
+xc=$(printf '%s\n'  "$out" | awk -F= '$1=="SPEC[xc]"{print $2}')
+rel=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[rel]"{print $2}')
+prof=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[profile]"{print $2}')
+src=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[source]"{print $2}')
+
+[ "$fam" = nc ]       && ok_ "wizard: family=nc"      || bad_ "wizard: family='$fam' (want nc)"
+[ "$xc"  = pbe ]      && ok_ "wizard: xc=pbe"         || bad_ "wizard: xc='$xc' (want pbe)"
+[ "$rel" = scalar ]   && ok_ "wizard: rel=scalar"     || bad_ "wizard: rel='$rel' (want scalar)"
+[ -n "$prof" ]        && ok_ "wizard: profile=$prof"  || bad_ "wizard: profile is empty"
+[ "$src" = online ]   && ok_ "wizard: source=online"  || bad_ "wizard: source='$src' (want online)"
+
+# Cancel must not leave a project behind.  The wizard only calls
+# project_init after wiz_confirm returns 0.
+if [ -d "$wiz_out" ] && find "$wiz_out" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+    bad_ "wizard: Cancel wrote a project" "$(find "$wiz_out" -mindepth 1 | head -3)"
+else
+    ok_ "wizard: Cancel wrote nothing"
+fi
+
+# --- A second pass, different answers ------------------------------------
+#
+# The same flow with a different family and functional.  If the wizard
+# is only right for the answers above, the audit should say so.
+
+wiz_out2=$TMP/wiz-cancel2
+rm -rf "$wiz_out2"
+
+out=$(drive_wizard_full "1\n2\n2\n1\n1\nFe\n$wiz_out2\nn\n")
+
+fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
+xc=$(printf '%s\n'  "$out" | awk -F= '$1=="SPEC[xc]"{print $2}')
+rel=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[rel]"{print $2}')
+src=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[source]"{print $2}')
+
+[ "$fam" = paw ]      && ok_ "wizard: family=paw"      || bad_ "wizard: family='$fam' (want paw)"
+[ "$xc"  = pbesol ]   && ok_ "wizard: xc=pbesol"       || bad_ "wizard: xc='$xc' (want pbesol)"
+[ "$rel" = full ]     && ok_ "wizard: rel=full"        || bad_ "wizard: rel='$rel' (want full)"
+[ "$src" = online ]   && ok_ "wizard: source=online"   || bad_ "wizard: source='$src' (want online)"
+
+if [ -d "$wiz_out2" ] && find "$wiz_out2" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
+    bad_ "wizard: second Cancel wrote a project" "$(find "$wiz_out2" -mindepth 1 | head -3)"
+else
+    ok_ "wizard: second Cancel wrote nothing"
+fi
+
+# --- Bad answers leave SPEC alone ----------------------------------------
+#
+# An answer that is not on the menu is not a choice.  If the wizard
+# accepts "9" for a four-item menu it will pick garbage rather than ask
+# again; if it leaves SPEC at its previous value the run is at least
+# not silently wrong.
+
+out=$(drive_wizard_full "9\n")
+
+fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
+case $fam in
+    nc|us|paw) ok_ "wizard: refused 9 for family (kept '$fam')" ;;
+    '')        ok_ "wizard: refused 9 for family (SPEC unchanged)" ;;
+    *)         bad_ "wizard: accepted 9 for family as '$fam'" ;;
+esac
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
