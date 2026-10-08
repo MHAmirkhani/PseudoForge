@@ -48,6 +48,7 @@ xc|Functional|The exchange-correlation approximation. Use the one you will run w
 rel|Relativity|Non-relativistic, scalar, or full with spin-orbit. Matters for heavy elements.|tui_layer_rel
 elements|Elements|Which elements to build. Filtered by what the settings above can actually make.|tui_layer_elements
 profile|Library|Whose published parameters to reproduce, or PseudoForge's own construction.|tui_layer_profile
+source|Source|Download a published file, or build one on this machine.|tui_layer_source
 engine|Engine|Which atomic code runs. Several can make the same family, and they differ.|tui_layer_engine
 format|Output format|What the result is written as. Not every engine writes every format.|tui_layer_format
 validation|Validation|Transferability and cut-off checks after generation.|tui_layer_validation
@@ -341,7 +342,21 @@ tui_layer_xc()         { tui_simple_layer xc         ui_pick_xc ; }
 tui_layer_rel()        { tui_simple_layer rel        ui_pick_rel ; }
 tui_layer_elements()   { tui_simple_layer elements   ui_pick_elements ; }
 tui_layer_profile()    { tui_simple_layer profile    ui_pick_profile ; }
-tui_layer_engine()     { tui_simple_layer engine     ui_pick_engine ; }
+tui_layer_source()     { tui_simple_layer source     ui_pick_source ; }
+
+# The engine layer is two questions in one screen's turn: whether the
+# engine is installed at all (only meaningful when building locally), and
+# which engine to use.  ui_ensure_engine returns 3 when there is nothing
+# to ask -- either the user is downloading, or the engine is already
+# present -- and the layer then moves on to the picker.  It returns 1 only
+# when the user actively cancelled; that is the one case the layer
+# forwards.
+tui_layer_engine() {
+    ui_ensure_engine
+    local rc=$?
+    [ "$rc" -eq 1 ] && return 1
+    tui_simple_layer engine ui_pick_engine
+}
 tui_layer_format()     { tui_simple_layer format     ui_pick_format ; }
 tui_layer_validation() { tui_simple_layer validation ui_validation_settings ; }
 tui_layer_advanced()   { tui_simple_layer advanced   ui_advanced ; }
@@ -369,14 +384,20 @@ tui_main() {
         UI_OK_LABEL=Select UI_CANCEL_LABEL=Exit
         choice=$(ui_menu "$PSEUDOFORGE_NAME $PSEUDOFORGE_VERSION" \
 "\n$PSEUDOFORGE_TAGLINE\n\nA pseudopotential is decided by nine layers.  The guided\nroute walks them in order and explains each one.\n" \
-            20 8 \
+            24 16 \
             guided   "Generate -- guided, layer by layer" \
             quick    "Generate -- I know what I want" \
             recipe   "Start from a recipe saved earlier" \
             advanced "Advanced options are $([ "$TUI_ADVANCED" = 1 ] && echo shown || echo hidden)" \
+            profiles "Library profiles and what they cover" \
+            recipes  "Browse the recipe database" \
+            xc       "Exchange-correlation functionals" \
+            validate "Validate existing pseudopotentials" \
+            import   "Import a third-party library and test it" \
+            reports  "Open a previous project's report" \
+            settings "Settings ($PF_RC)" \
             doctor   "Check this machine" \
             history  "History of commands run here" \
-            browse   "Browse libraries, engines, formats" \
             help     "Help") || return 0
 
         case $choice in
@@ -384,9 +405,15 @@ tui_main() {
             quick)    ui_quick ;;
             recipe)   tui_load_recipe && tui_review ;;
             advanced) TUI_ADVANCED=$([ "$TUI_ADVANCED" = 1 ] && echo 0 || echo 1) ;;
+            profiles) ui_browse_profiles ;;
+            recipes)  ui_browse_recipes ;;
+            xc)       ui_browse_xc ;;
+            validate) ui_validate ;;
+            import)   ui_import ;;
+            reports)  ui_reports ;;
+            settings) ui_settings ;;
             doctor)   tui_doctor_panel ;;
             history)  tui_history_show ;;
-            browse)   ui_browse_profiles ;;
             help)     tui_help overview ;;
         esac
     done

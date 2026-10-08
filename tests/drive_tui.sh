@@ -3,7 +3,11 @@
 # Drive pseudoforge's menus with the scripted whiptail stand-in.
 #
 # The entry point gates the TUI behind a real terminal, which a test harness
-# does not have, so this sources the library directly and calls ui_main.
+# does not have, so this sources the library directly and calls tui_main.
+#
+# tui_main is what `pseudoforge tui` runs, and what `pseudoforge wizard`
+# runs when whiptail is available.  One flow, one set of nine layers, one
+# source of truth.
 #
 #   tests/drive_tui.sh <pseudoforge-root>
 #
@@ -35,4 +39,4 @@ spec_init
 # rather than hang the suite
 exec < /dev/null
 
-ui_main
+tui_main

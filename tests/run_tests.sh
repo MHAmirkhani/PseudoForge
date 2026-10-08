@@ -424,14 +424,34 @@ section "TUI (scripted whiptail)"
 export MOCK_WT_LOG=$TMP/wt.log MOCK_WT_ANSWERS=$TMP/wt.ans
 PATH="$HERE/mock:$PATH"
 : > "$MOCK_WT_LOG"
-# The Advanced screen no longer carries a "Continue" row: leaving it is the
-# Cancel button, labelled Done, so no list row can be mistaken for a setting.
-printf 'generate\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\npsl-high\nlocal\nupf\nCANCEL\n%s\nyes\nCANCEL\n' \
+# The answer sequence for tui_main's guided flow.  Every entry the flow
+# shows has one line here, in order:
+#
+#   advanced                -- toggle advanced ON, so ui_advanced runs at
+#                              the advanced layer and its menu appears
+#   guided                  -- enter the wizard
+#   paw / GGA / pbe / scalar -- family, functional, relativity
+#   type / Si / finish      -- elements
+#   psl-high                -- library
+#   local                   -- source: build locally (the default test path)
+#   upf                     -- format picker (ui_pick_format)
+#   back                    -- validation layer: nothing to change
+#   CANCEL                  -- advanced layer: close the menu (Cancel is
+#                              how the loop is left; ui_advanced treats
+#                              Cancel as "done here")
+#   run                     -- review screen: run
+#   %s                      -- output directory input box
+#   yes                     -- "Start?" confirmation
+#   quit                    -- leave the main menu after the run
+printf 'advanced\nguided\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\npsl-high\nlocal\nupf\nback\nCANCEL\nrun\n%s\nyes\nquit\n' \
        "$TMP/tui" > "$MOCK_WT_ANSWERS"
 MOCK_DE=0.0004 bash "$HERE/drive_tui.sh" "$ROOT" >"$TMP/tui.out" 2>&1
 
 dlg() { awk -F'\t' -v t="$1" '$2 == t { print $3; exit }' "$MOCK_WT_LOG"; }
-assert_match "main menu offers generate" "generate" printf '%s' "$(dlg PseudoForge)"
+# The main menu's first entry is "guided"; the title carries the version
+# so match on a prefix rather than on the bare name.
+assert_match "main menu offers guided" "guided" \
+    bash -c "awk -F'\t' '\$2 ~ /^PseudoForge/ { print \$3; exit }' '$MOCK_WT_LOG'"
 assert_eq "type menu lists all three families" "paw us nc" "$(dlg 'Pseudopotential type')"
 assert_eq "functional families listed" "LDA GGA metaGGA hybrid vdW" "$(dlg 'Functional family')"
 assert_match "GGA functionals listed" "pbesol" printf '%s' "$(dlg 'Functional (GGA)')"
@@ -462,7 +482,13 @@ assert_match "licence shown before any work" "Licence and citation" cut -f2 "$MO
 assert_match "review screen shown" "Review" cut -f2 "$MOCK_WT_LOG"
 assert_ok    "wizard actually generated" test -f "$TMP/tui/pseudos/Si.pbe-n-kjpaw_psl.1.0.0.UPF"
 assert_ok    "wizard produced a report"  test -s "$TMP/tui/reports/summary.html"
-assert_match "wizard ran the tests" "transferability" cat "$TMP/tui.out"
+# The run reports its transferability measurement as a labelled block:
+#   TRANSFER measured by: ld1 iswitch=2
+# The old check looked for the word "transferability", which appears
+# nowhere in the run output -- only in the docs and in the option name.
+# Match the actual marker so the test catches the case where the block
+# stops being emitted, not a case where it was renamed.
+assert_match "wizard ran the tests" "TRANSFER measured by:" cat "$TMP/tui.out"
 
 section "cutoff scan (mock pw.x)"
 PW_BIN=$HERE/mock/pw.x MOCK_PW_TAU=12 \

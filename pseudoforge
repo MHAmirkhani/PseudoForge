@@ -48,8 +48,6 @@ spec_init
 # ---- dispatch -------------------------------------------------------------
 cmd=${1:-}
 case $cmd in
-    oldtui)
-        shift; ui_main ;;
     ''|tui|menu|wizard)
         [ -n "$cmd" ] && shift
         # --help / -h before the terminal check: help works in a script.
@@ -73,7 +71,12 @@ case $cmd in
         case "${2:-}" in -h|--help) cli_usage; exit 0 ;; esac
         shift
         [ -t 0 ] && [ -t 1 ] || die "the wizard needs an interactive terminal; use 'pseudoforge generate' instead"
-        if deps_tui_backend >/dev/null; then ui_init; ui_wizard; clear; else wizard_main; fi ;;
+        # With a terminal backend, tui_wizard drives the same nine-layer
+        # flow that `pseudoforge tui`'s "guided" entry does -- one flow,
+        # one set of layers, one source of truth.  Without whiptail the
+        # text-mode wizard_main takes over and asks the same questions
+        # without menus.
+        if deps_tui_backend >/dev/null; then tui_wizard; clear; else wizard_main; fi ;;
     engines|engine)
         shift; cmd_engines "$@" ;;
     convert)

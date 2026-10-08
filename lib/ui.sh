@@ -220,90 +220,9 @@ ui_unquote() { printf '%s\n' "$1" | tr -d '"'; }
 # ---------------------------------------------------------------------------
 # Main menu
 # ---------------------------------------------------------------------------
-ui_main() {
-    ui_init
-    local choice
-    while : ; do
-        UI_OK_LABEL=Select UI_CANCEL_LABEL=Exit
-        choice=$(ui_menu "PseudoForge" "\nGenerate, inspect and validate pseudopotentials.\n" 21 10 \
-            generate  "Generate pseudopotentials (guided)" \
-            quick     "Quick generate (one element, defaults)" \
-            recipes   "Browse the recipe database" \
-            profiles  "Library profiles and what they cover" \
-            xc        "Exchange-correlation functionals" \
-            validate  "Validate existing UPF files" \
-            import    "Import a third-party library and test it" \
-            reports   "Open a previous project's report" \
-            settings  "Settings ($PF_RC)" \
-            doctor    "Check the environment" ) || break
-
-        UI_OK_LABEL=Ok UI_CANCEL_LABEL=Cancel
-        case $choice in
-            generate) ui_wizard ;;
-            quick)    ui_quick ;;
-            recipes)  ui_browse_recipes ;;
-            profiles) ui_browse_profiles ;;
-            xc)       ui_browse_xc ;;
-            validate) ui_validate ;;
-            import)   ui_import ;;
-            reports)  ui_reports ;;
-            settings) ui_settings ;;
-            doctor)   ui_doctor ;;
-        esac
-    done
-    clear
-}
-
-# ---------------------------------------------------------------------------
-# The generation wizard
-# ---------------------------------------------------------------------------
-ui_wizard() {
-    pf_spec_init_safe
-    SPEC[source]=${DEFAULT_SOURCE:-local}
-
-    # A wizard whose Cancel button drops you back to the main menu is a wizard
-    # you cannot correct a mistake in.  The steps are a list, each one returns
-    # "forward" or "back", and the loop walks it in either direction.
-    #
-    #   0  accepted, go forward
-    #   1  the user chose Back
-    #   3  the step had nothing to ask; keep going the way we were already going
-    #   *  a real error, already reported
-    local -a steps=(ui_pick_family ui_pick_xc ui_pick_rel ui_pick_elements
-                    ui_pick_profile ui_pick_source ui_ensure_engine
-                    ui_pick_engine ui_pick_format ui_advanced)
-    local i=0 dir=1 rc
-
-    UI_CANCEL_LABEL=Back
-    while [ "$i" -lt "${#steps[@]}" ]; do
-        # the first screen has nowhere to go back to, so it keeps saying Cancel
-        if [ "$i" = 0 ]; then UI_CANCEL_LABEL=Cancel; else UI_CANCEL_LABEL=Back; fi
-        [ -n "${PF_TRACE:-}" ] && printf '%s dir=%s %s
-' "$i" "$dir" "${steps[$i]}" >> "$PF_TRACE"
-        "${steps[$i]}"
-        rc=$?
-        [ -n "${PF_TRACE:-}" ] && printf '   -> rc=%s
-' "$rc" >> "$PF_TRACE"
-        case $rc in
-            0) dir=1;  i=$((i + 1)) ;;
-            1) dir=-1; i=$((i - 1)) ;;
-            3)         i=$((i + dir)) ;;
-            *) UI_CANCEL_LABEL=Cancel; return 1 ;;
-        esac
-        if [ "$i" -lt 0 ]; then UI_CANCEL_LABEL=Cancel; return 1; fi
-    done
-    UI_CANCEL_LABEL=Cancel
-
-    ui_review_and_run
-}
 
 # spec_init resets everything, which would throw away the answers when walking
 # back into an earlier step.  Only do it the first time round.
-pf_spec_init_safe() {
-    [ "${UI_WIZARD_STARTED:-0}" = 1 ] && return 0
-    spec_init
-    UI_WIZARD_STARTED=1
-}
 
 # ---------------------------------------------------------------------------
 # Step 4 -- download a published file, or build one here.
@@ -1249,13 +1168,6 @@ ui_settings_defaults() {
             back) return ;;
         esac
     done
-}
-
-ui_doctor() {
-    local tmp; tmp=$(mktemp)
-    NO_COLOR=1 C_BOLD='' C_RESET='' C_CYAN='' C_GREEN='' C_RED='' C_YELLOW='' C_DIM='' deps_report > "$tmp" 2>&1
-    ui_text "Environment" "$tmp" 26 96
-    rm -f "$tmp"
 }
 
 # ---------------------------------------------------------------------------
