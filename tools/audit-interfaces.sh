@@ -925,6 +925,213 @@ else
     ok_ "recipe: unknown top-level key refused"
 fi
 # ---------------------------------------------------------------------------
+section "K. engine-specific menus"
+
+# Two menus narrow the choice: the format picker (only what the chosen
+# engine writes) and the engine picker (only what the library's own
+# decks can drive).  A format the engine cannot write is refused three
+# screens later; a format it does write but the menu hides is one the
+# user cannot ask for.  Either way the interface and the core disagree.
+
+ENGINES="ld1 oncvpsp uspp fhi98pp opium gth atompaw ape adpack"
+
+# What each engine writes, in the registry's own order.  Kept here so a
+# change to data/formats.tsv that alters the menu shows up as a diff and
+# not as a silent shift in what the TUI offers.
+expected_formats() {
+    case $1 in
+        ld1)      printf 'upf xml\n' ;;
+        oncvpsp)  printf 'upf psp8 xml\n' ;;
+        uspp)     printf 'upf xml uspp van\n' ;;
+        fhi98pp)  printf 'xml cpi\n' ;;
+        opium)    printf 'upf fhi recpot siesta cpmd casino champ teter qso ncpp xml\n' ;;
+        gth)      printf 'gth gth-cpmd gth-abinit\n' ;;
+        atompaw)  printf 'upf paw-abinit paw-xml\n' ;;
+        ape)      printf 'upf\n' ;;
+        adpack)   printf 'openmx openmx-pao\n' ;;
+    esac
+}
+
+fmt_shell() {
+    (
+        for m in core sink config deps elements xc namelist profiles metadata \
+                 formats gth sssp convert doctor params engines recipe; do
+            . "$PF_LIB/$m.sh" 2>/dev/null || true
+        done
+        pf_formats_load
+        "$@"
+    )
+}
+
+for eng in $ENGINES; do
+    want=$(expected_formats "$eng")
+    got=$(fmt_shell fmt_for_engine "$eng" 2>/dev/null | tr '\n' ' ' | sed 's/ $//')
+    if [ "$got" = "$want" ]; then
+        ok_ "fmt_for_engine $eng -> $want"
+    else
+        bad_ "fmt_for_engine $eng differs" "want: $want
+        got:  $got"
+    fi
+done
+
+accept_format() {   # accept_format <engine> <formats> <expected>
+    local eng=$1 fmt=$2 want=$3 got
+    got=$(fmt_shell fmt_validate "$eng" "$fmt" 2>/dev/null)
+    if [ "$got" = "$want" ]; then
+        ok_ "fmt_validate $eng '$fmt' -> '$want'"
+    else
+        bad_ "fmt_validate $eng '$fmt' -> '$got' (expected '$want')"
+    fi
+}
+refuse_format() {   # refuse_format <engine> <formats>
+    local eng=$1 fmt=$2
+    if fmt_shell fmt_validate "$eng" "$fmt" >/dev/null 2>&1; then
+        bad_ "fmt_validate $eng '$fmt' was accepted"
+    else
+        ok_ "fmt_validate $eng '$fmt' refused"
+    fi
+}
+
+accept_format ld1 upf upf
+accept_format ld1 'upf xml' 'upf xml'
+accept_format ape upf upf
+accept_format adpack 'openmx openmx-pao' 'openmx openmx-pao'
+refuse_format ld1 cpi
+refuse_format ape psp8
+refuse_format fhi98pp upf
+refuse_format adpack upf
+refuse_format uspp psp8
+
+# --- ui_pick_format -------------------------------------------------------
+#
+# The mock whiptail records every dialog it was asked to show, one per
+# line, as `<kind>\t<title>\t<tag1> <tag2> ...`.  A single-format engine
+# must not open a dialog at all: it takes its one format from the
+# registry, sets SPEC[formats] and returns 3.
+PICK_LIBS="core sink config deps elements xc namelist profiles metadata
+           formats gth sssp convert doctor params engines build recipe
+           input_builder executor project run upf testing validate
+           report cli ui tui wizard"
+
+run_pick_format() {
+    local eng=$1 answer=$2
+    printf '%s\n' "$answer" > "$TMP/pf.ans"
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/pf.log MOCK_WT_ANSWERS=$TMP/pf.ans
+    : > "$MOCK_WT_LOG"
+    (
+        for m in $PICK_LIBS; do . "$PF_LIB/$m.sh" 2>/dev/null || true; done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        SPEC[engine]=$eng
+        SPEC[source]=local
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        ui_pick_format >/dev/null 2>&1
+        printf 'rc=%s\n' "$?"
+        printf 'formats=%s\n' "${SPEC[formats]:-}"
+    ) 2>/dev/null
+}
+
+# APE writes only upf; no menu, and SPEC must carry what the engine writes.
+out=$(run_pick_format ape CANCEL)
+rc=$(printf '%s\n' "$out" | awk -F= '$1=="rc"{print $2}')
+fmt=$(printf '%s\n' "$out" | awk -F= '$1=="formats"{print $2}')
+if [ "$rc" = 3 ] && [ "$fmt" = upf ]; then
+    ok_ "ui_pick_format ape: SPEC[formats]=upf, rc=3"
+else
+    bad_ "ui_pick_format ape: rc=$rc formats=$fmt (expected rc=3 formats=upf)"
+fi
+if grep -qE '^menu\t' "$TMP/pf.log"; then
+    bad_ "ui_pick_format ape opened a menu" "$(cat "$TMP/pf.log")"
+else
+    ok_ "ui_pick_format ape opened no menu"
+fi
+
+# ld1 writes upf and xml.  The menu offers both, plus the "more" item.
+out=$(run_pick_format ld1 xml)
+rc=$(printf '%s\n' "$out" | awk -F= '$1=="rc"{print $2}')
+fmt=$(printf '%s\n' "$out" | awk -F= '$1=="formats"{print $2}')
+if [ "$rc" = 0 ] && [ "$fmt" = xml ]; then
+    ok_ "ui_pick_format ld1/xml: SPEC[formats]=xml, rc=0"
+else
+    bad_ "ui_pick_format ld1/xml: rc=$rc formats=$fmt"
+fi
+if awk -F'\t' '$1=="menu" && $3=="upf xml more"' "$TMP/pf.log" | grep -q .; then
+    ok_ "ui_pick_format ld1 offers upf, xml, more"
+else
+    bad_ "ui_pick_format ld1 menu is wrong" "$(cat "$TMP/pf.log")"
+fi
+
+# oncvpsp writes upf, psp8, xml -- not cpi, not uspp.
+out=$(run_pick_format oncvpsp upf)
+if awk -F'\t' '$1=="menu" && $3=="upf psp8 xml more"' "$TMP/pf.log" | grep -q .; then
+    ok_ "ui_pick_format oncvpsp offers exactly upf, psp8, xml, more"
+else
+    bad_ "ui_pick_format oncvpsp menu is wrong" "$(cat "$TMP/pf.log")"
+fi
+
+# --- ui_pick_engine -------------------------------------------------------
+#
+# eng_available is stubbed so the audit is deterministic whether or not
+# the engines happen to be installed on this machine.  What is being
+# checked is the profile+family filter, not the filesystem.
+run_pick_engine() {
+    local prof=$1 fam=$2 answer=$3
+    printf '%s\n' "$answer" > "$TMP/pe.ans"
+    PATH="$ROOT/tests/mock:$PATH"
+    export MOCK_WT_LOG=$TMP/pe.log MOCK_WT_ANSWERS=$TMP/pe.ans
+    : > "$MOCK_WT_LOG"
+    (
+        for m in $PICK_LIBS; do . "$PF_LIB/$m.sh" 2>/dev/null || true; done
+        pf_config_defaults
+        pf_elements_load; pf_xc_load; pf_profiles_load
+        pf_engines_load; pf_metadata_load; pf_formats_load
+        spec_init
+        SPEC[profile]=$prof
+        SPEC[family]=$fam
+        SPEC[source]=local
+        eng_available() { return 0; }
+        ui_term_size() { UI_ROWS=40; UI_COLS=120; }
+        ui_init
+        exec < /dev/null
+        ui_pick_engine >/dev/null 2>&1
+        printf 'rc=%s\n' "$?"
+        printf 'engine=%s\n' "${SPEC[engine]:-}"
+    ) 2>/dev/null
+}
+
+# psl-high + paw: only ld1 makes PAW data sets from a PSlibrary deck.
+out=$(run_pick_engine psl-high paw ld1)
+rc=$(printf '%s\n' "$out" | awk -F= '$1=="rc"{print $2}')
+eng=$(printf '%s\n' "$out" | awk -F= '$1=="engine"{print $2}')
+if [ "$rc" = 3 ] && [ "$eng" = ld1 ]; then
+    ok_ "ui_pick_engine psl-high/paw: only ld1, rc=3"
+else
+    bad_ "ui_pick_engine psl-high/paw: rc=$rc engine=$eng"
+fi
+
+# sg15 + nc: oncvpsp or opium.  A menu appears; nothing else is offered.
+out=$(run_pick_engine sg15 nc oncvpsp)
+if awk -F'\t' '$1=="menu" && $3=="oncvpsp opium"' "$TMP/pe.log" | grep -q .; then
+    ok_ "ui_pick_engine sg15/nc offers exactly oncvpsp and opium"
+else
+    bad_ "ui_pick_engine sg15/nc menu is wrong" "$(cat "$TMP/pe.log")"
+fi
+
+# gbrv + us: only uspp writes the US family.
+out=$(run_pick_engine gbrv us uspp)
+rc=$(printf '%s\n' "$out" | awk -F= '$1=="rc"{print $2}')
+eng=$(printf '%s\n' "$out" | awk -F= '$1=="engine"{print $2}')
+if [ "$rc" = 3 ] && [ "$eng" = uspp ]; then
+    ok_ "ui_pick_engine gbrv/us: only uspp, rc=3"
+else
+    bad_ "ui_pick_engine gbrv/us: rc=$rc engine=$eng"
+fi
+# ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$([ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM")" "$fail" "$RESET" \
