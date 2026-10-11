@@ -528,6 +528,13 @@ else
     bad_ "guided interface" "run: tests/test_ui.sh"
 fi
 
+section "fetch URL construction"
+if bash "$HERE/test_fetch.sh" >/dev/null 2>&1; then
+    ok_ "fetch_candidate_names and fetch_mirror_urls build clean URLs"
+else
+    bad_ "fetch URL construction" "run: tests/test_fetch.sh"
+fi
+
 # Interface audit: every subcommand answers --help, every TUI layer has a
 # handler, every advanced-screen key reaches SPEC, every doc path named by
 # the shell code exists.  Runs the fast sections only; the per-engine TUI

@@ -68,7 +68,7 @@ fetch_candidate_names() {
             # read the published listing rather than guessing version numbers
             local hit
             if hit=$(fetch_index_match "$prof" "$el" 2>/dev/null) && [ -n "$hit" ]; then
-                printf '%s%s\n' "${base%/}/upf/" "$hit"
+                printf '%s\n' "$hit"
             fi ;;
         gbrv)
             printf '%s_%s_v1.uspp.F.UPF\n' "$(lower "$el")" "$(lower "$(xc_generator "${SPEC[xc]}")")"

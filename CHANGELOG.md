@@ -8,6 +8,11 @@
   failed on machines without Quantum ESPRESSO. `ld1.x` is now required only
   when `SPEC[source]=local` and `SPEC[engine]=ld1`.
 
+- **`fetch_candidate_names` returns a bare filename for `sg15`.**
+  The `sg15` branch prefixed `"${base%/}/upf/"` using `base` inherited from
+  `fetch_mirror_urls`, doubling the mirror URL prefix. It now returns `$hit`
+  alone, like every other profile branch.
+
 ## One guided flow, and an audit that reaches the corners it used to miss
 
 The TUI had grown three entry points that all claimed to do the same
