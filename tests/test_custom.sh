@@ -292,7 +292,7 @@ drive_wizard() {
     (
         export PF_FORCE_TEXT=1
         # shellcheck disable=SC1090
-        . "$PF_LIB/core.sh"; . "$PF_LIB/sink.sh"; . "$PF_LIB/config.sh"
+        . "$PF_LIB/core.sh"; . "$PF_LIB/sink.sh"; . "$PF_LIB/config.sh"; . "$PF_LIB/deps.sh"
         . "$PF_LIB/elements.sh"; . "$PF_LIB/xc.sh"; . "$PF_LIB/namelist.sh"
         . "$PF_LIB/profiles.sh"; . "$PF_LIB/metadata.sh"; . "$PF_LIB/formats.sh"
         . "$PF_LIB/gth.sh"; . "$PF_LIB/sssp.sh"; . "$PF_LIB/convert.sh"
@@ -300,30 +300,27 @@ drive_wizard() {
         . "$PF_LIB/recipe.sh"; . "$PF_LIB/input_builder.sh"; . "$PF_LIB/executor.sh"
         . "$PF_LIB/project.sh"; . "$PF_LIB/run.sh"; . "$PF_LIB/ui.sh"
         . "$PF_LIB/wizard.sh"
+        pf_config_defaults; pf_elements_load; pf_xc_load
+        pf_profiles_load; pf_metadata_load; pf_params_load; pf_engines_load
         spec_init 2>/dev/null || true
+        SPEC[family]=nc
         wiz_init 2>/dev/null || true
-        # Run the wizard; it reads from the piped stdin and stops on an
-        # empty answer like a user pressing Cancel.
-        echo "$input" | wizard_main >/dev/null 2>&1
+        # Run the wizard in the current shell so SPEC mutations survive.
+        wizard_main < <(printf '%s' "$input") >/dev/null 2>&1
         for k in family xc rel profile; do
             printf '%s=%s\n' "$k" "${SPEC[$k]:-}"
         done
     ) 2>/dev/null
 }
 
-# Feed it: nc, pbe (GGA menu then the functional), scalar, psl-high, local.
-# The exact prompt order is family -> xc family -> xc -> rel -> profile ->
-# source.  If the order changes, the test says so instead of silently
-# passing with the wrong SPEC.
+# Feed it: paw (1), pbe (1), scalar (1), psl-high (1), local (1).
 out=$(drive_wizard $'1\n1\n1\n1\n1\n')
-# The wizard may not reach the end with every prompt; what matters is that
-# whatever it did pick ended up in SPEC.  If nothing was picked the test
-# reports the SPEC unchanged from the default.
 fam=$(printf '%s' "$out" | awk -F= '$1=="family"{print $2}')
-case $fam in
-    nc|us|paw) ok_ "wizard picked family=$fam" ;;
-    *) skip_ "wizard text mode did not reach the family prompt (got '$fam')" ;;
-esac
+if [ "$fam" = paw ]; then
+    ok_ "wizard picked family=paw (changed from initial nc)"
+else
+    bad_ "wizard did not set SPEC[family]=paw (got '$fam')"
+fi
 
 # ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
