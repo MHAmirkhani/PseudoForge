@@ -285,7 +285,8 @@ check_key "$out" dx 0.0125 ui_advanced
 check_key "$out" rmax 120.0 ui_advanced
 # scf: menu pick, then beta inputbox, then tr2 inputbox
 out=$(run_ui_advanced_with 'scf\n0.1\n1.0d-14\nCANCEL\n')
-check_key "$out" beta 0.1 ui_advancedcheck_key "$out" tr2 1.0d-14
+check_key "$out" beta 0.1 ui_advanced
+check_key "$out" tr2 1.0d-14 ui_advanced
 
 # ---------------------------------------------------------------------------
 section "D. Wizard steps (text-mode, one at a time)"
