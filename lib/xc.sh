@@ -94,11 +94,17 @@ xc_engine_native() {
     local id=$1 eng=${2:-${SPEC[engine]:-ld1}} saved rc
     case $eng in
         atompaw)
-            saved=${SPEC[xc]:-}
-            SPEC[xc]=$id
-            XC_NO_ENGINE_LOOKUP=1 ib_atompaw_xc >/dev/null 2>&1; rc=$?
-            SPEC[xc]=$saved
-            return $rc ;;
+            if declare -F ib_atompaw_xc >/dev/null 2>&1; then
+                saved=${SPEC[xc]:-}
+                SPEC[xc]=$id
+                XC_NO_ENGINE_LOOKUP=1 ib_atompaw_xc >/dev/null 2>&1; rc=$?
+                SPEC[xc]=$saved
+                return $rc
+            fi
+            case $id in
+                pz|lda|pw|pbe|pbesol|r2scan|r2scan-01) return 0 ;;
+                *) return 1 ;;
+            esac ;;
         *) return 1 ;;
     esac
 }
@@ -106,17 +112,18 @@ xc_engine_native() {
 xc_generator() {
     pf_xc_load
     local id=$1
-    if [ "${XC_STATUS[$id]}" = proxy ]; then
+    if [ -n "${XC_NO_ENGINE_LOOKUP:-}" ]; then
+        printf '%s\n' "$id"
+        return 0
+    fi
+    if [ "${XC_STATUS[$id]:-}" = proxy ]; then
         # ...unless the engine about to run can do it for real.
-        if [ -z "${XC_NO_ENGINE_LOOKUP:-}" ] && xc_engine_native "$id" 2>/dev/null; then
-            printf '%s
-' "$id"; return 0
+        if xc_engine_native "$id" 2>/dev/null; then
+            printf '%s\n' "$id"; return 0
         fi
-        printf '%s
-' "${XC_PROXY[$id]}"
+        printf '%s\n' "${XC_PROXY[$id]}"
     else
-        printf '%s
-' "$id"
+        printf '%s\n' "$id"
     fi
 }
 

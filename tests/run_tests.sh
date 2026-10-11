@@ -535,6 +535,13 @@ else
     bad_ "fetch URL construction" "run: tests/test_fetch.sh"
 fi
 
+section "engine-native functional lookup"
+if bash "$HERE/test_xc_native.sh" >/dev/null 2>&1; then
+    ok_ "xc_engine_native distinguishes native AtomPAW functionals from proxies"
+else
+    bad_ "engine-native functional lookup" "run: tests/test_xc_native.sh"
+fi
+
 # Interface audit: every subcommand answers --help, every TUI layer has a
 # handler, every advanced-screen key reaches SPEC, every doc path named by
 # the shell code exists.  Runs the fast sections only; the per-engine TUI

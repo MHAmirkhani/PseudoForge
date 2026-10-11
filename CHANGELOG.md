@@ -13,6 +13,13 @@
   `fetch_mirror_urls`, doubling the mirror URL prefix. It now returns `$hit`
   alone, like every other profile branch.
 
+- **`xc_engine_native` no longer reports proxy functionals as native to AtomPAW.**
+  When `XC_NO_ENGINE_LOOKUP=1` was set, `xc_generator` fell through to
+  `XC_PROXY[$id]` (`pbe`), causing `ib_atompaw_xc` to succeed for `scan`,
+  `tpss`, `m06l`, `pbe0`, `rvv10`, and `vdw-df2`. `xc_engine_native` now
+  answers true on AtomPAW only for `pz`, `lda`, `pw`, `pbe`, `pbesol`,
+  `r2scan`, and `r2scan-01`.
+
 ## One guided flow, and an audit that reaches the corners it used to miss
 
 The TUI had grown three entry points that all claimed to do the same
