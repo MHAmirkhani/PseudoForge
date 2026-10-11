@@ -145,7 +145,6 @@ pf_metadata_load() {
     MD_ALSO_CITE[vanderbilt]=""
     MD_NOTE[vanderbilt]="The paper defines the ultrasoft formalism; the uspp code implements it."
 
-    # ---- HGH ---------------------------------------------------------------
     MD_OFFICIAL_URL[qe-legacy]="https://pseudopotentials.quantum-espresso.org/upf_files"
     MD_MIRROR_PATH[qe-legacy]="qe-legacy"
     MD_LICENSE[qe-legacy]="GPL-2.0-or-later"
@@ -167,6 +166,7 @@ pf_metadata_load() {
     MD_ALSO_CITE[gipaw]="quantum-espresso"
     MD_NOTE[gipaw]="This entry used to say the published files could not be regenerated because they carry no embedded input. That was true of the qe-gipaw repository it pointed at, and wrong about the library: Ceresoli publishes the ld1.x decks separately, in gipaw-pseudopotentials, and PseudoForge now ships and runs those 17 decks. No paper is attached to the pseudopotentials themselves, so there is no citation to give here -- credit the repository and cite Quantum ESPRESSO for ld1.x."
 
+    # ---- HGH ---------------------------------------------------------------
     MD_OFFICIAL_URL[hgh]="https://www.cp2k.org/static/potentials/"
     MD_MIRROR_PATH[hgh]="hgh"
     MD_LICENSE[hgh]="published parameter tables; no separate software licence"

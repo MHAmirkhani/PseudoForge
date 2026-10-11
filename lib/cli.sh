@@ -1772,7 +1772,7 @@ cmd_native() {
             fi
             ok "within the ${PF_VPS_BUDGET_MB}M budget"
             ;;
-        ''|-h|--help)
+        '')
             printf 'usage: pseudoforge native index|list|size [dir]\n' ;;
         *) die "unknown: pseudoforge native $sub  (index list size)" ;;
     esac

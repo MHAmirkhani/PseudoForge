@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # engines.sh -- the generator-engine registry.
 #
-# PseudoForge drives eight independent atomic codes.  Each owns a different corner
+# PseudoForge drives nine independent atomic codes.  Each owns a different corner
 # of pseudopotential space, and none can produce what another produces:
 #
 #   ld1       Quantum ESPRESSO's atomic code.  NC / US / PAW.  Writes UPF
@@ -26,6 +26,8 @@
 #   ape       The Atomic Pseudopotential Engine.  Norm-conserving, and the
 #             only engine here that takes libxc functional names directly --
 #             which is what lets it reach functionals no other engine can.
+#   adpack    Ozaki's atomic code for OpenMX.  Norm-conserving (TM, BHS, MBK),
+#             writing OpenMX .vps and .pao files.
 #
 # IMPORTANT, and the reason this file is careful about its wording: owning the
 # engine is not the same as owning the parameters.  What makes SG15 "SG15" is
@@ -51,7 +53,7 @@ pf_engines_load() {
     ENG_UPSTREAM[ld1]="https://gitlab.com/QEF/q-e"
     ENG_LICENSE[ld1]="GPL-2.0-or-later"
     ENG_NATIVE_UPF[ld1]=yes
-    ENG_NOTE[ld1]="Ships with Quantum ESPRESSO. The only engine here that makes PAW data sets."
+    ENG_NOTE[ld1]="Ships with Quantum ESPRESSO. The only engine here that covers all three families (NC, US and PAW), and the engine behind every psl-* profile."
 
     ENG_LABEL[oncvpsp]="ONCVPSP (Hamann)"
     ENG_FAMILIES[oncvpsp]="nc"

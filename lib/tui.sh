@@ -138,8 +138,8 @@ tui_history_show() {
 # ---------------------------------------------------------------------------
 tui_gauge() {   # tui_gauge <title> <text>   (percentages on stdin)
     local title=$1 text=$2
-    whiptail --title "$title" --gauge "$text" \
-             "$(ui_fit_h 8)" "$(ui_fit_w 70)" 0 2>/dev/null
+    "$DIA" --title "$title" --gauge "$text" \
+           "$(ui_fit_h 8)" "$(ui_fit_w 70)" 0 2>/dev/null
 }
 
 # Run a command behind a gauge that advances on its output lines.

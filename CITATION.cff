@@ -20,8 +20,8 @@ abstract: >-
   PseudoForge generates and validates pseudopotentials by driving nine
   independent atomic structure codes — Quantum ESPRESSO's ld1, ONCVPSP, the
   Vanderbilt ultrasoft generator, fhi98PP, OPIUM, the Goedecker-Teter-Hutter
-  fitting toolchain, AtomPAW and the Atomic Pseudopotential Engine — through a
-  single interface, in pure Bash with no Python dependency.
+  fitting toolchain, AtomPAW, the Atomic Pseudopotential Engine and ADPACK —
+  through a single interface, in pure Bash with no Python dependency.
 
   It reproduces published libraries from those libraries' own published
   parameters rather than approximating them: PSlibrary is reproduced
@@ -44,7 +44,7 @@ keywords:
   - norm-conserving
   - ultrasoft
 license: GPL-2.0-or-later
-version: 1.3.0
+version: 1.3.2
 # Provenance of the DOIs below: the ONCVPSP, Vanderbilt, GTH, HGH and both
 # SSSP entries are the ones already recorded and checked in lib/metadata.sh.
 # The PAW, Troullier-Martins and Rappe entries were taken from the reference

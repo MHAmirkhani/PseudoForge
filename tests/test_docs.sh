@@ -273,6 +273,26 @@ else
     bad_ "no wizard reference page"
 fi
 
+printf '\n%s== metadata and prose agree with the code%s\n' "$DIM" "$RESET"
+code_ver=$(awk -F= '/^PSEUDOFORGE_VERSION=/ { gsub(/["'\'' ]/, "", $2); print $2; exit }' "$PF_LIB/core.sh")
+cff_ver=$(awk -F': *' '/^version:/ { gsub(/["'\'' ]/, "", $2); print $2; exit }' "$ROOT/CITATION.cff")
+[ "$code_ver" = "$cff_ver" ] \
+    && ok_ "CITATION.cff version ($cff_ver) matches PSEUDOFORGE_VERSION" \
+    || bad_ "CITATION.cff says $cff_ver, core.sh says $code_ver"
+grep -q 'ADPACK' "$ROOT/CITATION.cff" \
+    && ok_ "CITATION.cff abstract names ADPACK among the nine engines" \
+    || bad_ "CITATION.cff omits ADPACK from the engine list"
+grep -qi 'only engine here that makes PAW' "$PF_LIB/engines.sh" \
+    && bad_ "engines.sh still claims ld1 is the only PAW engine" \
+    || ok_ "engines.sh does not claim ld1 is the only PAW engine"
+[ "$(grep -c '^#\+ Where downloads come from' "$ROOT/README.md")" -eq 1 ] \
+    && ! grep -q 'checks `MIRROR_URL` first' "$ROOT/README.md" \
+    && ok_ "README.md states one download order matching lib/fetch.sh" \
+    || bad_ "README.md has a duplicate or inverted download order"
+grep -n '^[[:space:]]*whiptail ' "$PF_LIB/tui.sh" >/dev/null 2>&1 \
+    && bad_ "lib/tui.sh calls bare whiptail instead of \$DIA" \
+    || ok_ "lib/tui.sh dispatches through \$DIA"
+
 printf '\n%s== the tutorials still run%s\n' "$DIM" "$RESET"
 if [ "${PF_SLOW_TESTS:-0}" != 1 ]; then
     skip_ "tutorial commands gated behind PF_SLOW_TESTS=1"

@@ -126,8 +126,8 @@ pseudoforge generate -e Si,Ge -t nc --engine oncvpsp -x pbe --source local
 pseudoforge generate -e Si -p pseudodojo -t nc --params ~/dojo-inputs/
 ```
 
-`--source online` checks `MIRROR_URL` first, then the library's own site, and
-runs the same validation over what arrives as over anything generated here.
+`--source online` checks the library's official site first, then `MIRROR_URL`,
+and runs the same validation over what arrives as over anything generated here.
 
 **Owning the engine is not owning the parameters.** PseudoForge will run ONCVPSP for
 you, but what makes SG15 "SG15" is its published table of cut-off radii and
@@ -160,19 +160,6 @@ Two rules govern `lib/metadata.sh`, and they matter more than the convenience:
 
 PseudoForge gives you the reference the authors asked for. It cannot know what your
 journal wants, and it is not a substitute for checking.
-
-### Where downloads come from
-
-`--source online` follows a fixed chain, reporting which step it is on:
-
-1. your mirror — `MIRROR_URL` (default `https://pseudo.amirkhani.me/library/`),
-   laid out as `<mirror>/<library>/<functional>/<file>`
-2. the library's own official directory, from `lib/metadata.sh`
-3. neither — PseudoForge says so and suggests generating locally
-
-Libraries distributed as a single archive (SG15, PseudoDojo) have no
-addressable per-element URL, and PseudoForge does not invent one: it tells you to
-download the archive and `pseudoforge import` it.
 
 ## What can be generated, and what cannot
 
