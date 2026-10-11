@@ -57,7 +57,11 @@ run_expect_fail() {
     local out rc=0
     out=$("$@" 2>&1) || rc=$?
     local dt=$((SECONDS - t0))
-    if [ $rc -ne 0 ]; then
+    if [ $rc -eq 126 ] || [ $rc -eq 127 ]; then
+        printf '  %-4s  %-45s (%ds) -- rc=%d (command not found)\n' FAIL "$label" "$dt" "$rc"
+        printf 'FAIL\t%s\t%s\trc=%d: %s\n' "$label" "$dt" "$rc" "${out//$'\n'/ | }" >> "$RAW"
+        fail=$((fail+1))
+    elif [ $rc -ne 0 ]; then
         printf '  %-4s  %-45s (%ds)\n' PASS "$label" "$dt"
         printf 'PASS\t%s\t%s\trefused as expected\n' "$label" "$dt" >> "$RAW"
         pass=$((pass+1))
@@ -491,15 +495,15 @@ run_expect_fail "generate on a profile that needs download" \
     "$PSM" generate -e Si -t nc -x pbe -p dacapo -o "$SCRATCH/eh-dl" -q
 
 # validate on a nonexistent file
-run_expect_fail "validate a nonexistent file" \\
+run_expect_fail "validate a nonexistent file" \
     "$PSM" validate "$SCRATCH/does-not-exist.UPF" -q
 
 # convert with a missing --to
-run_expect_fail "convert with no --to" \\
+run_expect_fail "convert with no --to" \
     "$PSM" convert "$UPF" -o "$SCRATCH/eh-conv"
 
 # convert with a bad source file
-run_expect_fail "convert with a nonexistent source" \\
+run_expect_fail "convert with a nonexistent source" \
     "$PSM" convert "$SCRATCH/nope.UPF" --to xml -o "$SCRATCH/eh-conv2"
 echo
 
