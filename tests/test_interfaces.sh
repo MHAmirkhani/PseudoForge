@@ -174,6 +174,82 @@ for c in generate engines doctor convert list recipe import report compare citat
         || bad_ "'$c' has no CLI dispatch entry"
 done
 
+# ---------------------------------------------------------------------------
+printf '\n%s== cmd_generate requires ld1.x only for local ld1 runs%s\n' "$DIM" "$RESET"
+# ---------------------------------------------------------------------------
+mkdir -p "$TMP/bin"
+: > "$TMP/empty_rc"
+
+cat > "$TMP/bin/curl" <<'MOCK_CURL'
+#!/usr/bin/env bash
+out=""
+write_code=0
+while [ $# -gt 0 ]; do
+    case $1 in
+        -o) out=$2; shift 2 ;;
+        -w) write_code=1; shift 2 ;;
+        -m) shift 2 ;;
+        *)  shift ;;
+    esac
+done
+if [ -n "$out" ] && [ "$out" != "/dev/null" ]; then
+    cat > "$out" <<'UPF'
+<UPF version="2.0.1">
+  <PP_HEADER element="Si" pseudo_type="NC" relativistic="scalar" is_ultrasoft="F" is_paw="F" is_coulomb="F" has_so="F" has_wfc="F" has_gipaw="F" core_correction="F" functional="PBE" z_valence="4.0" total_psenergy="-7.8" wfc_cutoff="30.0" rho_cutoff="120.0" l_max="1" l_local="1" mesh_size="4" number_of_wfc="1" number_of_proj="1"/>
+  <PP_MESH><PP_R>0.1 0.2 0.3 0.4</PP_R><PP_RAB>0.1 0.1 0.1 0.1</PP_RAB></PP_MESH>
+  <PP_LOCAL>0.0 0.0 0.0 0.0</PP_LOCAL>
+  <PP_NONLOCAL><PP_BETA.1 index="1" angular_momentum="0">0.0 0.0 0.0 0.0</PP_BETA.1><PP_DIJ>-1.0</PP_DIJ></PP_NONLOCAL>
+  <PP_PSWFC><PP_CHI.1 index="1" label="3S" l="0" occupation="2.0">0.0 0.0 0.0 0.0</PP_CHI.1></PP_PSWFC>
+  <PP_RHOATOM>0.0 0.0 0.0 0.0</PP_RHOATOM>
+</UPF>
+UPF
+fi
+[ "$write_code" = 1 ] && printf '200'
+exit 0
+MOCK_CURL
+chmod +x "$TMP/bin/curl"
+
+cat > "$TMP/bin/oncvpsp.x" <<'MOCK_ONCV'
+#!/usr/bin/env bash
+cat <<'OUT'
+Test configuration 1
+   1    0     -0.50000000    -0.50000000     0.00000000
+PSP_UPF
+<UPF version="2.0.1">
+  <PP_HEADER element="Si" pseudo_type="NC" relativistic="scalar" is_ultrasoft="F" is_paw="F" is_coulomb="F" has_so="F" has_wfc="F" has_gipaw="F" core_correction="F" functional="PBE" z_valence="4.0" total_psenergy="-7.8" wfc_cutoff="30.0" rho_cutoff="120.0" l_max="1" l_local="1" mesh_size="4" number_of_wfc="1" number_of_proj="1"/>
+  <PP_MESH><PP_R>0.1 0.2 0.3 0.4</PP_R><PP_RAB>0.1 0.1 0.1 0.1</PP_RAB></PP_MESH>
+  <PP_LOCAL>0.0 0.0 0.0 0.0</PP_LOCAL>
+  <PP_NONLOCAL><PP_BETA.1 index="1" angular_momentum="0">0.0 0.0 0.0 0.0</PP_BETA.1><PP_DIJ>-1.0</PP_DIJ></PP_NONLOCAL>
+  <PP_PSWFC><PP_CHI.1 index="1" label="3S" l="0" occupation="2.0">0.0 0.0 0.0 0.0</PP_CHI.1></PP_PSWFC>
+  <PP_RHOATOM>0.0 0.0 0.0 0.0</PP_RHOATOM>
+</UPF>
+END_PSP
+OUT
+exit 0
+MOCK_ONCV
+chmod +x "$TMP/bin/oncvpsp.x"
+
+if PF_RC="$TMP/empty_rc" PATH="$TMP/bin:/usr/bin:/bin" \
+   QE_ROOT_DIR=/nonexistent LD1_BIN=/nonexistent PW_BIN=/nonexistent ENGINE_DIR=/nonexistent \
+   "$ROOT/pseudoforge" generate -e Si -p qe-legacy -t nc -x pbe -r scalar \
+   --source online --no-test -o "$TMP/online_no_qe" >/dev/null 2>&1 \
+   && [ -f "$TMP/online_no_qe/pseudos/Si.pbe-rrkjus.UPF" ]; then
+    ok_ "--source online with no QE and no other engine reaches download and exits 0"
+else
+    bad_ "--source online failed without ld1.x"
+fi
+
+if PF_RC="$TMP/empty_rc" \
+   QE_ROOT_DIR=/nonexistent LD1_BIN=/nonexistent PW_BIN=/nonexistent ENGINE_DIR=/nonexistent \
+   ONCVPSP_BIN="$TMP/bin/oncvpsp.x" \
+   "$ROOT/pseudoforge" generate -e Si -p sg15 -t nc -x pbe -r scalar \
+   --engine oncvpsp --source local --no-test -o "$TMP/oncv_no_qe" >/dev/null 2>&1 \
+   && [ -f "$TMP/oncv_no_qe/pseudos/Si.pbe-oncv.UPF" ]; then
+    ok_ "--engine oncvpsp --source local with no ld1.x reaches build and exits 0"
+else
+    bad_ "--engine oncvpsp --source local failed without ld1.x"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

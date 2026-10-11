@@ -35,6 +35,7 @@ ld1_test_one() {
     local set tag key cond tpl deck log fct nrel upf fc out
     local maxde detot verdict
 
+    deps_have_ld1 || return 1
     upf=$(state_field "$el" 7)
     [ -n "$upf" ] && [ -f "$PROJECT_DIR/pseudos/$upf" ] || return 1
 

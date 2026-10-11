@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.2 — Post-audit fixes
+
+- **`cmd_generate` no longer demands `ld1.x` for downloads or non-QE engines.**
+  `cmd_generate` checked `deps_have_ld1` unconditionally before inspecting
+  `SPEC[source]` or `SPEC[engine]`, so `--source online` and `--engine oncvpsp`
+  failed on machines without Quantum ESPRESSO. `ld1.x` is now required only
+  when `SPEC[source]=local` and `SPEC[engine]=ld1`.
+
 ## One guided flow, and an audit that reaches the corners it used to miss
 
 The TUI had grown three entry points that all claimed to do the same

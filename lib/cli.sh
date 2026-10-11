@@ -669,7 +669,9 @@ cmd_generate() {
     fi
 
     deps_resolve_qe
-    deps_have_ld1 || { deps_qe_hint; exit 1; }
+    if [ "${SPEC[source]:-local}" != online ] && [ "${SPEC[engine]:-ld1}" = ld1 ]; then
+        deps_have_ld1 || { deps_qe_hint; exit 1; }
+    fi
 
     banner "Generating"
     if [ "${SPEC[source]:-local}" = online ]; then
