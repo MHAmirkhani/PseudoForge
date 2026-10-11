@@ -1528,14 +1528,14 @@ fi
 # again; if it leaves SPEC at its previous value the run is at least
 # not silently wrong.
 
-out=$(drive_wizard_full "9\n")
+out=$(DEFAULT_PSEUDOTYPE=nc drive_wizard_full "9\n")
 
 fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
-case $fam in
-    nc|us|paw) ok_ "wizard: refused 9 for family (kept '$fam')" ;;
-    '')        ok_ "wizard: refused 9 for family (SPEC unchanged)" ;;
-    *)         bad_ "wizard: accepted 9 for family as '$fam'" ;;
-esac
+if [ "$fam" = nc ]; then
+    ok_ "wizard: refused 9 for family (kept '$fam')"
+else
+    bad_ "wizard: accepted 9 for family as '$fam' (want nc)"
+fi
 # ---------------------------------------------------------------------------
 section "P. store browse API"
 
