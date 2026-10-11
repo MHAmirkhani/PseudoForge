@@ -709,8 +709,16 @@ http_h_validate() {
         http_error 400 bad_request "Upload a pseudopotential file as the request body."; return 0; }
 
     pf_sink_use capture; pf_sink_reset
-    local rc=0
-    upf_validate "$body" >/dev/null 2>&1 || rc=$?
+    local rc=0 out line
+    out=$(upf_validate_any "$body" 2>&1) || rc=$?
+    while IFS= read -r line; do
+        case $line in
+            ERROR:*)   pf_emit error "$(trim "${line#ERROR:}")" ;;
+            WARNING:*) pf_emit warn  "$(trim "${line#WARNING:}")" ;;
+            WARN:*)    pf_emit warn  "$(trim "${line#WARN:}")" ;;
+            NOTE:*)    pf_emit info  "$(trim "${line#NOTE:}")" ;;
+        esac
+    done <<< "$out"
     local errs warns
     errs=$(pf_sink_filter error | while IFS= read -r l; do http_json_str "$l"; printf '\n'; done | http_json_array)
     warns=$(pf_sink_filter warn | while IFS= read -r l; do http_json_str "$l"; printf '\n'; done | http_json_array)

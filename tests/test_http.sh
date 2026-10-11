@@ -234,7 +234,8 @@ if [ -n "$FIXTURE" ]; then
     api POST /api/validate "$FIXTURE"
     v=$("$PSM" api POST /api/validate "$FIXTURE" 2>/dev/null)
     [ "$API_STATUS" = 200 ] && ok_ "POST /api/validate is 200" || bad_ "validate is $API_STATUS"
-    json_has "$v" 'valid'    && ok_ "  it reports a verdict"  || bad_ "  no verdict"
+    printf '%s' "$v" | grep -q '"valid":true' \
+        && ok_ "  it reports a verdict" || bad_ "  no verdict" "$v"
     json_has "$v" 'errors'   && ok_ "  and the errors"        || bad_ "  no errors field"
     json_has "$v" 'warnings' && ok_ "  and the warnings"      || bad_ "  no warnings field"
     api POST /api/validate
@@ -243,11 +244,45 @@ else
     skip_ "no fixture to validate"
 fi
 
+for nf in "$ROOT/tests/fixtures/psp8/Si.pbe-oncv.psp8" \
+          "$ROOT/tests/fixtures/gth/sample.gth" \
+          "$ROOT/tests/fixtures/vps/Be.pz-adpack.vps"; do
+    if [ -f "$nf" ]; then
+        nv=$("$PSM" api POST /api/validate "$nf" 2>/dev/null)
+        printf '%s' "$nv" | grep -q '"valid":true' \
+            && ok_ "POST /api/validate accepts $(basename "$nf")" \
+            || bad_ "POST /api/validate rejected $(basename "$nf")" "$nv"
+    fi
+done
+
+PAWFIX="$ROOT/tests/fixtures/pawxml/Li.r2scan-atompaw.xml"
+if [ -f "$PAWFIX" ]; then
+    pv=$("$PSM" api POST /api/validate "$PAWFIX" 2>/dev/null)
+    printf '%s' "$pv" | grep -q '"valid":true' \
+        && ok_ "POST /api/validate accepts PAW-XML" \
+        || bad_ "POST /api/validate rejected PAW-XML" "$pv"
+    printf '%s' "$pv" | grep -q 'MGGA-R2SCAN-001' \
+        && ok_ "  and captures warnings through pf_emit" \
+        || bad_ "  warnings were lost" "$pv"
+fi
+
+printf 'not a pseudopotential\n' > "$TMP/bad.UPF"
+bv=$("$PSM" api POST /api/validate "$TMP/bad.UPF" 2>/dev/null)
+printf '%s' "$bv" | grep -q '"valid":false' \
+    && ok_ "invalid UPF is reported invalid" \
+    || bad_ "invalid UPF was not rejected" "$bv"
+printf '%s' "$bv" | grep -q 'no <PP_HEADER> found' \
+    && ok_ "  and captures errors through pf_emit" \
+    || bad_ "  errors were lost" "$bv"
+
 printf '\n%s== no logic lives only in the website%s\n' "$DIM" "$RESET"
 # The handler must not re-decide what the converter already decides.
 awk '/^http_h_convert\(\)/,/^}/' "$PF_LIB/http.sh" | grep -q 'cvt_convert' \
     && ok_ "the convert handler delegates to cvt_convert" \
     || bad_ "the handler converts by itself" "that judgement would exist twice"
+awk '/^http_h_validate\(\)/,/^}/' "$PF_LIB/http.sh" | grep -q 'upf_validate_any' \
+    && ok_ "the validate handler delegates to upf_validate_any" \
+    || bad_ "the validate handler does not call upf_validate_any"
 awk '/^http_h_health\(\)/,/^}/' "$PF_LIB/http.sh" | grep -q 'doctor_checks' \
     && ok_ "health calls doctor_checks, not its own probes" \
     || bad_ "health does its own checking"
