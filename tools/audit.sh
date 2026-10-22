@@ -46,13 +46,15 @@ run() {
     fi
 }
 
-# run_expect_fail <label> <cmd...>
+# run_expect_fail <label> <pattern> <cmd...>
 #
-# The command must exit non-zero.  Used for the refuse cases: an unsupported
-# conversion, --rcut-scale on an engine that does not implement it, a
-# functional a profile does not publish.
+# The command must exit non-zero AND its output must contain the expected
+# pattern.  Used for the refuse cases: an unsupported conversion, --rcut-scale
+# on an engine that does not implement it, a functional a profile does not
+# publish.
 run_expect_fail() {
     local label=$1; shift
+    local pattern=$1; shift
     local t0=$SECONDS
     local out rc=0
     out=$("$@" 2>&1) || rc=$?
@@ -62,9 +64,17 @@ run_expect_fail() {
         printf 'FAIL\t%s\t%s\trc=%d: %s\n' "$label" "$dt" "$rc" "${out//$'\n'/ | }" >> "$RAW"
         fail=$((fail+1))
     elif [ $rc -ne 0 ]; then
-        printf '  %-4s  %-45s (%ds)\n' PASS "$label" "$dt"
-        printf 'PASS\t%s\t%s\trefused as expected\n' "$label" "$dt" >> "$RAW"
-        pass=$((pass+1))
+        if [ -n "$pattern" ] && [[ "$out" != *"$pattern"* ]]; then
+            printf '  %-4s  %-45s (%ds) -- failed with unexpected error\n' FAIL "$label" "$dt"
+            printf 'FAIL\t%s\t%s\tunexpected error: expected pattern "%s", got: %s\n' "$label" "$dt" "$pattern" "${out//$'\n'/ | }" >> "$RAW"
+            printf '        expected: %s\n' "$pattern"
+            printf '        got:      %s\n' "$(head -n 2 <<< "$out" | tr '\n' ' ')"
+            fail=$((fail+1))
+        else
+            printf '  %-4s  %-45s (%ds)\n' PASS "$label" "$dt"
+            printf 'PASS\t%s\t%s\trefused as expected\n' "$label" "$dt" >> "$RAW"
+            pass=$((pass+1))
+        fi
     else
         printf '  %-4s  %-45s (%ds) -- command succeeded, should have refused\n' FAIL "$label" "$dt"
         printf 'FAIL\t%s\t%s\tcommand succeeded, should have refused\n' "$label" "$dt" >> "$RAW"
@@ -243,12 +253,14 @@ echo "== convert refuse cases =="
 # gth -> upf (refused: GTH is analytic coefficients, not a radial table)
 if decompress_store "$SCRATCH/sample.gth" '*.gth.gz'; then
     run_expect_fail "convert gth -> upf (refused)" \
+        "is not a format conversion" \
         "$PSM" convert "$SCRATCH/sample.gth" --to upf -o "$SCRATCH/cv-gth"
 fi
 
 # vps -> upf (refused: semilocal V_l(r), no KB form)
 if decompress_store "$SCRATCH/sample.vps" '*.vps.gz'; then
     run_expect_fail "convert vps -> upf (refused)" \
+        "is not a format conversion" \
         "$PSM" convert "$SCRATCH/sample.vps" --to upf -o "$SCRATCH/cv-vps"
 fi
 
@@ -260,12 +272,14 @@ if [ -n "$PXML" ]; then
         *)    cp -f "$PXML" "$SCRATCH/sample-paw.xml" ;;
     esac
     run_expect_fail "convert pawxml -> upf (refused)" \
+        "is not a format conversion" \
         "$PSM" convert "$SCRATCH/sample-paw.xml" --to upf -o "$SCRATCH/cv-paw"
 fi
 
 # psp8 -> upf (refused: no tool performs this)
 if decompress_store "$SCRATCH/sample.psp8" '*.psp8.gz'; then
     run_expect_fail "convert psp8 -> upf (refused)" \
+        "nothing performs this conversion" \
         "$PSM" convert "$SCRATCH/sample.psp8" --to upf -o "$SCRATCH/cv-psp8"
 fi
 echo
@@ -298,24 +312,35 @@ echo
 
 # ---------- refused flags ----------
 echo "== flags that should be refused =="
-# --projector is disabled in this build (ld1's extra-card path is narrow;
-# the flag is refused cleanly rather than silently misbuilt).
-run_expect_fail "generate ld1 --projector 3D:0.5 (refused)" \
+# --projector is only supported on ld1 (refused on other engines), accepted on
+# ld1 for a non-local channel, and refused on ld1 when the channel is lloc.
+run_expect_fail "generate oncvpsp --projector 3P:0.5 (refused on non-ld1)" \
+    "--projector is only available with ld1" \
+    "$PSM" generate -e Si -t nc -x pbe -p sg15 --engine oncvpsp -o "$SCRATCH/pj-oncv" --projector 3P:0.5 -q
+run "generate ld1 --projector 3P:0.5 (accepted on non-local channel)" \
+    "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/pj-ok" --projector 3P:0.5 --no-test -q
+run_expect_fail "generate ld1 --projector 3D:0.5 (refused on local channel)" \
+    "local channel" \
     "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/pj-bad" --projector 3D:0.5 -q
 # --upf 1 is refused: QE 7.x's ld1.x no longer writes UPF v1.
 run_expect_fail "generate ld1 --upf 1 (refused)" \
+    "UPF v1 is not supported" \
     "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/upf1-bad" --upf 1 -q
 echo
 
 # ---------- rcut-scale refuse cases ----------
 echo "== --rcut-scale refused on engines that lack it =="
 run_expect_fail "generate uspp --rcut-scale (refused)" \
+    "--rcut-scale is not available with USPP" \
     "$PSM" generate -e Si -t us -x pbe -p gbrv -o "$SCRATCH/rc-uspp" --rcut-scale 1.1 -q
 run_expect_fail "generate fhi98pp --rcut-scale (refused)" \
+    "--rcut-scale is not available with fhi98PP" \
     "$PSM" generate -e Si -t nc -x pw -p fhi -o "$SCRATCH/rc-fhi" --rcut-scale 1.1 -q
 run_expect_fail "generate gth --rcut-scale (refused)" \
+    "--rcut-scale is not available with GTH" \
     "$PSM" generate -e Si -t nc -x pbe -p cp2k-gth -o "$SCRATCH/rc-gth" --rcut-scale 1.1 -q
 run_expect_fail "generate atompaw --rcut-scale (refused)" \
+    "--rcut-scale is not available with AtomPAW" \
     "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/rc-atompaw" --rcut-scale 1.1 -q
 echo
 
@@ -468,42 +493,52 @@ echo "== error handling =="
 
 # Missing element in a profile that does not cover it
 run_expect_fail "generate an element a profile does not cover" \
+    "matched nothing" \
     "$PSM" generate -e Og -t nc -x pbe -p psl-high -o "$SCRATCH/eh-og" -q
 
 # Bad --params directory
 run_expect_fail "generate with a nonexistent --params dir" \
+    "not a directory" \
     "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/eh-params" --params /nonexistent/path/for/params -q
 
 # Bad element symbol
 run_expect_fail "generate with an unknown element" \
+    "matched nothing" \
     "$PSM" generate -e Xx -t nc -x pbe -p psl-high -o "$SCRATCH/eh-el" -q
 
 # Bad family
 run_expect_fail "generate with an unknown family" \
+    "unknown family" \
     "$PSM" generate -e Si -t xyz -p psl-high -o "$SCRATCH/eh-fam" -q
 
 # Bad functional for a profile
 run_expect_fail "generate with a functional a profile does not publish" \
+    "has no PZ" \
     "$PSM" generate -e Si -t us -x pz -p gbrv -o "$SCRATCH/eh-xc" -q
 
 # --rcut-scale with a non-numeric value
 run_expect_fail "generate --rcut-scale not a number" \
+    "must be a positive number" \
     "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/eh-rc" --rcut-scale abc -q
 
 # Missing engine on an import-only profile
 run_expect_fail "generate on a profile that needs download" \
+    "has no nc recipes" \
     "$PSM" generate -e Si -t nc -x pbe -p dacapo -o "$SCRATCH/eh-dl" -q
 
 # validate on a nonexistent file
 run_expect_fail "validate a nonexistent file" \
+    "does not exist" \
     "$PSM" validate "$SCRATCH/does-not-exist.UPF" -q
 
 # convert with a missing --to
 run_expect_fail "convert with no --to" \
+    "convert to what" \
     "$PSM" convert "$UPF" -o "$SCRATCH/eh-conv"
 
 # convert with a bad source file
 run_expect_fail "convert with a nonexistent source" \
+    "no such file" \
     "$PSM" convert "$SCRATCH/nope.UPF" --to xml -o "$SCRATCH/eh-conv2"
 echo
 
@@ -531,3 +566,5 @@ echo "raw:   $RAW"
 
 echo
 echo "report: $OUT"
+
+[ "$fail" -eq 0 ] || exit 1

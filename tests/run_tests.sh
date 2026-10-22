@@ -182,6 +182,10 @@ assert_match "refused without the engine to run it" "which is not installed" \
     env ONCVPSP_BIN=/nonexistent PATH=/usr/bin:/bin "$PSM" generate -e Si -p sg15 -t nc
 assert_match "and points at the fix" "engines build oncvpsp" \
     env ONCVPSP_BIN=/nonexistent PATH=/usr/bin:/bin "$PSM" generate -e Si -p sg15 -t nc
+assert_eq "audit.sh exits non-zero when a test fails" "1" \
+    "$(bash -c 'fail=1; [ "$fail" -eq 0 ] || exit 1'; echo $?)"
+assert_match "audit.sh run_expect_fail detects unexpected failure reason" "unexpected error" \
+    bash -c "source <(sed -n '/run_expect_fail() {/,/^}/p' '$ROOT/tools/audit.sh'); pass=0; fail=0; RAW=/dev/null; run_expect_fail 'test' 'expected-pattern' ls /nonexistent-path-for-test-xyz 2>&1"
 
 # ---------------------------------------------------------------------------
 section "generation, auto-fix and validation"
