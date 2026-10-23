@@ -308,64 +308,6 @@ def download(file_id: str):
     resp.headers["Accept-Ranges"] = "bytes"
     return resp
 
-@app.get("/api/download/{file_id:path}")
-def download(file_id: str):
-    """Serve the bytes.
-
-    The core resolves the id to a path -- this never builds one out of user
-    input -- and the result is checked to be inside the two directories this
-    service is allowed to serve from before anything is opened.
-    """
-    status, body = call_core("GET", f"/api/download/{file_id}")
-    if status != 200:
-        return JSONResponse(status_code=status, content=body)
-
-    path = Path(body.get("path", "")).resolve()
-    allowed = [PF_NATIVE_DIR.resolve(), PF_CACHE_DIR.resolve()]
-    if not any(str(path).startswith(str(root) + os.sep) for root in allowed):
-        return JSONResponse(
-            status_code=403,
-            content={"error": "forbidden", "message": "That file is outside the served tree."},
-        )
-    if not path.is_file():
-        return JSONResponse(
-            status_code=404,
-            content={"error": "not_found", "message": "The file is no longer on disk."},
-        )
-
-    # The store keeps files gzipped to save disk.  But sending the compressed
-    # bytes with Content-Encoding: gzip and the compressed Content-Length
-    # makes download managers loop: they receive N compressed bytes, decompress
-    # to M > N, compare against the announced length, decide the file is
-    # corrupt, and retry -- forever.  Browsers cope, download managers do not,
-    # and a pseudopotential that arrives through a broken download manager is
-    # a support burden, not a saved byte.
-    #
-    # So the file is decompressed here, before it goes on the wire.  The CPU
-    # cost of a few MB of gzip decompression is negligible on any machine
-    # that can serve HTTP at all, and the client receives a plain UPF under
-    # its real name with a Content-Length that matches what arrives.
-    if path.suffix == ".gz":
-        import gzip as _gzip
-        real_name = path.with_suffix("").name
-        try:
-            data = _gzip.decompress(path.read_bytes())
-        except OSError as exc:
-            return JSONResponse(
-                status_code=500,
-                content={"error": "decompress_failed",
-                         "message": f"Stored gzip could not be read: {exc}"},
-            )
-        return Response(
-            content=data,
-            media_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f'attachment; filename="{real_name}"',
-                "Accept-Ranges": "none",
-            },
-        )
-    return FileResponse(path, filename=path.name, media_type="application/octet-stream")
-
 
 @app.post("/api/validate")
 async def validate(file: UploadFile = File(...)):

@@ -299,6 +299,34 @@ if [ -f "$ROOT/server/app.py" ]; then
     grep -q 'call_core' "$ROOT/server/app.py" \
         && ok_ "every endpoint goes through the core" \
         || bad_ "app.py answers something itself"
+
+    n_dl=$(grep -cE '^\s*def download\(' "$ROOT/server/app.py")
+    [ "$n_dl" -eq 1 ] \
+        && ok_ "server/app.py has exactly one def download" \
+        || bad_ "server/app.py has $n_dl download definitions (duplicate route)"
+    awk '/@app\.get\("\/api\/download/,/return resp/' "$ROOT/server/app.py" | grep -q 'FileResponse' \
+        && ok_ "server/app.py download route uses FileResponse" \
+        || bad_ "server/app.py download route does not use FileResponse"
+    if [ -x "$ROOT/server/.venv/bin/python3" ] && [ -n "$FIXTURE" ]; then
+        head_ar=$("$ROOT/server/.venv/bin/python3" -c "
+import os, sys
+os.environ['PF_RC'] = '${PF_RC:-/tmp/.pseudoforgerc}'
+os.environ['PF_VAR_DIR'] = '$PF_VAR_DIR'
+os.environ['PF_NATIVE_DIR'] = '$PF_NATIVE_DIR'
+os.environ['PF_CACHE_DIR'] = '$PF_CACHE_DIR'
+sys.path.insert(0, '$ROOT/server')
+import app
+from pathlib import Path
+app.PF_BIN = Path('$PSM')
+app.PF_NATIVE_DIR = Path('$PF_NATIVE_DIR')
+app.PF_CACHE_DIR = Path('$PF_CACHE_DIR')
+res = app.download_head('Si.test.UPF')
+print(res.headers.get('accept-ranges', '') if hasattr(res, 'headers') else '')
+" 2>/dev/null)
+        [ "$head_ar" = "bytes" ] \
+            && ok_ "server/app.py download_head sets Accept-Ranges: bytes" \
+            || bad_ "server/app.py download_head did not set Accept-Ranges: bytes (got '$head_ar')"
+    fi
 fi
 
 printf '\n%s== the transport, over real HTTP%s\n' "$DIM" "$RESET"
@@ -341,6 +369,13 @@ else
 
         code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api/nope")
         [ "$code" = 404 ] && ok_ "an unknown path over HTTP is 404" || bad_ "unknown path is $code"
+
+        if [ -n "$FIXTURE" ]; then
+            head_ar=$(curl -s -I "http://127.0.0.1:$PORT/api/download/Si.test.UPF" | grep -i '^accept-ranges:' | tr -d '\r\n')
+            echo "$head_ar" | grep -qi 'bytes' \
+                && ok_ "HEAD /api/download returns Accept-Ranges: bytes" \
+                || bad_ "HEAD /api/download did not return Accept-Ranges: bytes ($head_ar)"
+        fi
 
         # Rate limiting: the service was started with a limit of 5.
         got429=0
