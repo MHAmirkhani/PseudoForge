@@ -232,10 +232,10 @@ USPP_TIMEOUT=1800
 FHI98PP_TIMEOUT=1800
 
 # --- Getting ready-made pseudopotentials ------------------------------------
-# Checked first by `--source online`.  Files are looked up as
+# `--source online` checks the library's official site first.  If upstream is
+# unreachable, rate-limited, or does not serve the file, PseudoForge falls
+# back to the configured mirror:
 #   $MIRROR_URL/<library>/<functional>/<Element>.<...>.UPF
-# and PseudoForge falls back to the library's official site when the mirror has
-# nothing.
 MIRROR_URL="https://pseudo.amirkhani.me/library/"
 
 # "local"  = generate with an engine on this machine

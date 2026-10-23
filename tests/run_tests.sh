@@ -372,6 +372,7 @@ EOF
 touch "$TMP/index-sg15.txt"
 
 assert_match "mirror URL comes from the config" "pseudo.amirkhani.me" "$PSM" config --show
+assert_match "config template documents official-first download order" "official site first" "$PSM" config --template
 assert_eq "mirror path known for a library" "pslibrary" \
     "$(bash -c ". '$ROOT/lib/core.sh'; . '$ROOT/lib/metadata.sh'; pf_metadata_load; printf '%s' \"\${MD_MIRROR_PATH[psl-high]}\"")"
 assert_eq "official directory known for a library" "https://pseudopotentials.quantum-espresso.org/upf_files/" \
