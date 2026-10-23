@@ -187,9 +187,10 @@ cutoffs for tests and reports rather than its own scan.
 
 ## Engine source archives and their parameter databases
 
-PseudoForge builds three generators from source and, where they ship one, uses the
-per-element parameter database that comes with them. Those databases are the
-authors' own published work, not PseudoForge's:
+PseudoForge can build engines from source and, for the three that ship one
+(ONCVPSP, USPP, fhi98PP), uses the per-element parameter database that comes
+with them. Those databases are the authors' own published work, not
+PseudoForge's:
 
 | engine | database | status |
 |---|---|---|

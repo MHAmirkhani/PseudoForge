@@ -20,8 +20,8 @@ through one of them.
 ### 1. Pseudopotential type
 
 PAW, ultrasoft, or norm-conserving. This choice is first because it determines
-which engines and which libraries are even possible: only `ld1.x` makes PAW,
-only ONCVPSP and fhi98PP make NC, only USPP makes ultrasoft.
+which engines and which libraries are even possible: `ld1` and `atompaw` make PAW;
+`ld1` and `uspp` make ultrasoft; `oncvpsp`, `ld1`, `opium`, `ape`, `fhi98pp`, `gth` and `adpack` make NC.
 
 ### 2. Functional
 
