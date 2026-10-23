@@ -21,10 +21,10 @@ formulation, functional, relativity, element selection, library profile,
 source, engine, format, validation, and advanced settings. The guided interface
 walks them in that order and the flags map onto them one for one.
 
-**Four interfaces, one core.** A command line, a guided wizard, a JSON
-endpoint, and a REST API behind a website. No module in `lib/` knows which one
-is calling it, which is why adding the fourth was a rendering problem rather
-than a rewrite.
+**Four interfaces, one core.** The command-line interface (CLI), the
+terminal user interface (TUI), the guided wizard, and the local HTTP API. No
+module in `lib/` knows which one is calling it, which is why adding a fourth
+was a rendering problem rather than a rewrite.
 
 ---
 
