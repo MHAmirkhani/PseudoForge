@@ -3,37 +3,15 @@
 Three things to understand before the choices make sense: what a
 pseudopotential is decided by, which codes decide it, and how you talk to them.
 
-## The nine layers
+## The ten layers
 
-A pseudopotential is not one decision. It is nine, taken in order, and each
-one constrains the ones after it. PseudoForge's wizard walks them in this
-order, and the command-line flags map onto them one for one.
+A pseudopotential is not one decision. It is ten, taken in order, and each
+one constrains the ones after it. PseudoForge's guided interface (`pseudoforge tui`)
+walks them in this sequence, and the command-line flags map onto them one for one.
+The interactive wizard (`pseudoforge wizard`) walks a shorter six-step path
+(plus element selection) through the same core decisions.
 
-### 1. Exchange-correlation functional
-
-LDA, GGA, meta-GGA, hybrid. **The pseudopotential must be generated with the
-same functional you will use in the solid**, because it encodes how the core
-electrons screen the valence ones, and that screening is functional-dependent.
-Using a PBE pseudopotential in an LDA calculation is a known and measurable
-error, not a formality.
-
-The exception, which is standard practice rather than a compromise: meta-GGA
-and hybrid calculations are routinely done on GGA-generated pseudopotentials,
-because most atomic codes have no meta-GGA path. PseudoForge says so in the
-report when that is what happened. See [Choose a
-functional](../how-to/choose-a-functional.md).
-
-### 2. Relativity
-
-`nonrel`, `scalar`, or `full`.
-
-**Scalar-relativistic** includes the mass–velocity and Darwin terms and is the
-right default for essentially everything above the first row. **Full**
-(j-dependent) additionally splits by total angular momentum and is what you
-need for spin-orbit coupling — heavy elements, topological materials, magnetic
-anisotropy. It costs more and produces twice the projectors.
-
-### 3. Formulation
+### 1. Formulation
 
 **Norm-conserving (NC)**
 : The pseudo wavefunction carries the same charge inside the cutoff radius as
@@ -52,46 +30,74 @@ anisotropy. It costs more and produces twice the projectors.
   most modern solid-state work. Needed for NMR, EFG and core-level
   spectroscopy.
 
-### 4. Core–valence partition
+### 2. Exchange-correlation functional
 
-Which electrons are frozen into the core. The whole cost and accuracy of the
-result turns on this. Including semicore states — the 3s and 3p of a 3d metal,
-the 5s and 5p of caesium — makes a harder, more expensive, more transferable
-pseudopotential. Leaving them out is cheaper and can be badly wrong under
-pressure or in unusual oxidation states.
+LDA, GGA, meta-GGA, hybrid. **The pseudopotential must be generated with the
+same functional you will use in the solid**, because it encodes how the core
+electrons screen the valence ones, and that screening is functional-dependent.
+Using a PBE pseudopotential in an LDA calculation is a known and measurable
+error, not a formality.
 
-This is the choice a library profile is mostly making for you.
+The exception, which is standard practice rather than a compromise: meta-GGA
+and hybrid calculations are routinely done on GGA-generated pseudopotentials,
+because most atomic codes have no meta-GGA path. PseudoForge says so in the
+report when that is what happened. See [Choose a
+functional](../how-to/choose-a-functional.md).
 
-### 5. Pseudisation scheme
+### 3. Relativity
 
-Troullier–Martins, RRKJ, Kerker, Vanderbilt, Hamann's ONCV construction. How
-the wavefunction inside the cutoff radius is replaced by something smooth. A
-library recipe picks one; you rarely override it.
+`nonrel`, `scalar`, or `full`.
 
-### 6. Key parameters
+**Scalar-relativistic** includes the mass–velocity and Darwin terms and is the
+right default for essentially everything above the first row. **Full**
+(j-dependent) additionally splits by total angular momentum and is what you
+need for spin-orbit coupling — heavy elements, topological materials, magnetic
+anisotropy. It costs more and produces twice the projectors.
 
-Cutoff radii per channel (`rc`), the local channel (`lloc`), the local cutoff
-radius (`rcloc`), the number of projectors. The radii are the main lever: larger
-means softer and less transferable, smaller means harder and more accurate.
-Overlapping radii between neighbouring atoms in a real structure is the classic
-way to get nonsense.
+### 4. Elements
 
-### 7. Nonlinear core correction
+Which elements to build. Filtered by what the formulation, functional, and
+relativity chosen above can actually make. Elements can be specified by symbol,
+atomic number Z, range, chemical group, or exclusion.
 
-Whether the core charge is included in the exchange-correlation term.
-Necessary for spin-polarised calculations and for alkali and transition
-metals; cheap; usually on.
+### 5. Library profile
 
-### 8. Validation
+Whose published parameters to reproduce — PSlibrary, SG15, GBRV, PseudoDojo,
+or PseudoForge's own construction (`pseudoforge-auto`). This determines the
+core–valence partition (which electrons are frozen into the core and which are
+valence or semicore) and default radii. See [Profiles](../reference/profiles.md).
 
-Does it reproduce all-electron eigenvalues in configurations it was not fitted
-to? Are there ghost states? What plane-wave cutoff does it need? A file that
-exists is not a result. See [Validation](../architecture/validation.md).
+### 6. Source
 
-### 9. Format
+`local`, `online`, or `ask`. Download a published, verified file from the
+upstream source or mirror, or build one with an atomic code on this machine.
 
-UPF, psp8, `.vps`, PAW-XML, and a dozen more. Which code is going to read
-it. See [Formats](../reference/formats.md).
+### 7. Engine
+
+Which atomic code runs the calculation. PseudoForge drives nine generator engines
+(ld1.x, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, ADPACK). Several can
+make the same family, and they differ in numerical schemes and functional support.
+See [Engines](../reference/engines.md).
+
+### 8. Output format
+
+What format the result is written as: UPF (v1 and v2), psp8, PAW-XML, `.vps`,
+or CP2K/ABINIT formats. Not every engine writes every format; format converters
+are invoked when supported. See [Formats](../reference/formats.md).
+
+### 9. Validation
+
+Transferability and cut-off checks after generation. Does it reproduce all-electron
+eigenvalues in configurations it was not fitted to? Are there ghost states? What
+plane-wave cutoff does it need? A file that exists is not a result. See
+[Validation](../architecture/validation.md).
+
+### 10. Advanced settings
+
+Fine-grained parameter overrides: cutoff radii per channel (`--rcut-scale`),
+the local channel (`--lloc`), local cutoff radius (`--rcloc`), extra projectors,
+core hole configurations (`--core-hole`), nonlinear core corrections (`--nlcc`),
+and solver relaxation with auto-fix retry logic.
 
 ---
 
@@ -128,10 +134,7 @@ The same core, reached three ways.
   methods section.
 
 **Wizard**
-: `pseudoforge wizard`. The nine layers as nine screens, each explaining what
-  it decides. The review screen prints the exact command line your choices add
-  up to, so the wizard is also a way of *learning* the command line. See [The
-  wizard](../reference/wizard.md).
+: `pseudoforge wizard`. A shorter, guided path (six core steps plus element selection) through the same decisions. The review screen prints the exact command line your choices add up to, so the wizard is also a way of *learning* the command line. See [The wizard](../reference/wizard.md).
 
 **JSON**
 : `pseudoforge doctor --json` and the same pattern elsewhere. Machine-readable

@@ -16,11 +16,10 @@ months later you can still answer the question.
 AtomPAW, APE and ADPACK. Each was written by the people who developed the
 method it implements; PseudoForge drives them, and cites them.
 
-**Nine layers, in order.** A pseudopotential is not one decision — it is the
-functional, the relativity, the formulation, the core–valence partition, the
-pseudisation scheme, the radii, the core correction, the validation and the
-format. The wizard walks them in that order and the flags map onto them one for
-one.
+**Ten layers, in order.** A pseudopotential is not one decision — it is the
+formulation, functional, relativity, element selection, library profile,
+source, engine, format, validation, and advanced settings. The guided interface
+walks them in that order and the flags map onto them one for one.
 
 **Four interfaces, one core.** A command line, a guided wizard, a JSON
 endpoint, and a REST API behind a website. No module in `lib/` knows which one
@@ -105,7 +104,7 @@ transferability number and they do not all measure the same thing.
 
     ---
 
-    The nine layers, the nine engines, the four interfaces, and what each
+    The ten layers, the nine engines, the four interfaces, and what each
     choice costs.
 
     [:octicons-arrow-right-24: Concepts](getting-started/concepts.md)

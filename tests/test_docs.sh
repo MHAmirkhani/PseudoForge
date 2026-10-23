@@ -305,6 +305,9 @@ grep -n '^[[:space:]]*whiptail ' "$PF_LIB/tui.sh" >/dev/null 2>&1 \
     && grep -q 'Delta-test_GTH_rev_ABINIT.md' "$ROOT/data/params/cp2k-gth/rev/README.md" \
     && ok_ "data/params/cp2k-gth/rev/README.md documents upstream Delta benchmark data" \
     || bad_ "data/params/cp2k-gth/rev/README.md missing or does not reference Delta test"
+grep -q '^## The ten layers' "$DOCS/getting-started/concepts.md" \
+    && ok_ "concepts.md documents the ten layers matching tui_layers" \
+    || bad_ "concepts.md does not document the ten layers"
 
 printf '\n%s== the tutorials still run%s\n' "$DIM" "$RESET"
 if [ "${PF_SLOW_TESTS:-0}" != 1 ]; then
