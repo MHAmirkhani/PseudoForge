@@ -137,9 +137,9 @@ next interface.
 The alternative is for every function to return its messages to its caller,
 which returns them to its caller, up to the interface.
 
-That means changing the signature of every function in 31 modules, and it means
+That means changing the signature of every function in 34 modules, and it means
 every intermediate caller has to decide what to do with messages it does not
-understand. The cost falls on 29 modules that do not care, to serve a boundary
+understand. The cost falls on 30 modules that do not care, to serve a boundary
 that exists in one place.
 
 A sink puts the cost where the decision is.

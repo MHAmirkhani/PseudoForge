@@ -212,4 +212,4 @@ cmd_generate
 ```
 
 See [the sink contract](sink-contract.md). The REST interface is the worked
-example: `lib/http.sh` is 500 lines, and none of them re-implements anything.
+example: `lib/http.sh` is ~760 lines, and none of them re-implements anything.

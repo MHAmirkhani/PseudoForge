@@ -44,7 +44,7 @@ funnelled through a single `_log`, so replacing that one function decoupled the
 whole core at once.
 
 Threading status upward through every function signature would have touched all
-28 modules, risked a silent behaviour change in each, and bought nothing the
+34 modules, risked a silent behaviour change in each, and bought nothing the
 sink does not already provide. The verbs — `info`, `ok`, `warn`, `error`,
 `debug`, `banner` — kept their names and arguments. What changed is that they
 no longer decide where anything goes.
@@ -117,15 +117,17 @@ Step 4 is the test of whether the separation holds.
 | `sink.sh` | where messages go; who asks the user |
 | `config.sh` | defaults and `~/.pseudoforgerc` |
 | `elements.sh`, `xc.sh` | element and functional registries |
-| `profiles.sh`, `params.sh` | libraries and their published inputs |
-| `engines.sh`, `build.sh` | the nine generators and how to compile them |
-| `recipe.sh`, `input_builder.sh` | turning settings into an engine's input deck |
-| `executor.sh`, `run.sh` | running an engine, auto-fix retries, batching |
-| `validate.sh`, `testing.sh` | per-engine transferability and cutoff scans |
+| `profiles.sh`, `params.sh`, `fetch.sh` | libraries, downloads, and their published inputs |
+| `engines.sh`, `build.sh`, `deps.sh` | the nine generators, dependencies, and compilation |
+| `recipe.sh`, `input_builder.sh`, `namelist.sh` | settings to input decks, Fortran namelists |
+| `executor.sh`, `run.sh`, `project.sh` | running engines, batching, project directories |
+| `validate.sh`, `testing.sh`, `doctor.sh` | transferability, cutoff scans, environment health |
 | `convert.sh` | format conversion, with reasoned refusals |
-| `upf.sh`, `formats.sh` | output formats and their validators |
-| `report.sh`, `metadata.sh` | reports, provenance, citations |
-| `cli.sh`, `ui.sh`, `wizard.sh` | **interfaces** — the only modules that render |
+| `upf.sh`, `formats.sh`, `gth.sh` | output formats, validators, analytic GTH parameters |
+| `report.sh`, `metadata.sh`, `plot.sh`, `sssp.sh` | reports, provenance, citations, plotting, SSSP |
+| `optimise.sh` | cut-off radius sweep optimisation |
+| `http.sh` | HTTP route table, handlers, and JSON payloads |
+| `cli.sh`, `ui.sh`, `wizard.sh`, `tui.sh` | **interfaces** — the only modules that render |
 
 ---
 
