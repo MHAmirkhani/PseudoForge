@@ -60,6 +60,31 @@ else
     ok_ "AUDIT-raw.tsv contains no literal \\n"
 fi
 
+# 4. Assert pass and fail counts in summary match raw TSV lines
+pass_from_summary=$(grep -m1 '^[[:space:]]*pass:[[:space:]]*' <<< "$out2" | sed -E 's/.*pass:[[:space:]]*([0-9]+).*/\1/')
+if [ -z "$pass_from_summary" ] && [ -f "$ROOT/AUDIT.md" ]; then
+    pass_from_summary=$(awk '/^- PASS:/{print $3}' "$ROOT/AUDIT.md")
+fi
+pass_from_tsv=$(grep -c '^PASS' "$ROOT/AUDIT-raw.tsv")
+
+fail_from_summary=$(grep -m1 '^[[:space:]]*pass:[[:space:]]*' <<< "$out2" | sed -E 's/.*fail:[[:space:]]*([0-9]+).*/\1/')
+if [ -z "$fail_from_summary" ] && [ -f "$ROOT/AUDIT.md" ]; then
+    fail_from_summary=$(awk '/^- FAIL:/{print $3}' "$ROOT/AUDIT.md")
+fi
+fail_from_tsv=$(grep -c '^FAIL' "$ROOT/AUDIT-raw.tsv")
+
+if [ "$pass_from_summary" -eq "$pass_from_tsv" ]; then
+    ok_ "pass count in summary ($pass_from_summary) equals raw TSV count ($pass_from_tsv)"
+else
+    bad_ "pass count mismatch: summary says $pass_from_summary, AUDIT-raw.tsv has $pass_from_tsv"
+fi
+
+if [ "$fail_from_summary" -eq "$fail_from_tsv" ]; then
+    ok_ "fail count in summary ($fail_from_summary) equals raw TSV count ($fail_from_tsv)"
+else
+    bad_ "fail count mismatch: summary says $fail_from_summary, AUDIT-raw.tsv has $fail_from_tsv"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET"

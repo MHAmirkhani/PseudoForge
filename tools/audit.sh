@@ -269,9 +269,11 @@ if [ -n "$GTH" ]; then
     rc=$?
     if [ $rc -ne 0 ]; then
         printf '  PASS  convert gth -> upf is refused\n'
+        printf 'PASS\tconvert gth -> upf is refused\t0\trefused as expected\n' >> "$RAW"
         pass=$((pass+1))
     else
         printf '  FAIL  convert gth -> upf should have been refused\n'
+        printf 'FAIL\tconvert gth -> upf should have been refused\t0\tcommand succeeded, should have refused\n' >> "$RAW"
         fail=$((fail+1))
     fi
 fi
