@@ -32,7 +32,7 @@ minted**
 
 ## 2. Current state
 
-**Nine engines**, four interfaces, 922 tests across 32 suites.
+**Nine engines**, four interfaces, 922 tests across 39 suites.
 
 | engine | families | notes |
 |---|---|---|

@@ -14,7 +14,7 @@ prepared to refuse.
 
 ```text
 id      label           engines         extension   keyword     note
-psp8    PSP8 (ABINIT)   oncvpsp         psp8        -           ABINIT's native PAW dataset format.
+psp8    psp8 (ABINIT)   oncvpsp         psp8        -           ABINIT's native norm-conserving format.
 ```
 
 | Column | Contents |
