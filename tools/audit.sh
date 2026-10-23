@@ -167,6 +167,12 @@ run "doctor"            "$PSM" doctor
 echo
 
 # ---------- generate for each engine ----------
+# NOTE FOR MAINTAINERS:
+# Full mode exercises generation across all supported engines (ld1, oncvpsp,
+# opium, uspp, fhi98pp, gth, atompaw, adpack).
+# --quick legitimately skips these engine-dependent runs to save execution
+# time, but gate verification MUST run in full mode so any engine regressions
+# or interactive hangs are caught.
 if [ "$QUICK" = 0 ]; then
     echo "== generate: one element per engine =="
     declare -A eng_prof=(
@@ -583,6 +589,11 @@ echo "raw:   $RAW"
     echo "# PseudoForge Audit"
     echo
     echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    if [ "$QUICK" = 1 ]; then
+        echo "Mode: Quick (--quick: skips engine-dependent generation tests for 8 engines: ld1, oncvpsp, opium, uspp, fhi98pp, gth, atompaw, adpack)"
+    else
+        echo "Mode: Full (all subcommands and engine generation tests)"
+    fi
     echo
     echo "## Summary"
     echo "- PASS: $pass"
