@@ -9,33 +9,61 @@ need. You do not need all nine to do useful work.
 
 ## Requirements
 
-| Needed for | What |
-|---|---|
-| PseudoForge itself | `bash` 4.2 or newer, `awk`, `sed`, `grep`, `coreutils` |
-| Generating anything with `ld1` | Quantum ESPRESSO (`ld1.x`) |
-| Building the other engines | `gfortran`, `gcc`, `make` |
-| Cutoff convergence scans | Quantum ESPRESSO (`pw.x`) |
-| The guided wizard | `whiptail` (Debian: `whiptail`, Fedora: `newt`) |
-| Plots | `gnuplot`, **or** `python3` with `matplotlib` |
+### System requirements and dependencies
 
-Everything after the first two rows is optional, and PseudoForge degrades
-rather than failing when they are absent. What degrades is listed at the bottom
-of this page.
+| Type | Needed for | What |
+|---|---|---|
+| **Required** | PseudoForge itself | `bash` 4.4 or newer, `python` 3.9+, standard POSIX tools (`coreutils`, `sed`, `awk`, `grep`), and `curl` |
+| **Optional** | Default engine (`ld1`) | Quantum ESPRESSO (`ld1.x`) |
+| **Optional** | Building other engines | `gcc`, `gfortran`, `make`, `git` |
+| **Optional** | Cutoff convergence scans | Quantum ESPRESSO (`pw.x`) |
+| **Optional** | The guided wizard | `whiptail` (Debian/Ubuntu: `whiptail`, Fedora: `newt`) |
+| **Optional** | Plotting | `gnuplot`, **or** `python3` with `matplotlib` |
+
+Everything marked optional degrades gracefully rather than failing when absent.
+What degrades is listed at the bottom of this page.
 
 ## Install
+
+### Clone and symlink
 
 ```bash
 git clone https://github.com/MHAmirkhani/pseudoforge.git
 cd pseudoforge
-./pseudoforge doctor
+./install.sh
 ```
 
-There is no build step. `./install.sh` is available if you want
-`pseudoforge` on your `PATH`; it creates a symlink and does not copy anything.
+`./install.sh` creates a symlink to `pseudoforge` in `~/.local/bin` (or a custom directory passed as an argument) so `pseudoforge` is accessible on your `PATH`. There is no compilation step for PseudoForge itself, and you can also run `./pseudoforge` directly out of the clone.
+
+If you invoke PseudoForge via an external wrapper or non-standard location, set `PF_ROOT` to point to the clone directory:
+
+```bash
+export PF_ROOT=/path/to/pseudoforge
+export PATH="$PF_ROOT:$PATH"
+```
+
+### Environment variables and configuration
+
+PseudoForge honors several environment variables:
+
+- `PF_ROOT` — root directory of PseudoForge (inferred automatically from the script location).
+- `PF_RC` — path to the configuration file (defaults to `~/.pseudoforgerc`).
+- `PF_MIRROR` (or `MIRROR_URL`) — upstream mirror URL for downloading published libraries (default: `https://pseudo.amirkhani.me/library/`).
+- `PF_ENGINES_DIR` (or `ENGINE_DIR`) — directory where built engine binaries are installed (defaults to `~/.pseudoforge/engines`).
 
 On the first run PseudoForge writes `~/.pseudoforgerc` with commented
 defaults. That file is plain shell, sourced at startup, so you can put logic in
 it — deriving paths from a module system, for instance.
+
+## Verification
+
+Verify your installation with:
+
+```bash
+pseudoforge version
+pseudoforge doctor
+pseudoforge config --show
+```
 
 ## Point it at Quantum ESPRESSO
 
@@ -144,7 +172,8 @@ Findings you are likely to see on a fresh machine:
   0 without one.
 
 **`mirror — unreachable`**
-: Only affects `--source online`. Local generation is unaffected.
+: Only affects `--source online`. The mirror URL (`MIRROR_URL`) defaults to
+  `https://pseudo.amirkhani.me/library/`. Local generation is unaffected.
 
 ## What degrades without the optional pieces
 
