@@ -112,7 +112,7 @@ ssh $PF_REMOTE 'pseudoforge native size  /var/lib/pseudoforge'
 ```
 
 ```text
-DIRECTORY           SIZE
+DIRECTORY            SIZE
 native              812M
 converter             6M
 cache               140M
