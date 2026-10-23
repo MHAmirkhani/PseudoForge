@@ -61,8 +61,8 @@ stamps the substitution into the log, the report and the run manifest:
 
 ```
 $ pseudoforge recipe Si -t paw -x r2scan
-WARN  r2SCAN (metaGGA) -- ld1.x cannot generate this family; generated with
-      Perdew-Burke-Ernzerhof (dft=PBE).
+WARN  r2SCAN (metaGGA) -- Quantum ESPRESSO ld1.x cannot generate this family; generated with
+      Perdew-Burke-Ernzerhof instead. As SCAN; r2SCAN is the numerically better behaved variant.
 ```
 
 The resulting file is honestly a PBE pseudopotential, is named as one, and is
@@ -79,8 +79,8 @@ meta-GGA a meta-GGA). See [the AtomPAW page](docs/reference/engines/atompaw.md).
 
 ## Generator engines
 
-PseudoForge drives nine atomic codes. `ld1.x` comes with Quantum ESPRESSO; the
-other eight PseudoForge compiles from source for you.
+PseudoForge drives nine atomic codes. `ld1.x` comes with Quantum ESPRESSO; seven
+PseudoForge compiles from source for you, and `adpack` is installed externally.
 
 | engine | families | notes |
 |---|---|---|
@@ -92,11 +92,11 @@ other eight PseudoForge compiles from source for you.
 | `gth` | NC | reproduces all 322 published GTH tables exactly |
 | `atompaw` | PAW | the only meta-GGA engine |
 | `ape` | NC | 28 of 28 elements |
-| `adpack` | NC | OpenMX format; 29 of 29 |
+| `adpack` | NC | OpenMX format; 29 of 29 bundled decks; external install |
 
 ```bash
 pseudoforge engines list           # what is installed, what can be built
-pseudoforge engines build all      # compile everything, record the paths
+pseudoforge engines build all      # compile the 7 supported engines, record the paths
 pseudoforge doctor                 # engines, converters, mirror, database
 ```
 
@@ -270,7 +270,7 @@ pseudoforge doctor
 pseudoforge
 ```
 
-A five-step wizard — type, functional, relativity, profile, elements — plus an
+A six-step wizard — type, functional, relativity, library, source, elements — plus an
 advanced screen for the physics and a review screen that prints the equivalent
 command line before it runs anything.
 
@@ -353,8 +353,21 @@ profile's provenance.
 | `psl-031` | generated | paw us | the older 0.1–0.3.1 recipes, for reproducing published work |
 | `psl-alt` | generated | paw us | alternative valence choices |
 | `psl-tot` | generated | paw us | upstream's untested extras (flagged in every report) |
+| `sg15` | generated | nc | SG15 ONCV (Schlipf-Gygi), generated via ONCVPSP |
+| `pseudodojo` | generated | nc paw | PseudoDojo standard sets, generated via ONCVPSP |
+| `gbrv` | generated | us paw | GBRV (Garrity-Bennett-Rabe-Vanderbilt), generated via USPP |
+| `cp2k-gth` | generated | nc | GTH (Goedecker-Teter-Hutter, CP2K), generated via GTH |
+| `fhi` | generated | nc | FHI (fhi98PP), generated via fhi98PP |
+| `vanderbilt` | generated | us | Vanderbilt ultrasoft classic, generated via USPP |
+| `atompaw` | build engine | paw | AtomPAW (Holzwarth), PAW datasets including meta-GGA |
+| `opium` | derived | nc | OPIUM (Rappe group), parameter-driven norm-conserving |
+| `ape` | generated | nc | APE (Atomic Pseudopotential Engine), libxc-driven |
+| `adpack` | generated | nc | ADPACK / OpenMX (Ozaki), OpenMX format, external install |
+| `gipaw` | generated | us nc | GIPAW pseudopotentials (Ceresoli) |
+| `hgh` | generated | nc | HGH (Hartwigsen-Goedecker-Hutter) |
 | `pseudoforge-auto` | derived | paw us nc | PseudoForge's own construction for elements no library covers |
-| `sssp` `gbrv` `sg15` `pseudodojo` `hgh` `vanderbilt` `fhi` `wentzcovitch` `dacapo` | import-only | — | validated and reported on, not regenerated |
+| `sssp` | selection | paw us nc | SSSP selection table (Standard Solid-State Pseudopotentials) |
+| `dacapo` `nnin` `qe-legacy` `scan-tm` `vlab` `wentzcovitch` | import-only | — | validated and reported on, not regenerated |
 
 `pseudoforge-auto` fills the gap above Z = 94, where PSlibrary stops. It adapts the
 recipe of the same element from another set, or failing that from the nearest
@@ -410,8 +423,8 @@ starting point for your own system, not as a certificate.
 ## Tests
 
 ```bash
-tests/run_tests.sh          # 159 checks against a mock ld1.x, no QE needed
-tests/run_tests.sh --all    # plus the full PSlibrary round-trip
+tests/run_tests.sh          # 172 checks against a mock ld1.x, no QE needed
+tests/run_tests.sh --all    # 175 checks plus the full PSlibrary round-trip
 ```
 
 `tests/test_psl_roundtrip.sh` regenerates every shipped recipe and diffs it
@@ -424,7 +437,7 @@ against the output of the upstream `.job` files. It is what backs the
 
 - [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md) — five minutes from nothing to a tested pseudopotential
 - [docs/reference/wizard.md](docs/reference/wizard.md) — the guided flow, and the flag for every screen
-- [docs/reference/engines.md](docs/reference/engines.md) — the four generators, building them, and where parameters come from
+- [docs/reference/engines.md](docs/reference/engines.md) — the nine generators, building them, and where parameters come from
 - [docs/explanation/physics.md](docs/explanation/physics.md) — what every setting does, and how to choose an engine
 - [docs/reference/data-provenance.md](docs/reference/data-provenance.md) — where every shipped number came from
 
