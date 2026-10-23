@@ -84,7 +84,7 @@ PseudoForge compiles from source for you, and `adpack` is installed externally.
 
 | engine | families | notes |
 |---|---|---|
-| `ld1` | NC US PAW | reproduces PSlibrary byte-identically |
+| `ld1` | NC US PAW | reproduces PSlibrary byte-identically (bar declared errata) |
 | `oncvpsp` | NC | libxc-linked; no meta-GGA |
 | `uspp` | US | Vanderbilt's own generator |
 | `fhi98pp` | NC | Hamann and Troullier-Martins |
@@ -170,7 +170,7 @@ provenance `library`, not a lookalike.
 
 | library | how | provenance |
 |---|---|---|
-| PSlibrary (`psl-*`) | recipes ship with PseudoForge, byte-identical to upstream | `library` |
+| PSlibrary (`psl-*`) | recipes ship with PseudoForge, byte-identical to upstream (bar declared errata) | `library` |
 | SG15 | 86 ONCVPSP `.dat` decks from the source tarball | `library` |
 | PseudoDojo | `.in` files from its GitHub repository, per functional and relativity | `library` |
 | GBRV | the `Work_GBRV` uspp tree they generated from | `library` |

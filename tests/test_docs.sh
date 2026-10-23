@@ -250,8 +250,16 @@ printf '\n%s== claims are qualified where the code qualifies them%s\n' "$DIM" "$
 # A saved recipe reproducing its own output byte for byte, and -j 1 matching
 # -j 8, are different claims and are true without qualification.  The check
 # reads a three-line window, because the exception is often the next sentence.
+# The same awk program runs on every doc page and on the files at the
+# repository root that also make claims -- README.md and CITATION.cff.
+# They are prose a reader will read and a citation reader will copy,
+# and a "byte-identical" claim there is the same overclaim it is in
+# docs/. Running awk only on DOCFILES left both untouched, which is
+# how a qualified claim in docs/ coexisted with an unqualified one in
+# README.md's profile table.
 unqualified=""
-for f in "${DOCFILES[@]}"; do
+for f in "${DOCFILES[@]}" "$ROOT/README.md" "$ROOT/CITATION.cff"; do
+    [ -f "$f" ] || continue
     hit=$(awk -f "$ROOT/tools/awk/unqualified_claims.awk" "$f")
     [ -n "$hit" ] && unqualified="$unqualified
     ${hit#"$ROOT/"}"
