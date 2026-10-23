@@ -164,7 +164,7 @@ Not built by default upstream. Useful when the main recipe puts a state in the c
 
 The reference PSlibrary set: most semicore states, smallest cut-off radii, highest transferability. Needs a high kinetic-energy cutoff.
 
-Recipes are byte-identical to the upstream .job files; verified by tests/test_psl_roundtrip.sh. The nc family comes from nc_ps_collection.job, which upstream labels experimental and untested.
+Recipes are byte-identical to the upstream .job files except where data/psl/ERRATA.tsv declares a correction (two decks, both caesium -- see docs/PROVENANCE.md); verified by tests/test_psl_roundtrip.sh, which fails on any undeclared difference. The nc family comes from nc_ps_collection.job, which upstream labels experimental and untested.
 
 **Cite:** A. Dal Corso, "Pseudopotentials periodic table: From H to Pu", Computational Materials Science 95, 337-350 (2014). DOI: 10.1016/j.commatsci.2014.07.043
 
