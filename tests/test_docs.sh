@@ -285,6 +285,15 @@ grep -q 'ADPACK' "$ROOT/CITATION.cff" \
 grep -qi 'only engine here that makes PAW' "$PF_LIB/engines.sh" \
     && bad_ "engines.sh still claims ld1 is the only PAW engine" \
     || ok_ "engines.sh does not claim ld1 is the only PAW engine"
+grep -q 'seven of the eight' "$PF_LIB/xc.sh" \
+    && bad_ "xc.sh still says seven of the eight" \
+    || ok_ "xc.sh says eight of the nine"
+grep -q 'Three of the eight' "$PF_LIB/build.sh" \
+    && bad_ "build.sh still says Three of the eight" \
+    || ok_ "build.sh says Three of the nine"
+grep -q 'Eight engines with different' "$PF_LIB/cli.sh" \
+    && bad_ "cli.sh still says Eight engines" \
+    || ok_ "cli.sh says Nine engines"
 [ "$(grep -c '^#\+ Where downloads come from' "$ROOT/README.md")" -eq 1 ] \
     && ! grep -q 'checks `MIRROR_URL` first' "$ROOT/README.md" \
     && ok_ "README.md states one download order matching lib/fetch.sh" \

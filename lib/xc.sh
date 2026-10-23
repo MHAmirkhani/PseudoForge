@@ -80,7 +80,7 @@ xc_list_family() {
 #
 # Whether the engine that will actually run can produce this functional itself.
 #
-# The registry marks meta-GGA as a proxy to PBE, and for seven of the eight
+# The registry marks meta-GGA as a proxy to PBE, and for eight of the nine
 # engines that is exactly right: none has a meta-GGA code path, and running
 # SCAN calculations on PBE-generated pseudopotentials is what the field does.
 # AtomPAW is the exception -- it carries its own r2SCAN implementation and

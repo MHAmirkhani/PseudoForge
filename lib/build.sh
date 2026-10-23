@@ -769,7 +769,7 @@ build_ape() {
 # ---------------------------------------------------------------------------
 # Build tools that are not compilers.
 #
-# Three of the eight engines need cmake, one of them also needs ninja, and APE
+# Three of the nine engines need cmake, one of them also needs ninja, and APE
 # needs GSL.  On a machine without root none of those can come from the
 # package manager, and every one of them was installed by hand while these
 # recipes were being written -- which is exactly the wall a user building from

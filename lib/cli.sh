@@ -829,7 +829,7 @@ cmd_recipe() {
 # ---------------------------------------------------------------------------
 # cmd_doctor -- what is present, what is missing, and what to run about it.
 #
-# Eight engines with different build systems and three shared dependencies is
+# Nine engines with different build systems and three shared dependencies is
 # more than anyone should have to reconstruct from error messages.  This says
 # it in one screen, and every "missing" line carries the command that fixes
 # it.
