@@ -18,7 +18,15 @@ pass=0 fail=0 skip=0
 ok_()   { printf '  %sPASS%s  %s\n' "$GREEN" "$RESET" "$1"; pass=$((pass + 1)); }
 bad_()  { printf '  %sFAIL%s  %s\n' "$RED" "$RESET" "$1"; [ -n "${2:-}" ] && printf '        %s\n' "$2"; fail=$((fail + 1)); }
 
-TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+TMP=$(mktemp -d)
+[ -f "$ROOT/AUDIT.md" ] && cp "$ROOT/AUDIT.md" "$TMP/AUDIT.md.bak"
+[ -f "$ROOT/AUDIT-raw.tsv" ] && cp "$ROOT/AUDIT-raw.tsv" "$TMP/AUDIT-raw.tsv.bak"
+cleanup() {
+    [ -f "$TMP/AUDIT.md.bak" ] && cp "$TMP/AUDIT.md.bak" "$ROOT/AUDIT.md"
+    [ -f "$TMP/AUDIT-raw.tsv.bak" ] && cp "$TMP/AUDIT-raw.tsv.bak" "$ROOT/AUDIT-raw.tsv"
+    rm -rf "$TMP"
+}
+trap cleanup EXIT
 
 printf '\n%s== audit gate isolation%s\n' "$DIM" "$RESET"
 

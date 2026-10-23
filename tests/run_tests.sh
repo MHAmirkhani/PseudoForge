@@ -558,6 +558,13 @@ else
     bad_ "engine-native functional lookup" "run: tests/test_xc_native.sh"
 fi
 
+section "audit gate and isolation"
+if bash "$HERE/test_audit_gate.sh" >/dev/null 2>&1; then
+    ok_ "audit gate isolation, output stability, and summary parity"
+else
+    bad_ "audit gate" "run: tests/test_audit_gate.sh"
+fi
+
 # Interface audit: every subcommand answers --help, every TUI layer has a
 # handler, every advanced-screen key reaches SPEC, every doc path named by
 # the shell code exists.  Runs the fast sections only; the per-engine TUI
