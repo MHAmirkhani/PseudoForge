@@ -18,6 +18,7 @@
 #   tests/test_gth.sh --all     every published element (slower)
 # ---------------------------------------------------------------------------
 set -uo pipefail
+exec < /dev/null
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
@@ -169,16 +170,20 @@ else
         if GTH_REFIT=1 GTH_CYCLES=40 "$PSM" generate -p cp2k-gth -e Si -x pbe -t nc \
              --format gth -o "$TMP/refit" >/dev/null 2>&1; then
             out=$(ls "$TMP/refit"/pseudos/*.gth 2>/dev/null | head -1)
-            if grep -q PSEUDOFORGE "$out" 2>/dev/null; then
-                ok_ "refit is labelled PSEUDOFORGE, not as the library"
+            if [ -n "$out" ] && [ -s "$out" ]; then
+                if grep -q PSEUDOFORGE "$out" 2>/dev/null; then
+                    ok_ "refit is labelled PSEUDOFORGE, not as the library"
+                else
+                    bad_ "refit output is not labelled" "a refit is not CP2K's pseudopotential and must not claim to be"
+                fi
+                rl=$(awk 'NR==5{print $1}' "$out")
+                close=$(awk -v a="$rl" 'BEGIN{d=a-0.43563383; if(d<0)d=-d; print (d<0.01)?"yes":"no"}')
+                [ "$close" = yes ] \
+                    && ok_ "refit r_l=$rl lands near the published 0.43563383" \
+                    || bad_ "refit r_l=$rl is far from the published 0.43563383"
             else
-                bad_ "refit output is not labelled" "a refit is not CP2K's pseudopotential and must not claim to be"
+                bad_ "refit produced no output file"
             fi
-            rl=$(awk 'NR==5{print $1}' "$out")
-            close=$(awk -v a="$rl" 'BEGIN{d=a-0.43563383; if(d<0)d=-d; print (d<0.01)?"yes":"no"}')
-            [ "$close" = yes ] \
-                && ok_ "refit r_l=$rl lands near the published 0.43563383" \
-                || bad_ "refit r_l=$rl is far from the published 0.43563383"
         else
             bad_ "refit run failed"
         fi
