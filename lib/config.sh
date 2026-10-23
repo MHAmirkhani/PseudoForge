@@ -267,8 +267,19 @@ pf_config_load() {
         pf_config_template | write_atomic "$PF_RC" || die "cannot write $PF_RC"
         PF_CONFIG_CREATED=1
     fi
+    # Environment variables set explicitly by the caller win over the config file.
+    local _v
+    declare -A _env_overrides=()
+    for _v in QE_ROOT_DIR LD1_BIN PW_BIN ONCVPSP_BIN USPP_BIN FHI98PP_BIN OPIUM_BIN GTH_BIN ATOMPAW_BIN APE_BIN ADPACK_BIN UPFCONV_BIN; do
+        if [ -n "${!_v:-}" ]; then
+            _env_overrides[$_v]="${!_v}"
+        fi
+    done
     # shellcheck disable=SC1090
     . "$PF_RC" || die "failed to read $PF_RC"
+    for _v in "${!_env_overrides[@]}"; do
+        printf -v "$_v" '%s' "${_env_overrides[$_v]}"
+    done
     pf_config_defaults
     pf_config_expand
 }
