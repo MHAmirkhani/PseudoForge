@@ -61,6 +61,7 @@ assert_match "version"            "PseudoForge 1.3"      "$PSM" version
 assert_match "version credits the author" "Amirkhani"    "$PSM" version
 assert_match "help"               "GENERATION OPTIONS"   "$PSM" help
 assert_ok    "creates config"     test -f "$PF_RC"
+assert_eq    "config template includes all 9 engines" "9" "$("$PSM" config --template | grep -c '\[engines\.')"
 assert_match "doctor runs"        "Recipe database"      "$PSM" doctor
 assert_match "list profiles"      "psl-high"             "$PSM" list profiles
 assert_match "list functionals"   "generated with PBE"   "$PSM" list functionals

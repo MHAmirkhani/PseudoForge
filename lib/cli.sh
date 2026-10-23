@@ -262,10 +262,11 @@ EOF
         ;;
         config) cat <<'EOF'
 usage: pseudoforge config [--show]
+       pseudoforge config --template
        pseudoforge config --edit
        pseudoforge config --set KEY=VALUE
 
-Show, edit or set entries in the PseudoForge configuration file
+Show, print template, edit or set entries in the PseudoForge configuration file
 (~/.pseudoforgerc by default, or $PF_RC).
 EOF
         ;;
@@ -1069,12 +1070,13 @@ cmd_config() {
     case "${1:-}" in -h|--help) cli_help_for config; return 0 ;; esac
     case ${1:---show} in
         --show|show) banner "Configuration ($PF_RC)"; pf_config_show ;;
+        --template|template) pf_config_template ;;
         --edit|edit) "${EDITOR:-vi}" "$PF_RC" ;;
         --path|path) printf '%s\n' "$PF_RC" ;;
         --set|set)   shift
                      local kv
                      for kv in "$@"; do pf_config_set "${kv%%=*}" "${kv#*=}"; ok "${kv%%=*} = ${kv#*=}"; done ;;
-        *) die "usage: pseudoforge config [--show|--edit|--path|--set KEY=VALUE ...]" ;;
+        *) die "usage: pseudoforge config [--show|--template|--edit|--path|--set KEY=VALUE ...]" ;;
     esac
 }
 

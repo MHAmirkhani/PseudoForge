@@ -60,6 +60,11 @@ pf_config_defaults() {
     : "${ONCVPSP_BIN:=}"
     : "${USPP_BIN:=}"
     : "${FHI98PP_BIN:=}"
+    : "${OPIUM_BIN:=}"
+    : "${GTH_BIN:=}"
+    : "${ATOMPAW_BIN:=}"
+    : "${APE_BIN:=}"
+    : "${ADPACK_BIN:=}"
     : "${UPFCONV_BIN:=${QE_ROOT_DIR:+$QE_ROOT_DIR/upfconv.x}}"
     : "${ONCVPSP_SRC_DIR:=}"
     : "${USPP_SRC_DIR:=}"
@@ -163,24 +168,48 @@ DUAL_PAW=8
 PW_TEMPLATE=""
 
 # --- Generator engines ------------------------------------------------------
-# PseudoForge drives four atomic codes.  ld1.x comes with Quantum ESPRESSO; the
-# other three are built by `pseudoforge engines build <name>` and land in
-# ENGINE_DIR.  Leave a path empty and PseudoForge will look in ENGINE_DIR and then
-# on $PATH.  An engine that is missing only disables generation *with that
+# PseudoForge drives nine atomic codes.  ld1.x comes with Quantum ESPRESSO; the
+# others are built by `pseudoforge engines build <name>` (or installed externally)
+# and land in ENGINE_DIR.  Leave a path empty and PseudoForge will look in ENGINE_DIR
+# and then on $PATH.  An engine that is missing only disables generation *with that
 # engine* -- importing and validating its files still works.
 ENGINE_DIR="$HOME/.pseudoforge/engines"
 
-# ONCVPSP (Hamann) -- norm-conserving, multi-projector. Writes UPF directly.
+# [engines.ld1] Quantum ESPRESSO ld1.x -- all three families (NC, US, PAW).
+# See QE_ROOT_DIR above, or set LD1_BIN explicitly.
+#LD1_BIN=""
+
+# [engines.oncvpsp] ONCVPSP (Hamann) -- norm-conserving, multi-projector. Writes UPF directly.
 #   https://github.com/oncvpsp/oncvpsp
 #ONCVPSP_BIN=""
 
-# USPP (Vanderbilt) -- ultrasoft. Output goes through reform.x and upfconv.x.
+# [engines.uspp] USPP (Vanderbilt) -- ultrasoft. Output goes through reform.x and upfconv.x.
 #   https://www.physics.rutgers.edu/~dhv/uspp/
 #USPP_BIN=""
 
-# fhi98PP (Fuchs/Scheffler) -- norm-conserving, Hamann or Troullier-Martins.
+# [engines.fhi98pp] fhi98PP (Fuchs/Scheffler) -- norm-conserving, Hamann or Troullier-Martins.
 #   Writes .cpi; see docs/explanation/physics.md about UPF conversion on QE 7.x.
 #FHI98PP_BIN=""
+
+# [engines.opium] OPIUM (Rappe group) -- norm-conserving, RRKJ and Troullier-Martins.
+#   https://github.com/rappegroup/opium
+#OPIUM_BIN=""
+
+# [engines.gth] GTH (Goedecker/Hartwigsen, CP2K) -- norm-conserving analytic form.
+#   https://github.com/cp2k/cp2k-data
+#GTH_BIN=""
+
+# [engines.atompaw] AtomPAW (Holzwarth) -- PAW datasets.
+#   https://github.com/atompaw/atompaw
+#ATOMPAW_BIN=""
+
+# [engines.ape] APE (Atomic Pseudopotential Engine) -- norm-conserving, libxc-driven.
+#   https://gitlab.com/ape/ape
+#APE_BIN=""
+
+# [engines.adpack] ADPACK (Ozaki) -- norm-conserving, OpenMX .vps format. External install.
+#   http://www.openmx-square.org/adpack/adpack.html
+#ADPACK_BIN=""
 
 # QE's format converter, used for the USPP and fhi98PP outputs.
 #UPFCONV_BIN="$QE_ROOT_DIR/upfconv.x"
@@ -247,14 +276,14 @@ pf_config_load() {
 # Expand ~ and make paths absolute so later `cd`s cannot break them.
 pf_config_expand() {
     local v
-    for v in QE_ROOT_DIR LD1_BIN PW_BIN SCRATCH_DIR OUTPUT_BASE_DIR ENGINE_DIR ONCVPSP_BIN USPP_BIN FHI98PP_BIN UPFCONV_BIN PARAMS_DIR ONCVPSP_SRC_DIR USPP_SRC_DIR FHI98PP_SRC_DIR USPP_ROOT FHI98PP_ROOT; do
+    for v in QE_ROOT_DIR LD1_BIN PW_BIN SCRATCH_DIR OUTPUT_BASE_DIR ENGINE_DIR ONCVPSP_BIN USPP_BIN FHI98PP_BIN OPIUM_BIN GTH_BIN ATOMPAW_BIN APE_BIN ADPACK_BIN UPFCONV_BIN PARAMS_DIR ONCVPSP_SRC_DIR USPP_SRC_DIR FHI98PP_SRC_DIR USPP_ROOT FHI98PP_ROOT; do
         local cur=${!v:-}
         [ -n "$cur" ] || continue
         case $cur in "~"/*) cur=$HOME/${cur#\~/} ;; esac
         printf -v "$v" '%s' "$cur"
     done
     # LD1_BIN/PW_BIN may be bare command names found on PATH -- leave those alone.
-    for v in LD1_BIN PW_BIN ONCVPSP_BIN USPP_BIN FHI98PP_BIN UPFCONV_BIN; do
+    for v in LD1_BIN PW_BIN ONCVPSP_BIN USPP_BIN FHI98PP_BIN OPIUM_BIN GTH_BIN ATOMPAW_BIN APE_BIN ADPACK_BIN UPFCONV_BIN; do
         local cur=${!v:-}
         case $cur in */*) abspath_r "$cur"; printf -v "$v" "%s" "$REPLY" ;; esac
     done
@@ -287,7 +316,9 @@ pf_config_show() {
              DEFAULT_UPF_VERSION AUTHOR \
              AUTOFIX_ENABLED AUTOFIX_MAX_ATTEMPTS \
              RUN_LD1_TESTS RUN_CUTOFF_SCAN CUTOFF_SCAN_LIST CUTOFF_TOL_MRY \
-             DUAL_NC DUAL_US DUAL_PAW ENGINE_DIR DEFAULT_ENGINE ONCVPSP_BIN USPP_BIN FHI98PP_BIN UPFCONV_BIN MIRROR_URL DEFAULT_SOURCE PARAMS_DIR OMP_THREADS; do
+             DUAL_NC DUAL_US DUAL_PAW ENGINE_DIR DEFAULT_ENGINE \
+             ONCVPSP_BIN USPP_BIN FHI98PP_BIN OPIUM_BIN GTH_BIN ATOMPAW_BIN APE_BIN ADPACK_BIN \
+             UPFCONV_BIN MIRROR_URL DEFAULT_SOURCE PARAMS_DIR OMP_THREADS; do
         printf '%-22s %s\n' "$v" "${!v}"
     done
 }
