@@ -167,6 +167,19 @@ else
     ok_ "nothing is missing on this machine, so no fix fields to check"
 fi
 
+printf '\n%s== doctor leaves no stray files in working directory%s\n' "$DIM" "$RESET"
+clean_dir=$(mktemp -d)
+(
+    cd "$clean_dir" || exit 1
+    "$ROOT/pseudoforge" doctor >/dev/null 2>&1
+)
+if [ -e "$clean_dir/input_tmp.in" ]; then
+    bad_ "doctor created input_tmp.in in CWD"
+else
+    ok_ "doctor leaves no input_tmp.in in CWD"
+fi
+rm -rf "$clean_dir"
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \
