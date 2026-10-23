@@ -3,6 +3,11 @@
 From nothing to a validated pseudopotential. Five minutes, assuming
 [installation](installation.md) is done and `pseudoforge doctor` is happy.
 
+Running `pseudoforge` with no arguments opens the full interactive Terminal
+User Interface (TUI). If you prefer a step-by-step guided flow, run
+`pseudoforge wizard`. For scripts and automated runs, use the command-line
+interface (CLI) shown below.
+
 ## 1. Check the machine
 
 ```bash
@@ -78,11 +83,43 @@ PAW wants `ecutrho` around 8× `ecutwfc`. To measure rather than guess, add
 
 ## 5. Know what you made
 
+The generated project directory is completely self-contained:
+
+```text
+my-first/
+├── PROVENANCE.txt
+├── manifest
+├── state.tsv
+├── inputs/
+│   └── Si.pbe-n-kjpaw_psl.1.0.0.in
+├── logs/
+│   ├── Si.log
+│   └── pseudoforge.log
+├── pseudos/
+│   ├── CITATION.txt
+│   ├── LICENSE.txt
+│   └── Si.pbe-n-kjpaw_psl.1.0.0.UPF
+├── reports/
+│   ├── summary.csv
+│   ├── summary.html
+│   ├── summary.json
+│   └── summary.txt
+└── tests/
+    ├── Si.test.in
+    ├── Si.test.out
+    └── transferability.tsv
+```
+
+Check the provenance record written at generation time:
+
 ```bash
 cat ./my-first/PROVENANCE.txt
 ```
 
 ```text
+# PseudoForge 1.3.2 -- run provenance
+# Generated 2026-10-23 20:47:37 +0330
+
 tool.name=PseudoForge
 tool.version=1.3.2
 engine.id=ld1
@@ -97,6 +134,9 @@ functional=PBE
 functional.requested=pbe
 relativity=scalar
 source=local
+
+# element	file	provenance	status
+Si	Si.pbe-n-kjpaw_psl.1.0.0.UPF	n.1.0.0	ok
 ```
 
 Keep this with your project. It is what answers "which of these three libraries
@@ -125,7 +165,7 @@ Needs `whiptail`. Without it, `pseudoforge` prints the CLI usage instead.
   line by line, including why a column can be empty.
 
 **Understand the choices**
-: [Concepts](concepts.md) — the nine layers a pseudopotential is decided by.
+: [Concepts](concepts.md) — the ten layers a pseudopotential is decided by.
 
 **Do a specific thing**
 : [Choose an engine](../how-to/choose-an-engine.md) ·
