@@ -47,6 +47,19 @@ else
     bad_ "audit.sh --quick < /dev/null failed or hung (rc=$rc2)" "$out2"
 fi
 
+# 3. Verify 'generate an element a profile does not cover' appears in AUDIT-raw.tsv
+if grep -q '^PASS[[:space:]]*generate an element a profile does not cover' "$ROOT/AUDIT-raw.tsv"; then
+    ok_ "generate an element a profile does not cover is recorded in AUDIT-raw.tsv with ^PASS"
+else
+    bad_ "generate an element a profile does not cover missing from AUDIT-raw.tsv"
+fi
+
+if grep -q '\\n' "$ROOT/AUDIT-raw.tsv"; then
+    bad_ "literal \\n detected in AUDIT-raw.tsv"
+else
+    ok_ "AUDIT-raw.tsv contains no literal \\n"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET"

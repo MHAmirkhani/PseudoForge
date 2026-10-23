@@ -420,20 +420,20 @@ if [ -d "$GENPROJ" ] && [ -f "$GENPROJ/state.tsv" ]; then
     "$PSM" plot "$GENPROJ" >/dev/null 2>&1
     rc=$?
     if [ $rc -eq 0 ]; then
-        printf '  %-4s  %-45s\\n' PASS "plot $GENPROJ"
-        printf 'PASS\\tplot on a project\\t0\\t\\n' >> "$RAW"
+        printf '  %-4s  %-45s\n' PASS "plot $GENPROJ"
+        printf 'PASS\tplot on a project\t0\t\n' >> "$RAW"
         pass=$((pass+1))
     else
         # Look for the "no backend" hint specifically
         msg=$("$PSM" plot "$GENPROJ" 2>&1)
         case $msg in
             *"gnuplot"*|*"backend"*|*"no plotting"*)
-                printf '  %-4s  %-45s (no plot backend; not a failure)\\n' SKIP "plot $GENPROJ"
-                printf 'SKIP\\tplot on a project (no backend)\\t0\\t\\n' >> "$RAW"
+                printf '  %-4s  %-45s (no plot backend; not a failure)\n' SKIP "plot $GENPROJ"
+                printf 'SKIP\tplot on a project (no backend)\t0\t\n' >> "$RAW"
                 skip=$((skip+1)) ;;
             *)
-                printf '  %-4s  %-45s\\n' FAIL "plot $GENPROJ"
-                printf 'FAIL\\tplot on a project\\t0\\t%s\\n' "${msg//$'\n'/ | }" >> "$RAW"
+                printf '  %-4s  %-45s\n' FAIL "plot $GENPROJ"
+                printf 'FAIL\tplot on a project\t0\t%s\n' "${msg//$'\n'/ | }" >> "$RAW"
                 fail=$((fail+1)) ;;
         esac
     fi
@@ -506,22 +506,22 @@ if online_probe https://pseudopotentials.quantum-espresso.org 2>/dev/null \
     if "$PSM" generate -e Si -t nc -x pbe -p sg15 --source online -o "$d" -q >/dev/null 2>&1; then
         got=$(find "$d/pseudos" -iname '*.upf' 2>/dev/null | head -1)
         if [ -n "$got" ]; then
-            printf '  %-4s  %-45s\\n' PASS "fetch sg15 Si from the site"
-            printf 'PASS\\tfetch sg15 Si\\t0\\t\\n' >> "$RAW"
+            printf '  %-4s  %-45s\n' PASS "fetch sg15 Si from the site"
+            printf 'PASS\tfetch sg15 Si\t0\t\n' >> "$RAW"
             pass=$((pass+1))
         else
-            printf '  %-4s  %-45s (ran but wrote no file)\\n' FAIL "fetch sg15 Si"
-            printf 'FAIL\\tfetch sg15 Si\\t0\\twrote no file\\n' >> "$RAW"
+            printf '  %-4s  %-45s (ran but wrote no file)\n' FAIL "fetch sg15 Si"
+            printf 'FAIL\tfetch sg15 Si\t0\twrote no file\n' >> "$RAW"
             fail=$((fail+1))
         fi
     else
-        printf '  %-4s  %-45s (network or upstream refused)\\n' SKIP "fetch sg15 Si"
-        printf 'SKIP\\tfetch sg15 Si\\t0\\tnetwork or upstream\\n' >> "$RAW"
+        printf '  %-4s  %-45s (network or upstream refused)\n' SKIP "fetch sg15 Si"
+        printf 'SKIP\tfetch sg15 Si\t0\tnetwork or upstream\n' >> "$RAW"
         skip=$((skip+1))
     fi
 else
-    printf '  %-4s  %-45s (no route to any library)\\n' SKIP "fetch sg15 Si"
-    printf 'SKIP\\tfetch sg15 Si\\t0\\tno network\\n' >> "$RAW"
+    printf '  %-4s  %-45s (no route to any library)\n' SKIP "fetch sg15 Si"
+    printf 'SKIP\tfetch sg15 Si\t0\tno network\n' >> "$RAW"
     skip=$((skip+1))
 fi
 echo
