@@ -47,7 +47,7 @@ TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 # ---------------------------------------------------------------------------
 # Verbs: the case labels of the dispatch in the entry point.
 awk '/^case .*cmd/,/^esac/' "$ROOT/pseudoforge" \
-    | awk '/^    [a-z|_-]+\)/ { sub(/\).*/, ""); gsub(/[ \t]/, ""); print }' \
+    | awk '/^    [a-zA-Z|_-]+\)/ { sub(/\).*/, ""); gsub(/[ \t]/, ""); print }' \
     | tr '|' '\n' | sort -u > "$TMP/verbs"
 # Bare options mean generate, and these are handled outside the case list.
 printf 'help\n--help\n-h\n--version\n-V\n' >> "$TMP/verbs"
