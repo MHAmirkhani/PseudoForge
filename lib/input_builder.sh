@@ -49,15 +49,24 @@ IB_SOURCE=
 ib_check_deck() {
     local deck=$1 eng=${2:-}
 
-    [ -e "$deck" ] || { error "$eng: the input builder produced no file at $deck"; return 1; }
-    if [ -f "$deck" ] && [ ! -s "$deck" ]; then
+    if [ -d "$deck" ]; then
+        # A directory deck (used by GTH refit) must be non-empty.
+        if [ -z "$(ls -A "$deck" 2>/dev/null)" ]; then
+            error "$eng: the input builder produced an empty directory at $deck."
+            return 1
+        fi
+        return 0
+    fi
+
+    [ -f "$deck" ] || { error "$eng: the input builder produced no file at $deck"; return 1; }
+    if [ ! -s "$deck" ]; then
         error "$eng: the input builder produced an empty deck ($deck)."
         error "  This is usually an awk or printf format string that lost an escape:"
         error "  awk stops on \"unterminated string\" and writes nothing."
         return 1
     fi
 
-    if [ -f "$deck" ] && grep -q '\\n' "$deck" 2>/dev/null; then
+    if grep -q '\\n' "$deck" 2>/dev/null; then
         error "$eng: the deck contains a literal backslash-n ($deck)."
         error "  No engine format here uses one, so this is an escaping bug in the"
         error "  builder, not data.  The offending line(s):"

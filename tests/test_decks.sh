@@ -59,6 +59,13 @@ ib_check_deck "$TMP/empty" t >/dev/null 2>&1 \
 ib_check_deck "$TMP/short" t >/dev/null 2>&1 \
     && bad_ "a one-line deck passed" || ok_ "a truncated deck is caught"
 
+mkdir -p "$TMP/good_dir"; touch "$TMP/good_dir/sample.in"
+mkdir -p "$TMP/empty_dir"
+ib_check_deck "$TMP/good_dir" gth >/dev/null 2>&1 \
+    && ok_ "a non-empty directory deck passes" || bad_ "a non-empty directory deck was rejected"
+ib_check_deck "$TMP/empty_dir" gth >/dev/null 2>&1 \
+    && bad_ "an empty directory deck passed" || ok_ "an empty directory deck is caught"
+
 # ---------------------------------------------------------------------------
 printf '\n%s== every engine builds a usable deck%s\n' "$DIM" "$RESET"
 # ---------------------------------------------------------------------------
