@@ -1,5 +1,49 @@
 # Changelog
 
+## Comprehensive audit, gate hardening, and full documentation pass
+
+The post-audit execution pass resolved twelve findings across the server,
+engine declarations, configuration templates, and testing infrastructure.
+In the HTTP server, a duplicate download handler was removed in favor of a
+single streaming route using `FileResponse` with byte-range support, and the
+route table gained `/api/version` and `/api/routes` to mirror the endpoints
+declared by `server/app.py`. ADPACK was explicitly marked as an external
+installation in the engine registry, and `build_all` now excludes it rather
+than attempting an unsupported automated build. The test suite's offline
+resilience was improved by seeding the SG15 cache so mirror and fallback
+tests run without network access, while `test_psl_roundtrip.sh` now exits with
+code 77 when upstream source tarballs are absent, correctly recognized by
+`run_tests.sh` as a skip rather than an unearned pass. The configuration
+template was expanded to cover environment variables for all nine engines,
+and its comments were corrected to reflect the official-first download order.
+The audit gate itself was made strictly enforceable: `tools/audit.sh` now
+exits non-zero on failure, `run_expect_fail` asserts an expected error pattern
+so failures occur for the right reason, and the mode distinction between
+fast and full audits is recorded in `AUDIT.md`. In the data tree, the CP2K
+Delta benchmark parameters for `cp2k-gth` are now documented in a dedicated
+local README.
+
+A subsequent hardening pass resolved a potential hang during the full audit.
+When run on a workstation where `~/.pseudoforgerc` points `LD1_BIN` at a real
+`ld1.x` binary, MPI socket initialization could block indefinitely on an
+empty stdin; `tools/audit.sh` and `tools/audit-interfaces.sh` now isolate
+`PF_RC` and redirect standard input from `/dev/null` so full mode cannot hang.
+Configuration precedence was corrected so that an environment variable set
+by the caller consistently wins over the file on disk. A formatting defect in
+the audit output where literal newline escapes glued adjacent test records
+together was resolved, cleanly separating tests that were previously
+conflated—such as `validate psp8` and `plot on a project`, and the
+profile-coverage refusal alongside `fetch sg15`—and restoring an honest check
+count.
+
+Finally, a complete documentation pass audited every markdown document across
+the repository—including the project README, CITATION.cff, getting-started
+guides, tutorials, task how-tos, architectural and physics explanations,
+contributing guides, and engine reference pages. Stale output blocks, command
+options, module counts, and layer definitions were reconciled with the actual
+code in `lib/`, verifying that every claim, command, and cross-reference
+throughout the documentation accurately reflects the state of the codebase.
+
 ## 1.3.2 — Post-audit fixes
 
 - **`cmd_generate` no longer demands `ld1.x` for downloads or non-QE engines.**
