@@ -301,6 +301,10 @@ grep -q 'Eight engines with different' "$PF_LIB/cli.sh" \
 grep -n '^[[:space:]]*whiptail ' "$PF_LIB/tui.sh" >/dev/null 2>&1 \
     && bad_ "lib/tui.sh calls bare whiptail instead of \$DIA" \
     || ok_ "lib/tui.sh dispatches through \$DIA"
+[ -f "$ROOT/data/params/cp2k-gth/rev/README.md" ] \
+    && grep -q 'Delta-test_GTH_rev_ABINIT.md' "$ROOT/data/params/cp2k-gth/rev/README.md" \
+    && ok_ "data/params/cp2k-gth/rev/README.md documents upstream Delta benchmark data" \
+    || bad_ "data/params/cp2k-gth/rev/README.md missing or does not reference Delta test"
 
 printf '\n%s== the tutorials still run%s\n' "$DIM" "$RESET"
 if [ "${PF_SLOW_TESTS:-0}" != 1 ]; then
