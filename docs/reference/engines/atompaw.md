@@ -85,27 +85,6 @@ AtomPAW writes the functional into its PAW-XML header as:
 <xc_functional type="LDA" name="MGGA-R2SCAN-001"/>
 ```
 
-The `type` attribute says LDA on a meta-GGA dataset. Only `name` is correct.
-
-A consumer that reads `type` — the obvious thing to read, and what the
-attribute is for — will treat an r2SCAN dataset as LDA and get wrong answers
-silently.
-
-**Read `name`, not `type`.** PseudoForge checks for this combination on every
-AtomPAW output and warns, and the warning reaches `PROVENANCE.txt` so it
-survives the file being copied elsewhere.
-
-This is a defect in AtomPAW 4.2.0.6. It has **not** been reported upstream; if
-you depend on it, report it or check whether a later release fixes it.
-
-### Upstream defect: `type="LDA"` on meta-GGA output
-
-AtomPAW writes the functional into its PAW-XML header as:
-
-```xml
-<xc_functional type="LDA" name="MGGA-R2SCAN-001"/>
-```
-
 The `type` attribute says LDA on a meta-GGA dataset. Only `name` is
 correct. A consumer that reads `type` — the obvious thing to read, and what
 the attribute is for — will treat an r2SCAN dataset as LDA and get wrong

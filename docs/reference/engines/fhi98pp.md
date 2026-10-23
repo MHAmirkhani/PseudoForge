@@ -49,9 +49,8 @@ why there is no UPF.
     If you need norm-conserving pseudopotentials *for Quantum ESPRESSO*, use
     [ONCVPSP](oncvpsp.md) or PSlibrary's NC set (`--engine ld1 -t nc`).
 
-The registry still lists `fhi → upf` as `exact` **via `upfconv.x`** for files
-that came from elsewhere; it is the QE 7.x dispatch that breaks the path for
-fhi98PP's own output specifically.
+The registry lists `fhi → upf` and `cpi → upf` as **refused** (`no-tool`),
+because QE 7.x's `upfconv.x` dropped the FHI reader from its dispatch.
 
 ## Validator
 
