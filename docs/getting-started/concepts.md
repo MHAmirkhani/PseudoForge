@@ -6,10 +6,14 @@ pseudopotential is decided by, which codes decide it, and how you talk to them.
 ## The ten layers
 
 A pseudopotential is not one decision. It is ten, taken in order, and each
-one constrains the ones after it. PseudoForge's guided interface (`pseudoforge tui`)
-walks them in this sequence, and the command-line flags map onto them one for one.
-The interactive wizard (`pseudoforge wizard`) walks a shorter six-step path
-(plus element selection) through the same core decisions.
+one constrains the ones after it. PseudoForge's full terminal user interface
+(`pseudoforge tui`, or bare `pseudoforge`) walks them in this sequence, and the
+command-line flags map onto them one for one.
+
+The guided wizard (`pseudoforge wizard`) is a linear subset of these ten layers:
+a six-step flow (`family` -> `xc` -> `rel` -> `profile` -> `source` -> `engine`,
+with elements gathered along the way) focusing on the primary decisions and
+defaulting the remaining layers (`format`, `validation`, `advanced`).
 
 ### 1. Formulation
 
@@ -125,25 +129,87 @@ engine](../how-to/choose-an-engine.md).
 
 ---
 
-## The three interfaces
+## The four interfaces
 
-The same core, reached three ways.
+The same core, reached four ways.
 
-**Command line**
-: `pseudoforge generate …`. Scriptable, reproducible, the thing that goes in a
-  methods section.
+**Command line (CLI)**
+: `pseudoforge generate …`. Scriptable, reproducible, the interface that goes
+  in shell scripts, Makefiles, and methods sections. Every layer and option is
+  controlled via explicit flags.
+
+**Terminal User Interface (TUI)**
+: `pseudoforge tui` (also launched by a bare `pseudoforge`). An interactive,
+  menu-driven terminal interface navigating all ten layers, configuration
+  settings, engine status, and profile databases.
 
 **Wizard**
-: `pseudoforge wizard`. A shorter, guided path (six core steps plus element selection) through the same decisions. The review screen prints the exact command line your choices add up to, so the wizard is also a way of *learning* the command line. See [The wizard](../reference/wizard.md).
+: `pseudoforge wizard`. A guided linear flow through the six primary decisions
+  (`family` -> `xc` -> `rel` -> `profile` -> `source` -> `engine`, with elements).
+  The final review screen displays the exact CLI command your choices add up
+  to, making the wizard an interactive way to learn the command line. See
+  [The wizard](../reference/wizard.md).
 
-**JSON**
-: `pseudoforge doctor --json` and the same pattern elsewhere. Machine-readable
-  output for a web service or a CI job.
+**Local HTTP API**
+: `pseudoforge api <method> <path>` (or the background HTTP server). Serves
+  JSON endpoints for web frontends, REST clients, and automated CI pipelines.
 
-All three call the same functions. No module in `lib/` knows which interface is
-running, and none of them may write to the terminal directly — that is enforced
-by [the sink contract](../architecture/sink-contract.md), and it is why a
-fourth interface is a rendering problem rather than a rewrite.
+All four interfaces call the exact same underlying library functions. No module
+in `lib/` knows which interface is running, and none may print to stdout or
+stderr directly — enforced by [the sink contract](../architecture/sink-contract.md).
+
+---
+
+## The project model
+
+Every generation run produces a self-contained project directory (set via `-o DIR`,
+defaulting to `./pseudoforge-output`):
+
+```text
+project/
+├── PROVENANCE.txt     # Run metadata: tool version, engine binary, git build, parameters
+├── manifest           # Manifest file recording generated outputs and checksums
+├── state.tsv          # Element execution state for resumable batch runs
+├── inputs/            # Generator decks supplied to or constructed for the engine
+├── logs/              # Engine stdout/stderr streams and run logs
+├── pseudos/           # Produced pseudopotentials, plus CITATION.txt and LICENSE.txt
+├── reports/           # summary.{txt,csv,json,html} multi-format project summaries
+└── tests/             # Transferability tests, inputs, outputs, and convergence data
+```
+
+In the native library store, an `index.tsv` catalogs every available pseudopotential
+with metadata including element, functional, relativistic treatment, format, size,
+and cryptographic SHA checksums.
+
+---
+
+## Structural validation versus physical verification
+
+PseudoForge distinguishes between two kinds of checks, implemented by different
+layers of the code:
+
+**Structural validation (`pseudoforge validate`, `lib/validate.sh`)**
+: Checks whether a pseudopotential file is syntactically well-formed, internally
+  consistent, and physically plausible according to its format specification.
+  It verifies that headers parse, radial grids are monotonic, the declared
+  `z_valence` is positive and chemically reasonable, projector counts match
+  `l_max`, and required augmentation blocks exist. This catches defective files
+  that generator engines emit while exiting 0.
+
+**Physical testing and verification (`lib/testing.sh`, `lib/validate.sh`)**
+: Evaluates the physical validity and numerical quality of the pseudopotential
+  itself:
+  - **Transferability testing**: Solves the pseudo-atom in electronic
+    configurations it was *not* fitted to (e.g. ionized or excited states) and
+    compares eigenvalues, logarithmic derivatives, and total energies against
+    all-electron atom calculations, while searching for unphysical ghost states.
+  - **Cutoff convergence (`--cutoff-scan`)**: Computes energy and stress
+    convergence across plane-wave kinetic energy cutoffs in a crystalline solid
+    using `pw.x`.
+
+Every transferability verdict is stamped with the exact engine and method that
+measured it, because different generator codes use different numerical gauges
+and criteria. See [Validation](../architecture/validation.md).
 
 ---
 
