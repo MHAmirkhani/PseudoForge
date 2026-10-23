@@ -13,6 +13,24 @@ ROOT=$(cd "$HERE/.." && pwd)
 PSM=$ROOT/pseudoforge
 
 SCRATCH=$(mktemp -d)
+TMP=$(mktemp -d)
+trap 'rm -rf "$SCRATCH" "$TMP"' EXIT
+
+# The audit must be reproducible on any machine and must never wait on a
+# terminal. Two guards, one fix each:
+#
+# - An isolated PF_RC stops the user's real config from overriding the
+#   mock engines this audit sets up. A .pseudoforgerc with LD1_BIN
+#   pointing at the real ld1.x was silently winning over the export
+#   above, so the "generate ld1" test was driving the real engine.
+#
+# - exec </dev/null closes the other half: any subprocess that reads
+#   stdin and finds the terminal instead of EOF waits at a prompt
+#   forever. The audit should fail such a test, not hang on it.
+export PF_RC="${PF_RC_AUDIT:-$TMP/audit-rc}"
+: > "$PF_RC"
+exec < /dev/null
+
 OUT=$ROOT/AUDIT.md
 RAW=$ROOT/AUDIT-raw.tsv
 : > "$RAW"
@@ -25,6 +43,7 @@ export PF_NATIVE_DIR=${PF_NATIVE_DIR:-$HOME/pf-native}
 export PF_DECOMPRESSED_DIR=${PF_DECOMPRESSED_DIR:-$HOME/pf-var/decompressed}
 export RECIPE_DIR=${RECIPE_DIR:-$SCRATCH/recipes}
 export LD1_BIN=${LD1_BIN:-$ROOT/tests/mock/ld1.x}
+[ -z "${UPFCONV_BIN:-}" ] && [ -x /opt/espresso/7.6/upfconv.x ] && export UPFCONV_BIN=/opt/espresso/7.6/upfconv.x
 
 pass=0; fail=0; warn=0; skip=0
 
