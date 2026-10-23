@@ -22,6 +22,8 @@ pseudoforge api POST /api/convert body.json
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/api/health` | Environment and engine availability, as doctor records |
+| `GET` | `/api/version` | Tool version and name |
+| `GET` | `/api/routes` | Every route in the REST API |
 | `GET` | `/api/engines` | Every engine in the registry |
 | `GET` | `/api/engines/:name` | One engine: families, formats, licence, upstream |
 | `GET` | `/api/formats` | Every format, and every conversion path with its cost |

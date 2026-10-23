@@ -208,10 +208,8 @@ def native_one(file_id: str):
 @app.get("/api/routes")
 def routes():
     """The route table, from the core. Useful for a client and for the docs."""
-    proc = subprocess.run(
-        [PF_BIN, "api", "--routes"], capture_output=True, text=True, timeout=PF_TIMEOUT
-    )
-    return PlainTextResponse(proc.stdout)
+    status, body = call_core("GET", "/api/routes")
+    return JSONResponse(status_code=status, content=body)
 
 
 # --------------------------------------------------------------------------
@@ -346,7 +344,5 @@ async def generate():
 # --------------------------------------------------------------------------
 @app.get("/api/version")
 def version():
-    proc = subprocess.run(
-        [PF_BIN, "version"], capture_output=True, text=True, timeout=PF_TIMEOUT
-    )
-    return PlainTextResponse(proc.stdout)
+    status, body = call_core("GET", "/api/version")
+    return JSONResponse(status_code=status, content=body)

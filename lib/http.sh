@@ -54,6 +54,8 @@ PF_INSTALL_URL=${PF_INSTALL_URL:-https://pseudo.amirkhani.me/docs/getting-starte
 http_routes() {
     cat <<'EOF'
 GET	/api/health	http_h_health	Environment and engine availability, as doctor records
+GET	/api/version	http_h_version	Tool version and name
+GET	/api/routes	http_h_routes	Every route in the REST API
 GET	/api/engines	http_h_engines	Every engine in the registry
 GET	/api/engines/:name	http_h_engine	One engine: families, formats, licence, upstream
 GET	/api/formats	http_h_formats	Every format, and every conversion path with its cost
@@ -178,6 +180,25 @@ http_handle() {
 http_h_health() {
     doctor_render_json "$(doctor_checks)" | http_json_array
     printf '\n'
+}
+
+http_h_version() {
+    printf '{"tool":%s,"version":%s}\n' \
+        "$(http_json_str "PseudoForge")" \
+        "$(http_json_str "$PSEUDOFORGE_VERSION")"
+}
+
+http_h_routes() {
+    local m p h sm
+    printf '{"routes":'
+    while IFS=$'\t' read -r m p h sm; do
+        [ -n "$m" ] || continue
+        printf '{"method":%s,"path":%s,"summary":%s}\n' \
+            "$(http_json_str "$m")" \
+            "$(http_json_str "$p")" \
+            "$(http_json_str "$sm")"
+    done < <(http_routes) | http_json_array
+    printf '}\n'
 }
 
 http_h_engines() {

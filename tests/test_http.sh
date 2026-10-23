@@ -77,13 +77,24 @@ n=$(printf '%s\n' "$routes" | grep -c '^\(GET\|POST\)')
 [ "$n" -ge 12 ] \
     && ok_ "$n routes declared" || bad_ "only $n routes"
 
-for want in /api/health /api/engines /api/formats /api/profiles /api/xc \
+for want in /api/health /api/version /api/routes /api/engines /api/formats /api/profiles /api/xc \
             /api/elements /api/native /api/convert /api/validate /api/generate; do
     printf '%s\n' "$routes" | grep -q " $want\b" \
         && ok_ "$want is declared" || bad_ "$want is missing from the table"
 done
 
 printf '\n%s== read endpoints answer what the CLI answers%s\n' "$DIM" "$RESET"
+api GET /api/version
+[ "$API_STATUS" = 200 ] && ok_ "GET /api/version is 200" || bad_ "version is $API_STATUS"
+ver=$("$PSM" api GET /api/version 2>/dev/null)
+json_has "$ver" 'version' && ok_ "  has 'version' key" || bad_ "  missing 'version' key"
+json_has "$ver" 'tool' && ok_ "  has 'tool' key" || bad_ "  missing 'tool' key"
+
+api GET /api/routes
+[ "$API_STATUS" = 200 ] && ok_ "GET /api/routes is 200" || bad_ "routes is $API_STATUS"
+rts=$("$PSM" api GET /api/routes 2>/dev/null)
+json_has "$rts" 'routes' && ok_ "  has 'routes' key" || bad_ "  missing 'routes' key"
+
 api GET /api/health
 [ "$API_STATUS" = 200 ] && ok_ "GET /api/health is 200" || bad_ "health is $API_STATUS"
 health=$("$PSM" api GET /api/health 2>/dev/null)
