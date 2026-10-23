@@ -33,6 +33,7 @@ PSM=$ROOT/pseudoforge
 export PF_ROOT=$ROOT PF_LIB=$ROOT/lib PF_DATA=$ROOT/data
 export PF_VAR_DIR=${PF_VAR_DIR:-$HOME/pf-var}
 export PF_NATIVE_DIR=${PF_NATIVE_DIR:-$HOME/pf-native}
+export LD1_BIN=${LD1_BIN:-$ROOT/tests/mock/ld1.x}
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
@@ -71,7 +72,7 @@ SUB_FLAGS="
 --note --notes --path --plot-bands --plot-dir --plot-dos --plot-format
 --plot-rlderiv --proxy --qe --reference --relativity --rho --routes
 --set-nc --set-paw --set-us --show-citation --status --summary --tag
---tui --type --which-augfun --why --yes
+--template --tui --type --which-augfun --why --yes
 "
 
 # ---------------------------------------------------------------------------
