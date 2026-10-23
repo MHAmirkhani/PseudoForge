@@ -103,4 +103,4 @@ for id in $(prof_list); do
     printf '\n**Cite:** %s\n\n' "$local_cite"
 done
 
-printf -- '---\n\nRegenerate with `tools/gen_libraries_doc.sh > docs/LIBRARIES.md`.\n'
+printf -- '---\n\nRegenerate with `tools/gen_libraries_doc.sh > docs/explanation/libraries.md`.\n'

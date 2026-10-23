@@ -22,8 +22,9 @@ the result.
 
 | library | type | functionals | PseudoForge can | engine | bundled |
 |---|---|---|---|---|---|
-| **FHI (fhi98PP)** | NC | pz pbe | generate | fhi98PP (Fuchs/Scheffler) | - |
-| **GBRV (Garrity-Bennett-Rabe-Vanderbilt)** | US PAW | pbe pbesol pz | generate | USPP (Vanderbilt) | 13M |
+| **AtomPAW (Holzwarth)** | PAW | pbe pbesol pw r2scan | download | AtomPAW (Holzwarth) | - |
+| **FHI (fhi98PP)** | NC | pw | generate | fhi98PP (Fuchs/Scheffler) | - |
+| **GBRV (Garrity-Bennett-Rabe-Vanderbilt)** | US PAW | pbe | generate | USPP (Vanderbilt) | 13M |
 | **Marburg actinide PAW** | PAW | pbe | generate | Quantum ESPRESSO ld1.x | 128K |
 | **PseudoDojo** | NC PAW | pbe pbesol pw | generate | ONCVPSP (Hamann) | 1.8M |
 | **PSlibrary 0.3.1 (legacy collection)** | PAW US | pz pw vwn pbe pbesol pw91 bp blyp revpbe wc | generate | Quantum ESPRESSO ld1.x | 204K |
@@ -32,11 +33,13 @@ the result.
 | **PSlibrary 1.0.0 (low cutoff)** | PAW US | pz pw vwn pbe pbesol pw91 bp blyp revpbe wc | generate | Quantum ESPRESSO ld1.x | 236K |
 | **PSlibrary 1.0.0 (untested extras)** | PAW US | pz pw vwn pbe pbesol pw91 bp blyp revpbe wc | generate | Quantum ESPRESSO ld1.x | 92K |
 | **SG15 ONCV (Schlipf-Gygi)** | NC | pbe | generate | ONCVPSP (Hamann) | 632K |
-| **Vanderbilt ultrasoft (classic)** | US | pz pbe | generate | USPP (Vanderbilt) | - |
+| **Vanderbilt ultrasoft (classic)** | US | pw91 | generate | USPP (Vanderbilt) | - |
+| **OPIUM (Rappe group)** | NC | pbe pz | derive | OPIUM (Rappe group) | - |
 | **PseudoForge auto** | PAW US NC | pz pw vwn pbe pbesol pw91 bp blyp revpbe wc | derive | Quantum ESPRESSO ld1.x | - |
+| **ADPACK / OpenMX (Ozaki)** | NC | pz pbe | generate | ADPACK (Ozaki) | 240K |
 | **GTH (Goedecker-Teter-Hutter, CP2K)** | NC | pz pbe pbesol blyp bp olyp hcth120 hcth407 | generate | GTH (Goedecker/Hartwigsen, CP2K) | 22M |
 | **Dacapo / CAMPOS** | US | pz pbe | download | USPP (Vanderbilt) | - |
-| **GIPAW pseudopotentials (Ceresoli)** | US NC | pbe | generate | Quantum ESPRESSO ld1.x | 148K |
+| **GIPAW pseudopotentials (Ceresoli)** | US NC | pbe | generate | Quantum ESPRESSO ld1.x | 152K |
 | **HGH (Hartwigsen-Goedecker-Hutter)** | NC | pz pbe pbesol blyp bp olyp hcth120 hcth407 | generate | GTH (Goedecker/Hartwigsen, CP2K) | 22M |
 | **NNIN/C Pseudopotential Virtual Vault (Cornell)** | NC US PAW | varies | import | Quantum ESPRESSO ld1.x | - |
 | **Original Quantum ESPRESSO PP table** | NC US PAW | pz pbe | download | Quantum ESPRESSO ld1.x | - |
@@ -46,6 +49,21 @@ the result.
 | **Wentzcovitch / VLab** | US PAW | pbe | download | USPP (Vanderbilt) | - |
 
 ## Detail
+
+### AtomPAW (Holzwarth)
+
+- **id** `atompaw`
+- **families** paw
+- **generator** AtomPAW
+- **source** <https://doi.org/10.1016/S0010-4655(00)00230-4>
+- **licence** GPL-3.0
+- **published** LDA-PW and GGA-PBE, GGA-PBESOL PAW datasets, any element the ground-state configuration table covers.
+
+PAW datasets from Holzwarth's AtomPAW generator, built from the element's ground-state configuration and PseudoForge's cut-off radius heuristic.
+
+AtomPAW builds a PAW dataset by solving the all-electron and pseudo problems side by side, then running its own overlap and leakage checks. The reported transferability measure is that leakage, not the ld1 iswitch=2 test, and the two do not measure the same thing -- PseudoForge says which was used. By default this profile writes all three datasets AtomPAW produces from one solve: UPF v2 (Quantum ESPRESSO), the ABINIT PAW dataset (*.abinit), and PAW-XML (*.xml, read by GPAW and ABINIT). The atompaw2pwscf step converts the internal representation to UPF v2, which is what Quantum ESPRESSO reads. Verified on Si: PBE lattice constant a = 10.33 bohr (5.465 Å) against 5.431 Å experimental and 5.468 Å for typical PBE, so the physics is right. A warning "no convergence in boundsr" appears in the log for some elements during the intermediate SCF step; the outer SCF still converges and the produced dataset is unaffected, but the warning is preserved in the run log. AtomPAW in this build offers LDA-PW, GGA-PBE and GGA-PBESOL, which is the set this profile declares; meta-GGA (SCAN, r2SCAN) is available in newer AtomPAW releases and can be added by extending this profile, but that is a separate validation.  meta-GGA (r2SCAN) is produced non-relativistically only, and the writer refuses UPF for that family -- AtomPAW writes PAW-XML and the ABINIT PAW dataset, which is what the codes that consume tau actually read.  Only scalarrelativistic PAW is produced: AtomPAW 4.2.0.6's diracrelativistic path is incomplete and stops with 'setbasis subroutine not ready for diracrelativistic' before writing any data set.  This is an upstream limitation, not a PseudoForge one; the full mode is not offered.
+
+**Cite:** No citation request from the authors (checked: the distribution, https://users.wfu.edu/natalie/papers/pwpaw/man.html, and ABINIT's AtomPAW page, which lists it as reference [1]). Method reference from their own documentation: A. R. Tackett, N. A. W. Holzwarth and G. E. Matthews, "A Projector Augmented Wave (PAW) code for electronic structure calculations, Part I: atompaw for generating atom-centered functions", Computer Physics Communications 135, 329-347 (2001). DOI: 10.1016/S0010-4655(00)00244-7
 
 ### FHI (fhi98PP)
 
@@ -58,7 +76,7 @@ the result.
 
 Norm-conserving pseudopotentials in the legacy .cpi/.fhi format, widely used by ABINIT and older QE work.
 
-Hamann and Troullier-Martins norm-conserving schemes. The per-element database ships inside the fhi98PP distribution PseudoForge builds (bin/Elements/{Ham,TM}), so it generates without any download. Caveat: Quantum ESPRESSO 7.x dropped .cpi/.fhi from its format dispatch, so the result stays in .cpi -- readable by ABINIT, not by QE. See [the engines page](../reference/engines.md).
+Hamann and Troullier-Martins norm-conserving schemes. The per-element database ships inside the fhi98PP distribution PseudoForge builds (bin/Elements/{Ham,TM}), so it generates without any download. Caveat: Quantum ESPRESSO 7.x dropped .cpi/.fhi from its format dispatch, so the result stays in .cpi -- readable by ABINIT, not by QE. See docs/ENGINES.md.
 
 **Cite:** M. Fuchs and M. Scheffler, "Ab initio pseudopotentials for electronic structure calculations of poly-atomic systems using density-functional theory", Computer Physics Communications 119, 67-98 (1999). DOI: 10.1016/S0010-4655(98)00201-X
 
@@ -146,7 +164,7 @@ Not built by default upstream. Useful when the main recipe puts a state in the c
 
 The reference PSlibrary set: most semicore states, smallest cut-off radii, highest transferability. Needs a high kinetic-energy cutoff.
 
-Recipes are byte-identical to the upstream .job files except where `data/psl/ERRATA.tsv` declares a correction (two decks, both caesium -- see docs/PROVENANCE.md); verified by tests/test_psl_roundtrip.sh, which fails on any undeclared difference. The nc family comes from nc_ps_collection.job, which upstream labels experimental and untested.
+Recipes are byte-identical to the upstream .job files; verified by tests/test_psl_roundtrip.sh. The nc family comes from nc_ps_collection.job, which upstream labels experimental and untested.
 
 **Cite:** A. Dal Corso, "Pseudopotentials periodic table: From H to Pu", Computational Materials Science 95, 337-350 (2014). DOI: 10.1016/j.commatsci.2014.07.043
 
@@ -209,6 +227,21 @@ The original ultrasoft library and the uspp code behind it. Its per-element deck
 
 **Cite:** D. Vanderbilt, "Soft self-consistent pseudopotentials in a generalized eigenvalue formalism", Physical Review B 41, 7892(R) (1990). DOI: 10.1103/PhysRevB.41.7892
 
+### OPIUM (Rappe group)
+
+- **id** `opium`
+- **families** nc
+- **generator** OPIUM
+- **source** <https://doi.org/10.1103/PhysRevB.41.1227>
+- **licence** GPL-2.0
+- **published** Every element OPIUM ships a reference deck for. Norm-conserving only. Functional depends on the deck (GGA-PBE or LDA-PZ).
+
+Norm-conserving pseudopotentials from OPIUM, the Rappe group's optimised-pseudopotential generator, in ten output formats.
+
+This profile runs OPIUM on a deck PseudoForge builds from the element's ground-state configuration and a cut-off-radius heuristic -- NOT an OPIUM-published reference deck. The physics is verified: Si PBE produces a norm-conserving pseudopotential with transferability 'excellent' by OPIUM's own tc measure (max |dE| = 2e-6 Ry). If you need a reproduction of a specific published OPIUM parameter set, supply it with --params <dir>. By default this profile writes every format OPIUM 4.1.0 can produce for the chosen relativity. Scalar/non-relativistic: UPF, fhi, recpot, siesta, cpmd, casino, champ, qso, ncpp. Fully relativistic: UPF and teter. The other eight writers refuse fully relativistic potentials with their own error message -- that is OPIUM's behaviour, not PseudoForge's; the executor silently drops the formats the chosen mode cannot produce. Six writers also had to be patched: OPIUM 4.1.0 builds the *.pot.ps.l=N scratch filenames from the loop index instead of the real angular momentum, so they crashed on any element with a gap in its l-shells (Fe, Cu, Zn, Au, and every other 3d/5d metal). PseudoForge applies this patch at build time -- see lib/patches/opium/README.md for the details.
+
+**Cite:** No citation request from the authors (checked: the distribution and https://opium.sourceforge.net/sci.html, reference [2], for the opt scheme our decks use). Method reference from their own documentation: A. M. Rappe, K. M. Rabe, E. Kaxiras and J. D. Joannopoulos, "Optimized pseudopotentials", Physical Review B 41, 1227 (1990). DOI: 10.1103/PhysRevB.41.1227
+
 ### PseudoForge auto
 
 - **id** `pseudoforge-auto`
@@ -221,6 +254,21 @@ A recipe PseudoForge builds from the element's ground-state configuration, semic
 This is PseudoForge's own construction, not a reproduction of any published library. It is a starting point that must be validated (transferability + cutoff scan are enabled by default for this profile), not a drop-in replacement for a curated set.
 
 **Cite:** Unverified -- check the source
+
+### ADPACK / OpenMX (Ozaki)
+
+- **id** `adpack`
+- **families** nc
+- **generator** adpack
+- **source** <http://www.openmx-square.org/adpack/adpack.html>
+- **licence** GPL-2.0-or-later
+- **published** 29 elements: Ag Ar Au Be Br Ca Cl Cr F Ge He Hg K Kr Mg Na Nb Ne P Pb Pt S Sc Se Sn Te Ti V Zr. LDA and GGA.
+
+Norm-conserving pseudopotentials for OpenMX, generated by ADPACK from its own per-element parameter decks.
+
+PseudoForge bundles the 29 input decks the ADPACK 2.2 distribution ships under work/ -- the author's radii, reference configurations and pseudization schemes, unmodified -- and runs ADPACK on them. The published decks set calc.type = vps, so ADPACK writes the OpenMX .vps potential only -- not the pseudo-atomic orbital basis (that would need calc.type = PAO or ALL). Output is OpenMX .vps, not UPF; Quantum ESPRESSO cannot read it. There is deliberately no synthesised fallback for elements outside those 29: an ADPACK deck fixes the scheme, the local channel and per-channel radii that were chosen by hand, and inventing them would mean issuing a PseudoForge construction under ADPACK's name. The released ADPACK 2.2 segfaults partway through every element on a default 8 MB stack; PseudoForge builds from a patched tree that moves about 9 MB of radial work arrays in MBK() to the heap. That patch changes no physics -- see docs/ENGINES.md and the fork's VERIFIED.md. One of the 29, tellurium, is declined by ADPACK's own Troullier-Martins root-finder on the radii as shipped; the deck is left as distributed rather than retuned.
+
+**Cite:** No citation request from the authors (checked: the ADPACK 2.2 user's manual (2011-09-28), sections 1 and 14 and reference [15]). Method reference from their own documentation: T. Ozaki, "Variationally optimized atomic orbitals for large-scale electronic structures", Physical Review B 67, 155108 (2003). DOI: 10.1103/PhysRevB.67.155108
 
 ### GTH (Goedecker-Teter-Hutter, CP2K)
 
@@ -372,4 +420,4 @@ Distributed through SSSP as finished files; PseudoForge has found no published g
 
 ---
 
-Regenerate with `tools/gen_libraries_doc.sh > docs/LIBRARIES.md`.
+Regenerate with `tools/gen_libraries_doc.sh > docs/explanation/libraries.md`.

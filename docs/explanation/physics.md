@@ -240,17 +240,18 @@ radius is wrong; PseudoForge's auto-fix tries `BESSEL` first and then a tighter
 ## 9. Core-hole pseudopotentials (XPS, XAS, XSpectra)
 
 ```
-pseudoforge generate -e Cu --core-hole 1s --zval 12
+pseudoforge generate -e Cu --core-hole 1s
 ```
 
 PseudoForge expands the noble-gas shorthand in the configuration so the named shell
 is explicit, removes one electron from it, and tags the output file (`…-ch1s`)
 so it can never be confused with the ordinary pseudopotential.
 
-**Set `zval` yourself.** The core hole changes the valence charge bookkeeping and
-`ld1.x` will not guess what you meant; PseudoForge warns if you leave it out. Use the
-core-hole pseudopotential on the excited atom only, and the ordinary one
-everywhere else in the cell.
+**Do not supply `--zval`.** The core hole leaves one fewer electron in the core, so
+`ld1.x` counts the missing core electron as valence charge (e.g. 20 instead of 19 for
+copper). Supplying `zval` by hand conflicts with `ld1.x`'s calculated valence charge.
+Use the core-hole pseudopotential on the excited atom only, and the ordinary one
+everywhere else in the cell. See [Core-hole pseudopotentials, and the valence charge](#core-hole-pseudopotentials-and-the-valence-charge) below.
 
 ---
 
@@ -325,7 +326,7 @@ physics of the choice.
 
 | you need | engine | why |
 |---|---|---|
-| PAW | `ld1` | the only one of the four that makes PAW data sets |
+| PAW | `ld1` | QE's own code, does all three families; use `atompaw` for meta-GGA PAW |
 | ultrasoft, lowest cutoff | `uspp` or `ld1 -t us` | Vanderbilt's own code, or PSlibrary's RRKJ construction |
 | norm-conserving for QE | `oncvpsp` | multi-projector, accurate, and writes UPF directly |
 | norm-conserving, classic schemes | `fhi98pp` | Hamann and Troullier-Martins; `.cpi` only on QE 7.x |
