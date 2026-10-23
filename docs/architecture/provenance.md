@@ -16,11 +16,11 @@ auto-fixed along the way.
 ## A complete example
 
 ```text
-# PseudoForge 1.3.0 -- run provenance
+# PseudoForge 1.3.2 -- run provenance
 # Generated 2026-09-17 00:12:02 +0330
 
 tool.name=PseudoForge
-tool.version=1.3.0
+tool.version=1.3.2
 engine.id=ld1
 engine.label=Quantum ESPRESSO ld1.x
 engine.version=v.7.6

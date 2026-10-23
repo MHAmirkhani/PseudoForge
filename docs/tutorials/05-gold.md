@@ -46,7 +46,7 @@ pseudoforge generate -e Au -t nc -p sg15 -x pbe -r full --engine oncvpsp -o ./05
 ## What happens
 
 ```text
-== PseudoForge 1.3.0 ==
+== PseudoForge 1.3.2 ==
 INFO  profile    SG15 ONCV (Schlipf-Gygi)  [generated]
 INFO  family     NC   functional PBE   Full-relativistic (with spin-orbit)
 INFO  elements   1: Au

@@ -51,7 +51,7 @@ pseudoforge generate -e Si -t paw -p atompaw -x r2scan -r nonrel -o ./06-scan
 ```text
 WARN  r2SCAN (metaGGA) -- generated natively by AtomPAW (Holzwarth)
 
-== PseudoForge 1.3.0 ==
+== PseudoForge 1.3.2 ==
 INFO  profile    AtomPAW (Holzwarth)  [reproducible]
 INFO  family     PAW   functional R2SCAN   Non-relativistic
 INFO  elements   1: Si

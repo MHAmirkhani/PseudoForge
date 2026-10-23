@@ -84,16 +84,19 @@ cat ./my-first/PROVENANCE.txt
 
 ```text
 tool.name=PseudoForge
-tool.version=1.3.0
+tool.version=1.3.2
 engine.id=ld1
 engine.label=Quantum ESPRESSO ld1.x
-engine.version=v.7.6
-engine.build=7de3694ef3fd
+engine.version=v.7.4
+engine.build=445810ceecf7
+engine.binary=/usr/local/bin/ld1.x
+engine.upstream=https://gitlab.com/QEF/q-e
 profile=psl-high
 family=paw
 functional=PBE
 functional.requested=pbe
 relativity=scalar
+source=local
 ```
 
 Keep this with your project. It is what answers "which of these three libraries

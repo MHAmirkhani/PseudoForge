@@ -436,7 +436,7 @@ against the output of the upstream `.job` files. It is what backs the
 Cite it as:
 
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
-> validator*, version 1.3.0 (2026). <https://amirkhani.me>
+> validator*, version 1.3.2 (2026). <https://amirkhani.me>
 
 A DOI has not been minted yet. When it is, set `MD_DOI[pseudoforge]` in
 `lib/metadata.sh` and every citation PseudoForge prints picks it up. The suggested

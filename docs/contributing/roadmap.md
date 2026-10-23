@@ -9,7 +9,7 @@ than left as an open item.
 status here cannot quietly stop being true. It exists because this page was, for
 a while, wrong in four places at once.
 
-**Version 1.3.0 · GPL-2.0-or-later · Mohammad H. Amirkhani · DOI not yet
+**Version 1.3.2 · GPL-2.0-or-later · Mohammad H. Amirkhani · DOI not yet
 minted**
 
 ---

@@ -110,7 +110,7 @@ cat ~/.pseudoforge/recipes/fe-paw-high.recipe
 # This file is parsed, never sourced.  It cannot run commands.
 
 pseudoforge.recipe=1
-tool.version=1.3.0
+tool.version=1.3.2
 saved=2026-09-17 00:31:02 +0330
 description=magnetic 3d metals, project X
 elements=Fe,Co,Ni

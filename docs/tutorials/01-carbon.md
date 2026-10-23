@@ -45,7 +45,7 @@ Four decisions, and each one is a layer from [Concepts](../getting-started/conce
 ## What happens
 
 ```text
-== PseudoForge 1.3.0 ==
+== PseudoForge 1.3.2 ==
 INFO  profile    PSlibrary 1.0.0 (high accuracy)  [generated]
 INFO  family     NC   functional PBE   Scalar-relativistic (no spin-orbit)
 INFO  elements   1: C
@@ -216,7 +216,7 @@ with the files instead of staying behind in the terminal.
 
 ```text
 tool.name=PseudoForge
-tool.version=1.3.0
+tool.version=1.3.2
 engine.id=ld1
 engine.label=Quantum ESPRESSO ld1.x
 engine.version=v.7.6
