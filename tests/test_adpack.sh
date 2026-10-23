@@ -201,6 +201,15 @@ else
     skip_ "adpack-modern patch not present"
 fi
 
+printf '\n%s== build refusal%s\n' "$DIM" "$RESET"
+build_out=$(build_engine adpack 2>&1 || true)
+printf '%s\n' "$build_out" | grep -q 'installed externally' \
+    && ok_ "pf build adpack reports external install" \
+    || bad_ "pf build adpack did not report external install" "$build_out"
+printf '%s\n' "$build_out" | grep -q 'no build recipe for' \
+    && bad_ "pf build adpack fell through to 'no build recipe'" "$build_out" \
+    || ok_ "pf build adpack does not say 'no build recipe'"
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

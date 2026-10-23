@@ -880,6 +880,10 @@ build_engine() {
         ape)     build_ape ;;
         uspp)    build_uspp ;;
         fhi98pp) build_fhi98pp ;;
+        adpack)
+            error "ADPACK is installed externally; PseudoForge ships no build recipe."
+            error "  See docs/reference/engines/adpack.md for installation instructions."
+            return 1 ;;
         *)       error "no build recipe for '$eng'"; return 1 ;;
     esac
     rc=$?
@@ -938,7 +942,10 @@ build_verify() {
 build_all() {
     local assume_yes=${1:-} eng failed=""
     pf_engines_load
-    for eng in oncvpsp uspp fhi98pp opium; do
+    # oncvpsp, uspp, fhi98pp, opium, atompaw, ape, gth have build recipes.
+    # ld1 comes with Quantum ESPRESSO.
+    # adpack has no build recipe; external install only.
+    for eng in oncvpsp uspp fhi98pp opium atompaw ape gth; do
         if eng_available "$eng"; then
             info "${ENG_LABEL[$eng]}: already installed, skipping"
             continue

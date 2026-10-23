@@ -14,8 +14,11 @@ Schlüter and MBK schemes.
 
 ## Installing
 
+ADPACK is installed externally. Download the source from OpenMX (<http://www.openmx-square.org/>), compile `adpack`, and place the binary on your `$PATH` or set `ADPACK_BIN` in `~/.pseudoforgerc`.
+
 ```bash
-pseudoforge engines build adpack
+# Set in ~/.pseudoforgerc:
+ADPACK_BIN="/path/to/adpack"
 ```
 
 ## Coverage: 29 elements, no fallback
