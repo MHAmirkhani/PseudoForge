@@ -5,17 +5,18 @@ message: >-
   the atomic code that actually produced your pseudopotentials and the library
   whose parameters were used — PseudoForge drives other people's generators and
   reproduces other people's libraries, and those are the scientific
-  contributions behind any file it writes. Running `pseudoforge --attribution`
-  prints the citations for the engines and libraries a given run touched, and
-  every run writes CITATION.txt beside its output.
+  contributions behind any file it writes. Running `pseudoforge generate ... --attribution`
+  or `pseudoforge citation <library>` prints the citations for the engines and
+  libraries a given run touched, and every run writes CITATION.txt beside its output.
 type: software
 authors:
   - given-names: "Mohammad H."
     family-names: Amirkhani
     email: mohammadhossienamirkhani@gmail.com
     website: "https://amirkhani.me"
-repository-code: "https://github.com/MHAmirkhani/pseudoforge"
+repository-code: "https://github.com/MHAmirkhani/PseudoForge"
 url: "https://amirkhani.me"
+date-released: "2026-10-08"
 abstract: >-
   PseudoForge generates and validates pseudopotentials by driving nine
   independent atomic structure codes — Quantum ESPRESSO's ld1, ONCVPSP, the
@@ -25,10 +26,12 @@ abstract: >-
 
   It reproduces published libraries from those libraries' own published
   parameters rather than approximating them: PSlibrary is reproduced
-  byte-identically, and the GTH coefficient tables are reproduced exactly for
-  all 322 published element-functional combinations. Where a library's
-  parameters are not published, PseudoForge says so and labels its own
-  construction as such rather than issuing it under the library's name.
+  byte-identically (apart from two caesium decks where upstream is
+  physically impossible, as declared in ERRATA.tsv), and the GTH coefficient
+  tables are reproduced exactly for all 322 published element-functional
+  combinations. Where a library's parameters are not published, PseudoForge
+  says so and labels its own construction as such rather than issuing it
+  under the library's name.
 
   Validation asks each engine for its own analysis rather than forcing one
   engine's test on all of them, and records which analysis produced each
