@@ -60,7 +60,9 @@ run() {
     else
         status=FAIL; fail=$((fail+1))
     fi
-    printf '%s\t%s\t%s\t%s\n' "$status" "$label" "$dt" "${out//$'\n'/ | }" >> "$RAW"
+    local msg="${out//$'\n'/ | }"
+    msg=$(printf '%s' "$msg" | sed -E 's|/tmp/tmp\.[A-Za-z0-9]+|<TMPDIR>|g; s|generated[[:space:]]+:[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \+[0-9]{4}|generated    : <TIMESTAMP>|g')
+    printf '%s\t%s\t%s\t%s\n' "$status" "$label" "$dt" "$msg" >> "$RAW"
     printf '  %-4s  %-45s (%ds)\n' "$status" "$label" "$dt"
     if [ $rc -ne 0 ]; then
         printf '        %s\n' "$out" | head -3
@@ -415,12 +417,12 @@ echo
 echo "== report / plot on a completed project =="
 GENPROJ=$SCRATCH/gen-ld1
 if [ -d "$GENPROJ" ] && [ -f "$GENPROJ/state.tsv" ]; then
-    run "report $GENPROJ" "$PSM" report "$GENPROJ"
+    run 'report ld1' "$PSM" report "$GENPROJ"
     # plot may refuse if no backend (gnuplot missing); that is a soft fail
     "$PSM" plot "$GENPROJ" >/dev/null 2>&1
     rc=$?
     if [ $rc -eq 0 ]; then
-        printf '  %-4s  %-45s\n' PASS "plot $GENPROJ"
+        printf '  %-4s  %-45s\n' PASS "plot ld1"
         printf 'PASS\tplot on a project\t0\t\n' >> "$RAW"
         pass=$((pass+1))
     else
@@ -428,11 +430,11 @@ if [ -d "$GENPROJ" ] && [ -f "$GENPROJ/state.tsv" ]; then
         msg=$("$PSM" plot "$GENPROJ" 2>&1)
         case $msg in
             *"gnuplot"*|*"backend"*|*"no plotting"*)
-                printf '  %-4s  %-45s (no plot backend; not a failure)\n' SKIP "plot $GENPROJ"
+                printf '  %-4s  %-45s (no plot backend; not a failure)\n' SKIP "plot ld1"
                 printf 'SKIP\tplot on a project (no backend)\t0\t\n' >> "$RAW"
                 skip=$((skip+1)) ;;
             *)
-                printf '  %-4s  %-45s\n' FAIL "plot $GENPROJ"
+                printf '  %-4s  %-45s\n' FAIL "plot ld1"
                 printf 'FAIL\tplot on a project\t0\t%s\n' "${msg//$'\n'/ | }" >> "$RAW"
                 fail=$((fail+1)) ;;
         esac
