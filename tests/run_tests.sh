@@ -360,6 +360,16 @@ assert_match "html references link the DOI" "https://doi.org/10.1016" \
     cat "$TMP/att/reports/summary.html"
 
 section "mirror and fallback chain"
+# Seed the SG15 index cache with local fixture data (same as test_fetch.sh)
+# so the suite is hermetic and never depends on live network access.
+export TMPDIR=$TMP
+cat > "$TMP/index-sg15.txt" <<'EOF'
+Si_ONCV_PBE-1.0.upf
+Si_ONCV_PBE-1.2.upf
+Si_ONCV_PBE_FR-1.1.upf
+EOF
+touch "$TMP/index-sg15.txt"
+
 assert_match "mirror URL comes from the config" "pseudo.amirkhani.me" "$PSM" config --show
 assert_eq "mirror path known for a library" "pslibrary" \
     "$(bash -c ". '$ROOT/lib/core.sh'; . '$ROOT/lib/metadata.sh'; pf_metadata_load; printf '%s' \"\${MD_MIRROR_PATH[psl-high]}\"")"
