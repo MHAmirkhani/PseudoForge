@@ -23,6 +23,8 @@ QUICK=0
 export PF_VAR_DIR=${PF_VAR_DIR:-$HOME/pf-var}
 export PF_NATIVE_DIR=${PF_NATIVE_DIR:-$HOME/pf-native}
 export PF_DECOMPRESSED_DIR=${PF_DECOMPRESSED_DIR:-$HOME/pf-var/decompressed}
+export RECIPE_DIR=${RECIPE_DIR:-$SCRATCH/recipes}
+export LD1_BIN=${LD1_BIN:-$ROOT/tests/mock/ld1.x}
 
 pass=0; fail=0; warn=0; skip=0
 
@@ -219,8 +221,17 @@ if [ -z "$UPF" ]; then
     UPF=$(find -L "$PF_NATIVE_DIR" -name '*.UPF.gz' 2>/dev/null | head -1)
     [ -n "$UPF" ] && gunzip -c "$UPF" > "$SCRATCH/sample.UPF" && UPF=$SCRATCH/sample.UPF
 fi
+if [ -z "$UPF" ]; then
+    UPF=$(find -L "$ROOT/tests/fixtures" -name '*.UPF' 2>/dev/null | head -1)
+fi
 if [ -n "$UPF" ]; then
-    run "convert upf -> xml" "$PSM" convert "$UPF" --to xml -o "$SCRATCH/c-xml" -q
+    if command -v upfconv.x >/dev/null 2>&1 || ([ -n "${UPFCONV_BIN:-}" ] && [ -x "${UPFCONV_BIN:-}" ]); then
+        run "convert upf -> xml" "$PSM" convert "$UPF" --to xml -o "$SCRATCH/c-xml" -q
+    else
+        printf '  %-4s  %-45s (upfconv.x not installed)\n' SKIP "convert upf -> xml"
+        printf 'SKIP\tconvert upf -> xml\t0\tupfconv.x missing\n' >> "$RAW"
+        skip=$((skip+1))
+    fi
 fi
 
 # refuse cases: gth -> upf (must refuse)
@@ -345,10 +356,12 @@ run_expect_fail "generate atompaw --rcut-scale (refused)" \
 echo
 
 # ---------- augfun on PAW ----------
-echo "== augfun on PAW =="
-run "generate atompaw --augfun AE" \
-    "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/af-paw" --augfun AE -q
-echo
+if [ "$QUICK" = 0 ] || "$PSM" engines path atompaw >/dev/null 2>&1; then
+    echo "== augfun on PAW =="
+    run "generate atompaw --augfun AE" \
+        "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/af-paw" --augfun AE -q
+    echo
+fi
 
 # ---------- other subcommands ----------
 echo "== other subcommands =="
