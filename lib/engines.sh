@@ -226,6 +226,7 @@ eng_supports_family() { pf_engines_load; in_list "$2" ${ENG_FAMILIES[$1]:-}; }
 eng_prefix()   { printf '%s\n' "${ENGINE_DIR:-$HOME/.pseudoforge/engines}"; }
 eng_bindir()   { printf '%s/bin\n'   "$(eng_prefix)"; }
 eng_builddir() { printf '%s/build\n' "$(eng_prefix)"; }
+eng_src_dir()  { printf '%s/src\n'   "$(eng_prefix)"; }
 
 # ---------------------------------------------------------------------------
 # eng_resolve <engine> -- find the engine's primary binary.
@@ -315,7 +316,7 @@ eng_source_archive() {
     local eng=$1 name d
     name=${ENG_SRC[$eng]:-}
     [ -n "$name" ] || return 1
-    for d in "${PF_SRC_DIR:-}" "$PF_ROOT" "$PF_ROOT/.." "$(eng_builddir)" "$PWD"; do
+    for d in "${PF_SRC_DIR:-}" "$PF_ROOT" "$PF_ROOT/.." "$(eng_src_dir)" "$(eng_builddir)" "$PWD"; do
         [ -n "$d" ] || continue
         [ -f "$d/$name" ] && { abspath "$d/$name"; return 0; }
     done

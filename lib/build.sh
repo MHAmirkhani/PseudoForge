@@ -190,8 +190,62 @@ build_install_binaries() {   # build_install_binaries <srcdir> <binaries...>
     printf '%s\n' "$found"
 }
 
+build_fetch_src() {   # build_fetch_src <engine>
+    local eng=$1
+    local file=${ENG_SRC[$eng]:-}
+
+    # libxc has no ENG_SRC entry; discover by glob.
+    if [ "$eng" = libxc ] && [ -z "$file" ]; then
+        file=$(cd "$PF_ROOT/engines-src" 2>/dev/null \
+               && ls libxc-*.tar.gz 2>/dev/null | head -1)
+        [ -n "$file" ] || file=$(cd "$(eng_src_dir)" 2>/dev/null \
+               && ls libxc-*.tar.gz 2>/dev/null | head -1)
+        [ -n "$file" ] || file="libxc-7.1.2.tar.gz"
+        ENG_SRC[libxc]=$file
+    fi
+    [ -n "$file" ] || return 1
+
+    local base=${PF_ENGINES_SRC_URL:-https://raw.githubusercontent.com/MHAmirkhani/PseudoForge/main/engines-src}
+    local url="$base/$file"
+    local dest
+    dest="$(eng_src_dir)/$file"
+    mkdir -p "$(dirname "$dest")"
+
+    info "fetching $eng source from the repository"
+    if ! fetch_binary_url "$url" "$dest"; then
+        error "could not download $eng source from $url"
+        return 1
+    fi
+
+    local manifest=${PF_MANIFEST_PATH:-$PF_ROOT/engines-src/MANIFEST.txt}
+    if [ -f "$manifest" ]; then
+        local sha
+        sha=$(awk -v f="$file" '$1==f{print $2; exit}' "$manifest")
+        if [ -n "$sha" ]; then
+            local actual=""
+            if have sha256sum; then
+                actual=$(sha256sum "$dest" 2>/dev/null | awk '{print $1}')
+            elif have shasum; then
+                actual=$(shasum -a 256 "$dest" 2>/dev/null | awk '{print $1}')
+            fi
+            if [ -n "$actual" ] && [ "$actual" = "$sha" ]; then
+                ok "verified $file against MANIFEST.txt"
+            else
+                error "checksum mismatch for $eng source"
+                error "  expected: $sha"
+                error "  file:     $dest"
+                rm -f "$dest"
+                return 1
+            fi
+        fi
+    else
+        warn "MANIFEST.txt not found at $manifest; skipping checksum verification"
+    fi
+    return 0
+}
+
 # ---------------------------------------------------------------------------
-# build_prepare_src <engine> <marker> -- get a source tree ready to compile in.
+# build_prepare_src <engine> [marker] -- get a source tree ready to compile in.
 #
 # Three ways to arrive at one, in order of preference:
 #   1. <ENGINE>_SRC_DIR in the config points at an unpacked tree
@@ -202,38 +256,67 @@ build_install_binaries() {   # build_install_binaries <srcdir> <binaries...>
 # Echoes the directory to build in.
 # ---------------------------------------------------------------------------
 build_prepare_src() {
-    local eng=$1 marker=$2
-    local build var cand d ar src
+    local eng=$1 marker=${2:-}
+    local build var cand d ar src base file url
     build=$(eng_builddir)/$eng
     var=$(upper "$eng")_SRC_DIR
     var=${var//-/_}
 
     cand=${!var:-}
-    if [ -n "$cand" ] && [ -e "$cand/$marker" ]; then
+    if [ -n "$cand" ] && { [ -z "$marker" ] || [ -e "$cand/$marker" ]; }; then
         debug "$eng: using the configured source tree $cand"
         printf '%s\n' "$cand"; return 0
     fi
 
-    for d in "$build" "${PF_SRC_DIR:-}" "$PF_ROOT/../.src" "$PF_ROOT/.src" "$PF_ROOT/.."; do
-        [ -n "$d" ] || continue
-        [ -d "$d" ] || continue
-        if src=$(build_find_srcdir "$d" "$marker" 2>/dev/null); then
-            debug "$eng: found an unpacked source tree at $src"
-            printf '%s\n' "$src"; return 0
-        fi
-    done
+    # 1. search local paths (unpacked source trees)
+    if [ -n "$marker" ]; then
+        for d in "$build" "${PF_SRC_DIR:-}" "$PF_ROOT/../.src" "$PF_ROOT/.src" "$PF_ROOT/.."; do
+            [ -n "$d" ] || continue
+            [ -d "$d" ] || continue
+            if src=$(build_find_srcdir "$d" "$marker" 2>/dev/null); then
+                debug "$eng: found an unpacked source tree at $src"
+                printf '%s\n' "$src"; return 0
+            fi
+        done
+    elif [ -d "$build" ]; then
+        printf '%s\n' "$build"; return 0
+    fi
 
-    ar=$(eng_source_archive "$eng") || {
-        error "${ENG_LABEL[$eng]}: no source found."
-        error "  Looked for the archive ${ENG_SRC[$eng]}, and for an unpacked tree containing $marker."
-        error "  Download it from ${ENG_UPSTREAM[$eng]}, or set $var in $PF_RC."
+    # 1b. search local source archives
+    ar=$(eng_source_archive "$eng" 2>/dev/null) || ar=""
+
+    # 2. if not found: build_fetch_src <engine>
+    if [ -z "$ar" ]; then
+        if build_fetch_src "$eng"; then
+            ar=$(eng_source_archive "$eng" 2>/dev/null) || ar=""
+        fi
+    fi
+
+    # 3. if still not found: print archive name, every local path tried, and the URL, then error
+    if [ -z "$ar" ]; then
+        file=${ENG_SRC[$eng]:-}
+        base=${PF_ENGINES_SRC_URL:-https://raw.githubusercontent.com/MHAmirkhani/PseudoForge/main/engines-src}
+        url="$base/$file"
+        error "${ENG_LABEL[$eng]:-$eng}: no source found."
+        error "  Archive: ${file:-<unknown>}"
+        error "  Looked in local paths: ${PF_SRC_DIR:-<unset>}, $PF_ROOT, $PF_ROOT/.., $(eng_src_dir), $(eng_builddir), $PWD"
+        error "  Tried repository URL: $url"
+        error "  Download it from ${ENG_UPSTREAM[$eng]:-upstream}, or set $var in $PF_RC."
         return 1
-    }
+    fi
+
     info "unpacking $(basename "$ar")"
     mkdir -p "$build"
     build_extract "$ar" "$build" || return 1
-    build_find_srcdir "$build" "$marker" || {
-        error "cannot find $marker inside $ar"; return 1; }
+    if [ -n "$marker" ]; then
+        build_find_srcdir "$build" "$marker" || {
+            error "cannot find $marker inside $ar"; return 1; }
+    else
+        for d in "$build"/*/; do
+            if [ -d "$d" ]; then printf '%s\n' "${d%/}"; return 0; fi
+        done
+        printf '%s\n' "$build"
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -593,6 +676,7 @@ build_libxc() {
         cm=$(build_find_cmake)
     fi
 
+    build_fetch_src libxc 2>/dev/null || true
     src=$(build_prepare_src libxc "src/xc.h" 2>/dev/null) || {
         error "libxc source not found (expected an archive named ${ENG_SRC[libxc]:-libxc-*.tar.gz})"
         return 1

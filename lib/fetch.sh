@@ -41,6 +41,24 @@ fetch_url() {
     return 1
 }
 
+fetch_binary_url() {   # fetch_binary_url <url> <dest> [<max-time>]
+    local url=$1 dest=$2 maxt=${3:-600}
+    local tmp="${dest}.part"
+    mkdir -p "$(dirname "$dest")" || return 1
+    if command -v curl >/dev/null 2>&1; then
+        curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 \
+             --max-time "$maxt" -o "$tmp" "$url" \
+            || { rm -f "$tmp"; return 1; }
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$tmp" --tries=3 --timeout="$maxt" "$url" \
+            || { rm -f "$tmp"; return 1; }
+    else
+        error "neither curl nor wget available to download $url"
+        return 1
+    fi
+    mv "$tmp" "$dest"
+}
+
 # Is a URL reachable at all?  Used to tell "mirror is down" from "file missing".
 fetch_host_reachable() {
     local url=$1 code
