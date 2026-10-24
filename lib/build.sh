@@ -909,6 +909,72 @@ build_gsl() {
     ok "GSL built -> $prefix"
 }
 
+build_adpack() {
+    local src log prefix
+    prefix=$(eng_prefix)
+    log=$(eng_builddir)/adpack-build.log
+    mkdir -p "$(eng_builddir)"
+
+    if [ -n "${PF_ADPACK_SRC_OVERRIDE:-}" ]; then
+        src=$PF_ADPACK_SRC_OVERRIDE
+    else
+        src=$(build_prepare_src adpack "source/makefile" 2>/dev/null) || \
+        src=$(build_prepare_src adpack 2>/dev/null) || return 1
+    fi
+    [ -f "$src/source/makefile" ] || {
+        error "adpack: no source/makefile in $src"
+        return 1
+    }
+
+    # Patch the upstream hardcoded paths. The author's build
+    # defaults point at /home/ozaki; the local build must use
+    # the system's BLAS and LAPACK. Rewrite the makefile in
+    # place; it is in a build/ copy, not the repository.
+    local mk="$src/source/makefile"
+    sed -i \
+        -e 's|^CC.*=.*gcc.*-I/usr/local/include.*-I/home/ozaki/include|CC      = gcc -Dnoomp -std=c99 -O3|' \
+        -e 's|^LIB.*=.*-L/home/ozaki/lib.*-latlas_p4.*-static|LIB     = -lblas -llapack|' \
+        "$mk"
+
+    # Verify the patch landed
+    grep -q '^CC.*-Dnoomp' "$mk" || {
+        error "adpack: could not patch CC in makefile"
+        return 1
+    }
+    grep -q '^LIB.*-lblas' "$mk" || {
+        error "adpack: could not patch LIB in makefile"
+        return 1
+    }
+
+    if [ "${PF_DRY_RUN:-0}" = 1 ]; then
+        info "dry-run: ( cd \"$src/source\" && make -j\"$(build_jobs)\" )"
+        return 0
+    fi
+
+    info "compiling adpack"
+    ( cd "$src/source" && make -j"$(build_jobs)" ) > "$log" 2>&1
+    local rc=$?
+    [ "$rc" -eq 0 ] || {
+        error "adpack build failed -- see $log"
+        tail -15 "$log" | pf_emit_stream debug
+        return 1
+    }
+
+    [ -x "$src/source/adpack" ] || {
+        error "adpack: build produced no binary"
+        return 1
+    }
+
+    mkdir -p "$(eng_bindir)"
+    install -m 755 "$src/source/adpack" "$(eng_bindir)/adpack"
+    pf_config_set ADPACK_BIN "$(eng_bindir)/adpack"
+    pf_config_set ADPACK_ROOT "$src"
+    ADPACK_BIN=$(eng_bindir)/adpack
+    ADPACK_ROOT=$src
+    build_verify adpack || return 1
+    ok "adpack installed at $(eng_bindir)/adpack"
+}
+
 # ---------------------------------------------------------------------------
 # build_engine <engine> [--yes]
 #
@@ -951,10 +1017,7 @@ build_engine() {
         ape)     build_ape ;;
         uspp)    build_uspp ;;
         fhi98pp) build_fhi98pp ;;
-        adpack)
-            error "ADPACK is installed externally; PseudoForge ships no build recipe."
-            error "  See docs/reference/engines/adpack.md for installation instructions."
-            return 1 ;;
+        adpack)  build_adpack ;;
         *)       error "no build recipe for '$eng'"; return 1 ;;
     esac
     rc=$?
@@ -1013,10 +1076,9 @@ build_verify() {
 build_all() {
     local assume_yes=${1:-} eng failed=""
     pf_engines_load
-    # oncvpsp, uspp, fhi98pp, opium, atompaw, ape, gth have build recipes.
+    # oncvpsp, uspp, fhi98pp, opium, atompaw, ape, gth, adpack have build recipes.
     # ld1 comes with Quantum ESPRESSO.
-    # adpack has no build recipe; external install only.
-    for eng in oncvpsp uspp fhi98pp opium atompaw ape gth; do
+    for eng in oncvpsp uspp fhi98pp opium atompaw ape gth adpack; do
         if eng_available "$eng"; then
             info "${ENG_LABEL[$eng]}: already installed, skipping"
             continue

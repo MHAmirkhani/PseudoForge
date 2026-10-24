@@ -133,7 +133,7 @@ pf_engines_load() {
     ENG_UPSTREAM[adpack]="http://www.openmx-square.org/adpack/adpack.html"
     ENG_LICENSE[adpack]="GPL-2.0-or-later"
     ENG_NATIVE_UPF[adpack]=no
-    ENG_NOTE[adpack]="Troullier-Martins, Bachelet-Hamann-Schlueter and MBK schemes, written for OpenMX. Writes .vps (OpenMX) and .pao; no UPF. Ships 29 per-element decks. Installed externally; PseudoForge ships no build recipe for it (see docs/reference/engines/adpack.md)."
+    ENG_NOTE[adpack]="Troullier-Martins, Bachelet-Hamann-Schlueter and MBK schemes, written for OpenMX. Writes .vps (OpenMX) and .pao; no UPF. Ships 29 per-element decks. Built from source by PseudoForge (see docs/reference/engines/adpack.md)."
 }
 
 # ---------------------------------------------------------------------------

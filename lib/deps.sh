@@ -241,11 +241,7 @@ deps_report() {
         [ "$eng" = ld1 ] && continue
         printf '  %s is not installed: generation with it is disabled,\n' "${ENG_LABEL[$eng]}"
         printf '    but importing and validating its files still works.\n'
-        if [ "$eng" = adpack ]; then
-            printf '    external install; see docs/reference/engines/adpack.md\n'
-        else
-            printf '    To build it:  pseudoforge engines build %s\n' "$eng"
-        fi
+        printf '    To build it:  pseudoforge engines build %s\n' "$eng"
     done
     if ! eng_available ld1; then
         printf '  %s is missing: PAW and the whole PSlibrary set are unavailable.\n' "${ENG_LABEL[ld1]}"

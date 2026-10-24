@@ -200,19 +200,17 @@ else
     bad_ "doctor --check did not exit 1 or name missing curl (rc=$sim_rc)" "$missing_sim"
 fi
 
-# deps_report does not say "build it" for adpack
+# deps_report offers adpack as buildable
 adpack_rep=$(
     (
         eng_available() { [ "$1" != adpack ] && command eng_available "$@"; }
         deps_report 2>&1
     )
 )
-if printf '%s\n' "$adpack_rep" | grep -F "ADPACK" -A2 | grep -q "build it"; then
-    bad_ "deps_report still says 'build it' for adpack"
-elif printf '%s\n' "$adpack_rep" | grep -F "ADPACK" -A2 | grep -q "external install"; then
-    ok_ "deps_report says external install for adpack, not build it"
+if printf '%s\n' "$adpack_rep" | grep -F "ADPACK" -A2 | grep -q "pseudoforge engines build adpack"; then
+    ok_ "deps_report offers adpack as buildable"
 else
-    bad_ "deps_report did not output expected adpack notice" "$adpack_rep"
+    bad_ "deps_report did not offer adpack as buildable" "$adpack_rep"
 fi
 
 printf '\n%s== doctor leaves no stray files in working directory%s\n' "$DIM" "$RESET"
