@@ -851,7 +851,7 @@ cmd_recipe() {
 # ---------------------------------------------------------------------------
 cmd_doctor() {
     case "${1:-}" in -h|--help) cli_help_for doctor; return 0 ;; esac
-    local fmt=cli recs check=0
+    local fmt=cli recs check=0 PF_PROMPT_QE_RECORD=0
     [ "${PF_DOCTOR_STRICT:-0}" = 1 ] && check=1
     while [ $# -gt 0 ]; do
         case $1 in
@@ -1109,7 +1109,12 @@ cmd_engines() {
         -h|--help)
             case $sub in
                 list)  printf 'usage: pseudoforge engines list\n' ;;
-                build) printf 'usage: pseudoforge engines build <name>|all [--yes]\n' ;;
+                build)
+                    pf_engines_load
+                    printf 'usage: pseudoforge engines build <name>|all [--yes]\n\n'
+                    printf 'Available engines: %s\n' "${ENG_ORDER[*]}"
+                    printf '  all builds eight engines (excludes ld1, which is built on demand)\n'
+                    ;;
                 show)  printf 'usage: pseudoforge engines show <name>\n' ;;
                 path)  printf 'usage: pseudoforge engines path <name>\n' ;;
                 *)     printf 'usage: pseudoforge engines list|build|show|path\n' ;;

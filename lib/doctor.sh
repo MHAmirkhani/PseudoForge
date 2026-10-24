@@ -183,11 +183,11 @@ doctor_missing_required() {
         have "$t" || missing="$missing $t"
     done
 
-    # gfortran, gcc, make (only if no engine is installed — skip if every engine is present)
+    # gfortran, gcc, make, unzip (only if no engine is installed — skip if every engine is present)
     n_ok=$(doctor_count "$recs" engine ok)
     n_eng=$(doctor_count "$recs" engine)
     if [ "$n_ok" -eq 0 ]; then
-        for t in gfortran gcc make; do
+        for t in gfortran gcc make unzip; do
             have "$t" || missing="$missing $t"
         done
     fi

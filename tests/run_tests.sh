@@ -565,6 +565,13 @@ else
     bad_ "audit gate" "run: tests/test_audit_gate.sh"
 fi
 
+section "installation smoke test"
+if bash "$HERE/test_install_smoke.sh" >/dev/null 2>&1; then
+    ok_ "install.sh, symlink, doctor, engines build --help, ld1 refusal"
+else
+    bad_ "installation smoke test" "run: tests/test_install_smoke.sh"
+fi
+
 # Interface audit: every subcommand answers --help, every TUI layer has a
 # handler, every advanced-screen key reaches SPEC, every doc path named by
 # the shell code exists.  Runs the fast sections only; the per-engine TUI
