@@ -1,5 +1,9 @@
 # Changelog
 
+## Installation system overhaul and automated engine builds
+
+A full overhaul of the installation system added automated dependency management and reliable offline engine builds. The `install.sh` script now supports `--deps`, `--bootstrap`, and `--dry-run` across Debian, Fedora, Arch, and macOS; `doctor --check` provides non-zero exit validation for required tools. Source archives for eight engines and their supporting libraries are packaged in `engines-src/` and verified against `MANIFEST.txt` by `build_fetch_src` in `lib/build.sh`. ADPACK is now compiled from source via `build_adpack` with an automated makefile patch for standard compiler flags and system BLAS/LAPACK, and is included in `build_all`. Quantum ESPRESSO's `ld1.x` is handled via an on-demand prompt-and-install flow in `build_ld1` and `pf_ask_install_ld1`, which fetches QE source, builds only the `ld1` target, installs it into `~/.pseudoforge/engines/bin`, and records `LD1_BIN` in configuration, while also discovering existing QE installations across standard system directories.
+
 ## Comprehensive audit, gate hardening, and full documentation pass
 
 The post-audit execution pass resolved twelve findings across the server,

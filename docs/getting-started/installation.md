@@ -7,15 +7,25 @@ and run `doctor`.
 The engines are a separate question, and the answer depends on which ones you
 need. You do not need all nine to do useful work.
 
+## Quick install
+
+```bash
+git clone https://github.com/MHAmirkhani/PseudoForge.git
+cd PseudoForge
+./install.sh --bootstrap
+```
+
+Eight engines build automatically. `ld1.x` prompts on first use.
+
 ## Requirements
 
 ### System requirements and dependencies
 
 | Type | Needed for | What |
 |---|---|---|
-| **Required** | PseudoForge itself | `bash` 4.4 or newer, `python` 3.9+, standard POSIX tools (`coreutils`, `sed`, `awk`, `grep`), and `curl` |
+| **Required** | PseudoForge itself | `bash` 4.0 or newer, standard POSIX tools (`coreutils`, `sed`, `awk`, `grep`), and `curl`. `python3` is used for `matplotlib` plotting and the OPIUM patch script |
 | **Optional** | Default engine (`ld1`) | Quantum ESPRESSO (`ld1.x`) |
-| **Optional** | Building other engines | `gcc`, `gfortran`, `make`, `git` |
+| **Optional** | Building other engines | `gcc`, `gfortran`, `make`, `git`, `unzip`, BLAS/LAPACK |
 | **Optional** | Cutoff convergence scans | Quantum ESPRESSO (`pw.x`) |
 | **Optional** | The guided wizard | `whiptail` (Debian/Ubuntu: `whiptail`, Fedora: `newt`) |
 | **Optional** | Plotting | `gnuplot`, **or** `python3` with `matplotlib` |
@@ -48,8 +58,8 @@ PseudoForge honors several environment variables:
 
 - `PF_ROOT` — root directory of PseudoForge (inferred automatically from the script location).
 - `PF_RC` — path to the configuration file (defaults to `~/.pseudoforgerc`).
-- `PF_MIRROR` (or `MIRROR_URL`) — upstream mirror URL for downloading published libraries (default: `https://pseudo.amirkhani.me/library/`).
-- `PF_ENGINES_DIR` (or `ENGINE_DIR`) — directory where built engine binaries are installed (defaults to `~/.pseudoforge/engines`).
+- `MIRROR_URL` — upstream mirror URL for downloading published libraries (default: `https://pseudo.amirkhani.me/library/`).
+- `ENGINE_DIR` — directory where built engine binaries are installed (defaults to `~/.pseudoforge/engines`).
 
 On the first run PseudoForge writes `~/.pseudoforgerc` with commented
 defaults. That file is plain shell, sourced at startup, so you can put logic in
@@ -101,10 +111,9 @@ pseudoforge engines build all     # fetch, patch, build, verify
 pseudoforge engines build ape     # or one at a time
 ```
 
-`build all` fetches each engine's source from its upstream, applies the
-patches PseudoForge carries where a build needs them, compiles into
-`~/.pseudoforge/engines`, and records a build id that goes into the provenance
-of anything that engine generates.
+`build all` builds eight engines (`oncvpsp`, `uspp`, `fhi98pp`, `opium`, `gth`, `atompaw`, `ape`, `adpack`). It fetches each engine's source archive from `engines-src/` in the repository, verifies its checksum against `engines-src/MANIFEST.txt`, applies the patches PseudoForge carries where a build needs them, compiles into `~/.pseudoforge/engines`, and records a build id that goes into the provenance of anything that engine generates.
+
+Quantum ESPRESSO (`ld1.x`) comes from upstream QE rather than `engines-src/`, and PseudoForge prompts to download and build `ld1.x` the first time a run needs it.
 
 It also builds two supporting libraries when an engine needs them:
 
@@ -115,6 +124,17 @@ It also builds two supporting libraries when an engine needs them:
 and will fetch `cmake` and `ninja` if the system ones are absent or too old.
 Those are fetched on demand rather than required up front, which is why
 `doctor` reports them as *optional*.
+
+## First run without QE
+
+`./install.sh --bootstrap` does not install Quantum ESPRESSO.
+The default profile `psl-high` uses ld1.x, so a bare
+`pseudoforge generate -e Si` will prompt to install QE if it
+is missing. To skip that prompt and use the engines you have:
+
+```bash
+pseudoforge generate -e Si -t nc -p oncvpsp -x pbe
+```
 
 !!! note "The patches are documented"
     Several engines need changes to build with a modern compiler — legacy
@@ -181,7 +201,7 @@ This is the honest list, because "optional" should mean something specific.
 
 | Without | What stops working | What still works |
 |---|---|---|
-| `whiptail` | the guided wizard | everything on the command line; `pseudoforge` prints the CLI usage instead of starting a wizard it cannot draw |
+| `whiptail` | the curses dialog wizard | `wizard_main` text mode in the terminal, and everything on the command line |
 | `gnuplot` and `matplotlib` | `--plot` draws nothing | the run itself, and the plot *data* is still written to `tests/`, so you can plot it later elsewhere |
 | `pw.x` | `--cutoff-scan` | generation and the transferability tests, which use `ld1.x` |
 | network access | `--source online`, `engines build` | everything already installed |
@@ -192,12 +212,13 @@ failure. A missing plotting program is not a bad pseudopotential.
 ## Uninstalling
 
 ```bash
+rm -f  ~/.local/bin/pseudoforge # the symlink
 rm -rf ~/.pseudoforge          # the engines PseudoForge built
 rm -f  ~/.pseudoforgerc        # the configuration
 rm -rf /path/to/pseudoforge    # the clone
 ```
 
-Nothing is installed outside those three places.
+Nothing is installed outside those four places.
 
 ---
 

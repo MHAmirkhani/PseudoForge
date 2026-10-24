@@ -233,6 +233,14 @@ authors' own copy rather than rehosting it. See
 
 ---
 
+## Installation limitations
+
+- Quantum ESPRESSO is not bundled. It is downloaded and built on demand (500 MB, ~20 minutes) after a prompt. To install it yourself, see <https://www.quantum-espresso.org/>.
+- Engine sources are fetched from `engines-src/` in the repository and verified against `engines-src/MANIFEST.txt`.
+- `install.sh --deps` targets Debian, Fedora, Arch, and macOS.
+
+---
+
 ## What is not a limitation
 
 Two things read as limitations and are not, and the difference matters

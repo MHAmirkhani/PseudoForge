@@ -45,16 +45,31 @@ engine](../how-to/choose-an-engine.md):
 
 ## Installing them
 
-PseudoForge builds eight of the nine from source into
-`~/.pseudoforge/engines`; `ld1.x` comes with Quantum ESPRESSO and is not built
-here.
+PseudoForge can build all nine engines; eight build automatically from bundled source archives into `~/.pseudoforge/engines`, while `ld1.x` comes from Quantum ESPRESSO and is installed on first use (or on demand).
 
 ```bash
 pseudoforge engines list          # what is present, what is missing
-pseudoforge engines build all     # fetch, patch and build everything
+pseudoforge engines build all     # fetch, patch and build eight engines
 pseudoforge engines build ape     # or just one
 pseudoforge engines show ape      # version, build id, binary path
 ```
+
+### Source archives
+
+The repository bundles or caches source archives under `engines-src/`, verified against `engines-src/MANIFEST.txt`:
+
+| Archive | SHA256 | Size | Engine / Library |
+|---|---|---|---|
+| `adpack2.2.tar.gz` | `c2eb8f451fdb67375a02013eb3111fdb192df5e0c5d63f0d01eeaa10bbfa494d` | 337 KB | ADPACK |
+| `ape.tar.gz` | `29d1980b0150f61142abc8eca6848f9ae186d9c3d215774f56d47c5bacf18339` | 2.1 MB | APE |
+| `atompaw.tar.gz` | `06507a0eea25213830ae2d9298abd127b130632e8b604c41040a2c5965c595c8` | 29.1 MB | AtomPAW |
+| `cp2k-data.tar.gz` | `c63cfb61d7915b3ade462f411a7f519682b460a055b85bcfd86e0de625992528` | 9.3 MB | GTH |
+| `fhi98PP.zip` | `e65b3cd7e6defcf1083eec01dc13ab790898d347f3bce5b701cd3523b0ebff47` | 2.2 MB | fhi98PP |
+| `gsl-2.7.1.tar.gz` | `cd7a951ac9d990ed7d6738ad98084b27c6b9c2f88b2962252c3fdaa14bd9910d` | 25.7 MB | GSL (supporting library) |
+| `libxc-7.1.2.tar.gz` | `9248009bb98862277017de99287e5f9d7cf5b237cc7b6c113b229c83c142a08f` | 27.7 MB | libxc (supporting library) |
+| `oncvpsp-master.zip` | `89978fbdb0cf457fe4e25038b21c3692d855f58ec1d61a87264a553a0cfdacdb` | 5.5 MB | ONCVPSP |
+| `opium-4.1.0.tar.gz` | `d256d0cf0eca8a945b2558fabeb43e3f97e1687381ab52876640150aaf6145ce` | 1.6 MB | OPIUM |
+| `uspp-734-3.tgz` | `32f595e73e6d1b71fbfed1d090e5c077a873105de850f81efecc19d695cef5a4` | 258 KB | USPP |
 
 `pseudoforge doctor` reports the same thing with a fix command for each
 missing item. See [Installation](../getting-started/installation.md).

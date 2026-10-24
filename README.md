@@ -79,12 +79,11 @@ meta-GGA a meta-GGA). See [the AtomPAW page](docs/reference/engines/atompaw.md).
 
 ## Generator engines
 
-PseudoForge drives nine atomic codes. `ld1.x` comes with Quantum ESPRESSO; seven
-PseudoForge compiles from source for you, and `adpack` is installed externally.
+PseudoForge drives nine atomic codes. Eight PseudoForge compiles from source for you, and `ld1.x` prompts to install on demand.
 
 | engine | families | notes |
 |---|---|---|
-| `ld1` | NC US PAW | reproduces PSlibrary byte-identically (bar declared errata) |
+| `ld1` | NC US PAW | reproduces PSlibrary byte-identically (bar declared errata); prompts on first use |
 | `oncvpsp` | NC | libxc-linked; no meta-GGA |
 | `uspp` | US | Vanderbilt's own generator |
 | `fhi98pp` | NC | Hamann and Troullier-Martins |
@@ -92,20 +91,18 @@ PseudoForge compiles from source for you, and `adpack` is installed externally.
 | `gth` | NC | reproduces all 322 published GTH tables exactly |
 | `atompaw` | PAW | the only meta-GGA engine |
 | `ape` | NC | 28 of 28 elements |
-| `adpack` | NC | OpenMX format; 29 of 29 bundled decks; external install |
+| `adpack` | NC | OpenMX format; 29 of 29 bundled decks; built from source |
+
+`./install.sh --bootstrap` installs build dependencies, fetches each engine's source from `engines-src/` in the repository, and builds eight engines. `ld1` comes with Quantum ESPRESSO; the first time a run needs it, PseudoForge prompts to download and build QE 7.4.1 (~500 MB, ~20 minutes).
 
 ```bash
+./install.sh --bootstrap           # install deps and build all eight engines
 pseudoforge engines list           # what is installed, what can be built
-pseudoforge engines build all      # compile the 7 supported engines, record the paths
+pseudoforge engines build all      # compile the 8 supported engines, record the paths
 pseudoforge doctor                 # engines, converters, mirror, database
 ```
 
-Put `oncvpsp-master.zip`, `uspp-734-3.tgz` and `fhi98PP.zip` beside the pseudoforge
-directory and `engines build` finds them. Prerequisites on Ubuntu:
-
-```bash
-sudo apt-get install gfortran gcc make libblas-dev liblapack-dev unzip
-```
+Engine sources are stored in `engines-src/` and verified against `MANIFEST.txt`. Prerequisites can be installed automatically with `./install.sh --deps`.
 
 An engine that is missing disables generation *with that engine* only —
 importing and validating its files always works.
