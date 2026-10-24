@@ -25,6 +25,41 @@ deps_bash_version() {
     return 0
 }
 
+# ---------------------------------------------------------------------------
+# Platform detection and dependency fix commands
+# ---------------------------------------------------------------------------
+pf_detect_os() {
+    if [ -n "${FAKE_DISTRO:-}" ]; then
+        echo "$FAKE_DISTRO"
+        return
+    fi
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        case ${ID:-}${ID_LIKE:-} in
+            *debian*|*ubuntu*) echo debian; return ;;
+            *fedora*|*rhel*|*centos*) echo fedora; return ;;
+            *arch*)            echo arch; return ;;
+            *suse*)            echo suse; return ;;
+        esac
+    fi
+    case $(uname -s 2>/dev/null) in
+        Darwin) echo macos; return ;;
+    esac
+    echo unknown
+}
+
+pf_dep_fix() {   # pf_dep_fix <purpose> <debian-pkg> <fedora-pkg> <arch-pkg> <brew-pkg>
+    local purpose=$1 deb=$2 fed=$3 arch=$4 brew=$5
+    case $(pf_detect_os) in
+        debian) echo "sudo apt-get install -y $deb" ;;
+        fedora|rhel) echo "sudo dnf install -y $fed" ;;
+        arch)   echo "sudo pacman -S --needed --noconfirm $arch" ;;
+        macos)  echo "brew install $brew" ;;
+        *)      echo "install $purpose with your package manager" ;;
+    esac
+}
+
 # deps_check_required -> non-zero if anything essential is missing
 deps_check_required() {
     local missing="" t
@@ -206,7 +241,11 @@ deps_report() {
         [ "$eng" = ld1 ] && continue
         printf '  %s is not installed: generation with it is disabled,\n' "${ENG_LABEL[$eng]}"
         printf '    but importing and validating its files still works.\n'
-        printf '    To build it:  pseudoforge engines build %s\n' "$eng"
+        if [ "$eng" = adpack ]; then
+            printf '    external install; see docs/reference/engines/adpack.md\n'
+        else
+            printf '    To build it:  pseudoforge engines build %s\n' "$eng"
+        fi
     done
     if ! eng_available ld1; then
         printf '  %s is missing: PAW and the whole PSlibrary set are unavailable.\n' "${ENG_LABEL[ld1]}"

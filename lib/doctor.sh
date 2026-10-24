@@ -47,16 +47,38 @@ doctor_checks() {
         if have "$t"; then
             doctor_record toolchain "$t" ok "$(command -v "$t")" ""
         else
+            local deb_pkg=$t fed_pkg=$t arch_pkg=$t brew_pkg=$t
+            case $t in
+                gfortran) fed_pkg="gcc-gfortran"; arch_pkg="gcc-fortran"; brew_pkg="gcc" ;;
+                awk)      deb_pkg="gawk"; fed_pkg="gawk"; arch_pkg="gawk"; brew_pkg="gawk" ;;
+                sed)      brew_pkg="gnu-sed" ;;
+            esac
             doctor_record toolchain "$t" missing "not on PATH" \
-                "install $t from your package manager"
+                "$(pf_dep_fix "$t" "$deb_pkg" "$fed_pkg" "$arch_pkg" "$brew_pkg")"
         fi
     done
+
+    if have unzip; then
+        doctor_record toolchain "unzip" ok "$(command -v unzip)" ""
+    else
+        doctor_record toolchain "unzip" missing "needed to extract engine archives" \
+            "$(pf_dep_fix "unzip" "unzip" "unzip" "unzip" "unzip")"
+    fi
+
+    if have python3; then
+        doctor_record toolchain "python3" ok "$(command -v python3)" ""
+    else
+        doctor_record toolchain "python3" optional "needed by opium patch script" \
+            "$(pf_dep_fix "python3" "python3" "python3" "python" "python3")"
+    fi
 
     # Plotting is optional in the strong sense: with no backend, --plot prints
     # what it would have drawn and the run is otherwise identical.  So this is
     # a note, never a problem.
     case $(plot_backend 2>/dev/null) in
-        none|'') doctor_record plotting backend optional                      "none: --plot will say so and carry on"                      "install gnuplot" ;;
+        none|'') doctor_record plotting backend optional \
+                     "none: --plot will say so and carry on" \
+                     "$(pf_dep_fix "gnuplot" "gnuplot" "gnuplot" "gnuplot" "gnuplot")" ;;
         *)       doctor_record plotting backend ok "$(plot_backend_label)" "" ;;
     esac
 
@@ -72,17 +94,25 @@ doctor_checks() {
     else
         doctor_record buildtool ninja optional "fetched when APE needs it" ""
     fi
+
+    if build_have_lapack 2>/dev/null; then
+        doctor_record library "BLAS/LAPACK" ok "system LAPACK/BLAS" ""
+    else
+        doctor_record library "BLAS/LAPACK" missing "needed to link ONCVPSP" \
+            "$(pf_dep_fix "BLAS/LAPACK" "libblas-dev liblapack-dev" "blas-devel lapack-devel" "blas lapack" "lapack")"
+    fi
+
     if build_have_libxc 2>/dev/null; then
         doctor_record library libxc ok "$prefix/lib (${ENG_VERSION[libxc]:-version unrecorded})" ""
     else
         doctor_record library libxc missing \
-            "without it ONCVPSP has only PZ and PBE" \
+            "APE needs it; without it ONCVPSP has only PZ and PBE" \
             "pseudoforge engines build libxc"
     fi
     if [ -f "$prefix/include/gsl/gsl_version.h" ]; then
         doctor_record library GSL ok "$prefix/lib" ""
     else
-        doctor_record library GSL missing "APE will not configure without it" \
+        doctor_record library GSL missing "APE needs it; will not configure without it" \
             "pseudoforge engines build gsl"
     fi
 
@@ -134,6 +164,40 @@ doctor_families() {
         done
     done
     [ -n "$out" ] && trim "$out" || printf 'none'
+}
+
+# Which essential dependencies are missing for `doctor --check`.
+# Returns a space-separated list of missing tools, or empty string.
+doctor_missing_required() {
+    local missing="" t recs n_ok n_eng
+    recs=${1:-}
+    [ -n "$recs" ] || recs=$(doctor_checks)
+
+    # bash >= 4
+    if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+        missing="$missing bash"
+    fi
+
+    # awk, sed, grep, sort, cut, tr, find, mkdir, mktemp, date, curl
+    for t in awk sed grep sort cut tr find mkdir mktemp date curl; do
+        have "$t" || missing="$missing $t"
+    done
+
+    # gfortran, gcc, make (only if no engine is installed — skip if every engine is present)
+    n_ok=$(doctor_count "$recs" engine ok)
+    n_eng=$(doctor_count "$recs" engine)
+    if [ "$n_ok" -eq 0 ]; then
+        for t in gfortran gcc make; do
+            have "$t" || missing="$missing $t"
+        done
+    fi
+
+    # BLAS, LAPACK
+    if ! build_have_lapack 2>/dev/null; then
+        missing="$missing lapack/blas"
+    fi
+
+    trim "$missing"
 }
 
 # ---------------------------------------------------------------------------

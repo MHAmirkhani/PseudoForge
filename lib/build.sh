@@ -25,43 +25,30 @@ BUILD_LEGACY_FFLAGS="-O2 -std=legacy -fallow-argument-mismatch -fno-range-check"
 # Platform detection and dependency packages
 # ---------------------------------------------------------------------------
 build_detect_os() {
-    if [ -f /etc/os-release ]; then
-        # shellcheck disable=SC1091
-        . /etc/os-release
-        case ${ID:-}${ID_LIKE:-} in
-            *debian*|*ubuntu*) echo debian; return ;;
-            *rhel*|*fedora*|*centos*) echo rhel; return ;;
-            *arch*)            echo arch; return ;;
-            *suse*)            echo suse; return ;;
-        esac
-    fi
-    case $(uname -s 2>/dev/null) in
-        Darwin) echo macos; return ;;
-    esac
-    echo unknown
+    pf_detect_os
 }
 
 # The packages each OS needs.  Deliberately minimal: a Fortran compiler, a C
 # compiler and preprocessor, make, and reference BLAS/LAPACK.
 build_packages() {
     case $(build_detect_os) in
-        debian) echo "gfortran gcc make libblas-dev liblapack-dev unzip" ;;
-        rhel)   echo "gcc-gfortran gcc make blas-devel lapack-devel unzip" ;;
-        arch)   echo "gcc-fortran gcc make blas lapack unzip" ;;
-        suse)   echo "gcc-fortran gcc make blas-devel lapack-devel unzip" ;;
-        macos)  echo "gcc open-mpi lapack unzip" ;;
-        *)      echo "" ;;
+        debian)      echo "gfortran gcc make libblas-dev liblapack-dev unzip" ;;
+        rhel|fedora) echo "gcc-gfortran gcc make blas-devel lapack-devel unzip" ;;
+        arch)        echo "gcc-fortran gcc make blas lapack unzip" ;;
+        suse)        echo "gcc-fortran gcc make blas-devel lapack-devel unzip" ;;
+        macos)       echo "gcc open-mpi lapack unzip" ;;
+        *)           echo "" ;;
     esac
 }
 
 build_install_command() {
     case $(build_detect_os) in
-        debian) echo "sudo apt-get install -y" ;;
-        rhel)   echo "sudo dnf install -y" ;;
-        arch)   echo "sudo pacman -S --needed --noconfirm" ;;
-        suse)   echo "sudo zypper install -y" ;;
-        macos)  echo "brew install" ;;
-        *)      echo "" ;;
+        debian)      echo "sudo apt-get install -y" ;;
+        rhel|fedora) echo "sudo dnf install -y" ;;
+        arch)        echo "sudo pacman -S --needed --noconfirm" ;;
+        suse)        echo "sudo zypper install -y" ;;
+        macos)       echo "brew install" ;;
+        *)           echo "" ;;
     esac
 }
 

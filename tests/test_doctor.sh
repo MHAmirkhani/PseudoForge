@@ -145,8 +145,8 @@ IFS=$'\t' read -r wrows wcols < <(doctor_tui_size "$wt")
     && ok_ "stays within 72 columns even with everything missing ($wcols)" \
     || bad_ "panel reaches $wcols columns when everything is missing"
 
-printf '\n%s== the cli command exposes all three%s\n' "$DIM" "$RESET"
-for flag in '--json' '--tui'; do
+printf '\n%s== the cli command exposes options%s\n' "$DIM" "$RESET"
+for flag in '--json' '--tui' '--check'; do
     grep -q -- "$flag" "$PF_LIB/cli.sh" \
         && ok_ "pseudoforge doctor $flag is wired" \
         || bad_ "$flag is not accepted by cmd_doctor"
@@ -159,12 +159,60 @@ printf '\n%s== a fix is a field, not a sentence%s\n' "$DIM" "$RESET"
 # So an interface can offer it as a button without parsing prose.
 nfix=$(printf '%s\n' "$RECS" | awk -F'\t' '$5 != "" { n++ } END { print n + 0 }')
 if [ "$nfix" -gt 0 ]; then
-    runnable=$(printf '%s\n' "$RECS" | awk -F'\t' '$5 ~ /^(pseudoforge|install) / { n++ } END { print n + 0 }')
+    runnable=$(printf '%s\n' "$RECS" | awk -F'\t' '$5 ~ /^(pseudoforge|install|sudo|brew) / { n++ } END { print n + 0 }')
     [ "$runnable" = "$nfix" ] \
         && ok_ "all $nfix fix fields are runnable commands" \
         || bad_ "$((nfix - runnable)) fix field(s) are prose, not commands"
 else
     ok_ "nothing is missing on this machine, so no fix fields to check"
+fi
+
+printf '\n%s== Phase 1 doctor requirements%s\n' "$DIM" "$RESET"
+# BLAS/LAPACK probe is called
+printf '%s\n' "$RECS" | grep -q 'BLAS/LAPACK' \
+    && ok_ "BLAS/LAPACK probe is called" \
+    || bad_ "BLAS/LAPACK probe missing from records"
+
+# unzip and python3 probes are called
+printf '%s\n' "$RECS" | grep -q $'\tunzip\t' \
+    && ok_ "unzip probe is called" \
+    || bad_ "unzip probe missing from records"
+
+printf '%s\n' "$RECS" | grep -q $'\tpython3\t' \
+    && ok_ "python3 probe is called" \
+    || bad_ "python3 probe missing from records"
+
+# Simulated missing dep: doctor --check exits 1 naming missing curl
+missing_sim=$(
+    fake_dir=$(mktemp -d)
+    for c in bash sh awk sed grep sort cut tr find mkdir mktemp date dirname pwd readlink cat head tail wc uname rm ls ps sleep gfortran gcc make; do
+        p=$(command -v "$c" 2>/dev/null) && [ -n "$p" ] && ln -sf "$p" "$fake_dir/$c"
+    done
+    out=$(PATH="$fake_dir" "$ROOT/pseudoforge" doctor --check 2>&1)
+    rc=$?
+    rm -rf "$fake_dir"
+    printf '%s\n__EXIT_CODE__=%d' "$out" "$rc"
+)
+sim_rc=$(printf '%s\n' "$missing_sim" | awk -F'=' '/^__EXIT_CODE__=/ { print $2 }')
+if [ "$sim_rc" = "1" ] && printf '%s\n' "$missing_sim" | grep -q 'curl'; then
+    ok_ "doctor --check exits 1 naming missing curl"
+else
+    bad_ "doctor --check did not exit 1 or name missing curl (rc=$sim_rc)" "$missing_sim"
+fi
+
+# deps_report does not say "build it" for adpack
+adpack_rep=$(
+    (
+        eng_available() { [ "$1" != adpack ] && command eng_available "$@"; }
+        deps_report 2>&1
+    )
+)
+if printf '%s\n' "$adpack_rep" | grep -F "ADPACK" -A2 | grep -q "build it"; then
+    bad_ "deps_report still says 'build it' for adpack"
+elif printf '%s\n' "$adpack_rep" | grep -F "ADPACK" -A2 | grep -q "external install"; then
+    ok_ "deps_report says external install for adpack, not build it"
+else
+    bad_ "deps_report did not output expected adpack notice" "$adpack_rep"
 fi
 
 printf '\n%s== doctor leaves no stray files in working directory%s\n' "$DIM" "$RESET"

@@ -202,11 +202,12 @@ Default directory: $PF_NATIVE_DIR.
 EOF
         ;;
         doctor) cat <<'EOF'
-usage: pseudoforge doctor [--json|--tui]
+usage: pseudoforge doctor [--json|--tui|--check]
 
 Check the environment PseudoForge runs in: engine binaries, the recipe
 database, the download mirror, and the store.  --json prints the same
-information in machine-readable form; --tui opens an interactive menu.
+information in machine-readable form; --tui opens an interactive menu;
+--check exits 1 if required dependencies are missing.
 EOF
         ;;
         list) cat <<'EOF'
@@ -844,12 +845,14 @@ cmd_recipe() {
 # ---------------------------------------------------------------------------
 cmd_doctor() {
     case "${1:-}" in -h|--help) cli_help_for doctor; return 0 ;; esac
-    local fmt=cli recs
+    local fmt=cli recs check=0
+    [ "${PF_DOCTOR_STRICT:-0}" = 1 ] && check=1
     while [ $# -gt 0 ]; do
         case $1 in
-            --json) fmt=json ;;
-            --tui)  fmt=tui ;;
-            -*)     die "unknown option: $1" ;;
+            --json)  fmt=json ;;
+            --tui)   fmt=tui ;;
+            --check) check=1 ;;
+            -*)      die "unknown option: $1" ;;
         esac
         shift
     done
@@ -864,6 +867,16 @@ cmd_doctor() {
               # part of this command before the split and stays part of it.
               deps_report ;;
     esac
+
+    if [ "$check" -eq 1 ]; then
+        local missing
+        missing=$(doctor_missing_required "$recs")
+        if [ -n "$missing" ]; then
+            error "missing required dependencies:$missing"
+            return 1
+        fi
+    fi
+    return 0
 }
 
 
