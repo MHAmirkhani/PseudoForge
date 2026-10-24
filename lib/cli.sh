@@ -672,7 +672,13 @@ cmd_generate() {
 
     deps_resolve_qe
     if [ "${SPEC[source]:-local}" != online ] && [ "${SPEC[engine]:-ld1}" = ld1 ]; then
-        deps_have_ld1 || { deps_qe_hint; exit 1; }
+        if ! deps_have_ld1; then
+            if ! pf_ask_install_ld1; then
+                die "ld1.x is required and not installed.
+  Re-run with PF_AUTO_INSTALL_LD1=yes to allow PseudoForge to install
+  it, or install Quantum ESPRESSO and set LD1_BIN."
+            fi
+        fi
     fi
 
     banner "Generating"

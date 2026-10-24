@@ -300,16 +300,9 @@ wiz_step_engine() {
     IFS=$'\t' read -r state detail < <(eng_status "$eng")
 
     if [ "$eng" = ld1 ]; then
-        wiz_msg "Quantum ESPRESSO is missing" \
-"ld1.x was not found.
-
-PseudoForge does not build Quantum ESPRESSO itself.  Install it with your
-package manager, or build it:
-
-    git clone https://gitlab.com/QEF/q-e.git
-    cd q-e && ./configure && make pw ld1
-
-then set QE_ROOT_DIR in $PF_RC"
+        if pf_ask_install_ld1; then
+            return 0
+        fi
         return 1
     fi
 

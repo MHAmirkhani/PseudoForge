@@ -96,18 +96,110 @@ deps_tui_hint() {
 # Quantum ESPRESSO binaries.  Resolved from the config, then from PATH.
 # ---------------------------------------------------------------------------
 deps_resolve_qe() {
-    local v path
+    local v path cand found="" bin
     for v in LD1_BIN PW_BIN; do
-        path=${!v}
-        if [ -z "$path" ]; then
-            case $v in LD1_BIN) path=ld1.x ;; PW_BIN) path=pw.x ;; esac
+        path=${!v:-}
+        case $v in LD1_BIN) bin=ld1.x ;; PW_BIN) bin=pw.x ;; esac
+        if [ -n "$path" ]; then
+            if [ -x "$path" ]; then
+                printf -v "$v" '%s' "$path"
+                continue
+            elif have "$(basename "$path")"; then
+                printf -v "$v" '%s' "$(command -v "$(basename "$path")")"
+                continue
+            fi
         fi
-        if [ -x "$path" ]; then
-            printf -v "$v" '%s' "$path"
-        elif have "$(basename "$path")"; then
-            printf -v "$v" '%s' "$(command -v "$(basename "$path")")"
+
+        # Not set or not found at configured path: search known locations
+        found=""
+        if [ -n "${QE_ROOT_DIR:-}" ]; then
+            for cand in "$QE_ROOT_DIR/bin/$bin" "$QE_ROOT_DIR/$bin"; do
+                [ -x "$cand" ] && { found=$cand; break; }
+            done
+        fi
+        if [ -z "$found" ] && [ -n "$(eng_bindir 2>/dev/null)" ] && [ -x "$(eng_bindir)/$bin" ]; then
+            found="$(eng_bindir)/$bin"
+        fi
+        if [ -z "$found" ] && have "$bin"; then
+            found=$(command -v "$bin")
+        fi
+        if [ -z "$found" ]; then
+            # shellcheck disable=SC2086
+            for cand in ${PF_QE_SEARCH_DIRS:-/opt/espresso/*/$bin /opt/espresso/*/bin/$bin /usr/local/bin/$bin}; do
+                if [ -x "$cand" ]; then
+                    found=$cand
+                    break
+                fi
+            done
+        fi
+        if [ -n "$found" ]; then
+            printf -v "$v" '%s' "$found"
         fi
     done
+
+    # If LD1_BIN was discovered but not recorded in config, prompt once in interactive terminal
+    if [ -n "${LD1_BIN:-}" ] && [ -x "$LD1_BIN" ]; then
+        local recorded=""
+        if [ -f "$PF_RC" ]; then
+            recorded=$(grep -E '^[[:space:]]*LD1_BIN=' "$PF_RC" 2>/dev/null | cut -d= -f2- | tr -d '"'\'' ')
+        fi
+        if [ -z "$recorded" ] && [ -t 0 ] && [ -t 1 ] && [ "${PF_PROMPT_QE_RECORD:-1}" = 1 ]; then
+            printf '\nQuantum ESPRESSO found at %s. Record it in %s?\n[Y/n] ' "$LD1_BIN" "$PF_RC"
+            local answer
+            read -r answer
+            case ${answer:-y} in
+                y|Y|yes|YES) pf_config_set LD1_BIN "$LD1_BIN" ;;
+            esac
+        fi
+    fi
+}
+
+# Prompt helper when ld1 is missing
+pf_ask_install_ld1() {
+    local answer
+
+    if [ "${PF_AUTO_INSTALL_LD1:-}" = no ]; then
+        return 1
+    fi
+    if [ "${PF_AUTO_INSTALL_LD1:-}" = yes ]; then
+        build_ld1
+        return $?
+    fi
+
+    # Interactive prompt. Prefer whiptail when available.
+    if [ -n "${DIA:-}" ] && [ -t 0 ] && [ -t 1 ]; then
+        if "$DIA" --title "Quantum ESPRESSO is missing" \
+                --yesno "This run needs ld1.x, which comes with Quantum ESPRESSO.
+
+PseudoForge can download the QE ${QE_VERSION:-7.4.1} source (~500 MB),
+build only the ld1.x target (~15-30 minutes on a laptop), install
+it under ~/.pseudoforge/engines/bin, and record the path in your
+config.
+
+Proceed?" 18 74; then
+            build_ld1
+            return $?
+        fi
+        return 1
+    fi
+
+    # Text prompt
+    if [ ! -t 0 ]; then
+        error "this run needs ld1.x, which is not installed."
+        error "  Set PF_AUTO_INSTALL_LD1=yes to allow install without a prompt,"
+        error "  or install Quantum ESPRESSO yourself and set LD1_BIN."
+        return 1
+    fi
+    printf '\n'
+    printf 'This run needs ld1.x, which is not installed.\n\n'
+    printf 'PseudoForge can download and build Quantum ESPRESSO %s\n' "${QE_VERSION:-7.4.1}"
+    printf '(~500 MB, 15-30 minutes) and install ld1.x.\n\n'
+    printf 'Proceed? [y/N] '
+    read -r answer
+    case $answer in
+        y|Y|yes|YES) build_ld1 ; return $? ;;
+        *) return 1 ;;
+    esac
 }
 
 deps_have_ld1() { [ -x "$LD1_BIN" ] || have "$LD1_BIN"; }

@@ -272,8 +272,9 @@ ui_ensure_engine() {
     IFS=$'\t' read -r state detail < <(eng_status "$eng")
 
     if [ "$eng" = ld1 ]; then
-        ui_msg "Quantum ESPRESSO is missing" \
-"\nld1.x was not found.\n\npseudoforge does not build Quantum ESPRESSO itself.  Install it with\nyour package manager, or:\n\n  git clone https://gitlab.com/QEF/q-e.git\n  cd q-e && ./configure && make pw ld1\n\nthen set QE_ROOT_DIR in\n  $PF_RC\n" 20 76
+        if pf_ask_install_ld1; then
+            return 3
+        fi
         return 1
     fi
 

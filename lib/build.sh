@@ -976,6 +976,97 @@ build_adpack() {
 }
 
 # ---------------------------------------------------------------------------
+# Quantum ESPRESSO ld1.x
+# ---------------------------------------------------------------------------
+QE_VERSION=${QE_VERSION:-7.4.1}
+QE_URL=${QE_URL:-https://gitlab.com/QEF/q-e/-/archive/qe-${QE_VERSION}/qe-${QE_VERSION}.tar.gz}
+QE_SHA=${QE_SHA:-}   # optional; leave empty if not recorded
+
+build_ld1() {
+    pf_engines_load
+    local src log prefix file dest
+    prefix=$(eng_prefix)
+    log=$(eng_builddir)/ld1-build.log
+    mkdir -p "$(eng_builddir)"
+
+    file="qe-${QE_VERSION}.tar.gz"
+    ENG_SRC[ld1]=$file
+
+    # Find or fetch QE source
+    src=$(build_prepare_src ld1 2>/dev/null || true)
+    if [ -z "$src" ] || { [ ! -e "$src/configure" ] && ! find "$src" -maxdepth 2 -name configure | grep -q .; }; then
+        dest="$(eng_src_dir)/$file"
+        mkdir -p "$(dirname "$dest")"
+        if [ ! -f "$dest" ]; then
+            info "downloading Quantum ESPRESSO $QE_VERSION source (~500 MB)"
+            info "  this takes 5-30 minutes depending on your connection"
+            # 1800 second timeout: 30 minutes
+            fetch_binary_url "$QE_URL" "$dest" 1800 || {
+                error "could not download QE source from $QE_URL"
+                error "  Try setting QE_URL to a local archive:"
+                error "    export QE_URL=file:///path/to/qe-${QE_VERSION}.tar.gz"
+                return 1
+            }
+            if [ -n "$QE_SHA" ]; then
+                local actual=""
+                if have sha256sum; then
+                    actual=$(sha256sum "$dest" 2>/dev/null | awk '{print $1}')
+                elif have shasum; then
+                    actual=$(shasum -a 256 "$dest" 2>/dev/null | awk '{print $1}')
+                fi
+                if [ -z "$actual" ] || [ "$actual" != "$QE_SHA" ]; then
+                    error "QE source checksum mismatch"
+                    rm -f "$dest"
+                    return 1
+                fi
+            fi
+        fi
+        src=$(build_prepare_src ld1 2>/dev/null || true)
+        if [ -z "$src" ] && [ -f "$dest" ]; then
+            mkdir -p "$(eng_builddir)/ld1"
+            build_extract "$dest" "$(eng_builddir)/ld1" || return 1
+            src="$(eng_builddir)/ld1"
+        fi
+    fi
+    [ -n "$src" ] || { error "QE source unavailable"; return 1; }
+    if [ ! -e "$src/configure" ]; then
+        local found_cfg
+        found_cfg=$(find "$src" -maxdepth 2 -name configure | head -1)
+        [ -n "$found_cfg" ] && src=$(dirname "$found_cfg")
+    fi
+
+    info "configuring Quantum ESPRESSO (serial, ld1 only)"
+    info "  this takes 2-5 minutes; the build takes another 15-30"
+    ( cd "$src" && ./configure --disable-parallel ) > "$log" 2>&1
+    local rc=$?
+    [ $rc -eq 0 ] || {
+        error "QE configure failed -- see $log"
+        tail -30 "$log" | pf_emit_stream debug
+        return 1
+    }
+
+    info "building ld1.x only"
+    ( cd "$src" && make -j"$(build_jobs)" ld1 ) >> "$log" 2>&1
+    rc=$?
+    [ $rc -eq 0 ] || {
+        error "QE ld1 build failed -- see $log"
+        tail -30 "$log" | pf_emit_stream debug
+        return 1
+    }
+
+    local built
+    built=$(find "$src" -maxdepth 3 -type f -name 'ld1.x' -perm -u+x | head -1)
+    [ -n "$built" ] || { error "ld1.x binary not found after build"; return 1; }
+
+    mkdir -p "$(eng_bindir)"
+    install -m 755 "$built" "$(eng_bindir)/ld1.x"
+    # Record the path in the user's config
+    pf_config_set LD1_BIN "$(eng_bindir)/ld1.x"
+    LD1_BIN=$(eng_bindir)/ld1.x
+    ok "ld1.x installed at $(eng_bindir)/ld1.x"
+}
+
+# ---------------------------------------------------------------------------
 # build_engine <engine> [--yes]
 #
 # The whole install: check prerequisites, offer to install them, compile,
@@ -994,14 +1085,6 @@ build_engine() {
     fi
     eng_exists "$eng" || { error "unknown engine '$eng'"; return 1; }
 
-    if [ "$eng" = ld1 ]; then
-        error "ld1.x is part of Quantum ESPRESSO; PseudoForge does not build QE itself."
-        error "  Install it with your package manager, or build it:"
-        error "    git clone https://gitlab.com/QEF/q-e.git && cd q-e && ./configure && make pw ld1"
-        error "  Then set QE_ROOT_DIR in $PF_RC"
-        return 1
-    fi
-
     banner "Building ${ENG_LABEL[$eng]}"
     if [ -n "$(build_missing_tools)" ]; then
         build_install_deps "$assume_yes" || return 1
@@ -1018,6 +1101,7 @@ build_engine() {
         uspp)    build_uspp ;;
         fhi98pp) build_fhi98pp ;;
         adpack)  build_adpack ;;
+        ld1)     build_ld1 ;;
         *)       error "no build recipe for '$eng'"; return 1 ;;
     esac
     rc=$?
