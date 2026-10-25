@@ -231,28 +231,41 @@ with the same name as a shipped one overrides it deliberately.
 ## Install
 
 ```bash
-git clone <your-repo> pseudoforge
-cd pseudoforge
-./pseudoforge doctor          # check the environment
+git clone https://github.com/MHAmirkhani/PseudoForge.git
+cd PseudoForge
+./install.sh --bootstrap           # install deps, fetch sources, build 8 engines
 ```
 
-Optionally put it on your `PATH`:
+`--bootstrap` runs `--deps` (installs gfortran, gcc, make, BLAS, LAPACK,
+unzip, curl via the host package manager after showing the command and
+asking), then builds every engine that has a recipe from the archives in
+`engines-src/`. It does not install Quantum ESPRESSO; the first run that
+needs `ld1.x` will prompt to download and build it (~500 MB, ~20 min).
+
+If you prefer to do each step by hand:
 
 ```bash
-ln -s "$PWD/pseudoforge" ~/.local/bin/pseudoforge
+./install.sh --deps                # install system packages only
+./install.sh                       # symlink pseudoforge into ~/.local/bin
+./pseudoforge engines build all    # build the eight engines
+./pseudoforge doctor               # check the environment
 ```
+
+`--dry-run` prints the exact commands without running them.
 
 Requirements:
 
 | | |
 |---|---|
 | required | bash ≥ 4.0, coreutils, awk, sed, grep |
-| to generate | Quantum ESPRESSO `ld1.x` |
-| for cutoff scans | Quantum ESPRESSO `pw.x` |
+| to build the eight engines | gfortran, gcc, make, BLAS, LAPACK, unzip, curl |
+| for `ld1` (Quantum ESPRESSO) | fetched and built on demand the first time a run needs it (~500 MB, ~20 min) |
+| for cutoff scans | Quantum ESPRESSO `pw.x` (installed alongside `ld1`) |
 | for the menus | `whiptail` (Debian/Ubuntu: `whiptail`, Fedora: `newt`, macOS: `brew install newt`) |
 
-On first run PseudoForge writes `~/.pseudoforgerc`. Set `QE_ROOT_DIR` there, or set
-`LD1_BIN` and `PW_BIN` directly.
+On first run PseudoForge writes `~/.pseudoforgerc`.
+`./install.sh --bootstrap` records `LD1_BIN` when it builds QE. To point
+at an existing Quantum ESPRESSO instead:
 
 ```bash
 pseudoforge config --set QE_ROOT_DIR=$HOME/q-e-7.4
@@ -361,7 +374,7 @@ profile's provenance.
 | `atompaw` | build engine | paw | AtomPAW (Holzwarth), PAW datasets including meta-GGA |
 | `opium` | derived | nc | OPIUM (Rappe group), parameter-driven norm-conserving |
 | `ape` | generated | nc | APE (Atomic Pseudopotential Engine), libxc-driven |
-| `adpack` | generated | nc | ADPACK / OpenMX (Ozaki), OpenMX format, external install |
+| `adpack` | generated | nc | ADPACK / OpenMX (Ozaki), OpenMX format, built from source |
 | `gipaw` | generated | us nc | GIPAW pseudopotentials (Ceresoli) |
 | `hgh` | generated | nc | HGH (Hartwigsen-Goedecker-Hutter) |
 | `pseudoforge-auto` | derived | paw us nc | PseudoForge's own construction for elements no library covers |
@@ -422,8 +435,8 @@ starting point for your own system, not as a certificate.
 ## Tests
 
 ```bash
-tests/run_tests.sh          # 172 checks against a mock ld1.x, no QE needed
-tests/run_tests.sh --all    # 175 checks plus the full PSlibrary round-trip
+tests/run_tests.sh          # checks against a mock ld1.x, no QE needed
+tests/run_tests.sh --all    # plus the full PSlibrary round-trip
 ```
 
 `tests/test_psl_roundtrip.sh` regenerates every shipped recipe and diffs it
