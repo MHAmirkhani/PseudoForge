@@ -73,10 +73,10 @@ pf_metadata_load() {
     MD_LICENSE[pseudoforge]="GPL-2.0-or-later"
     MD_LICENSE_URL[pseudoforge]="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
     MD_CITATION[pseudoforge]="M. H. Amirkhani, \"PseudoForge: a multi-engine pseudopotential generator and validator\", version $PSEUDOFORGE_VERSION (2026). https://github.com/MHAmirkhani/pseudoforge"
-    MD_DOI[pseudoforge]=""
+    MD_DOI[pseudoforge]="10.5281/zenodo.23641884"
     MD_VERIFIED[pseudoforge]=yes
     MD_ALSO_CITE[pseudoforge]=""
-    MD_NOTE[pseudoforge]="Cite PseudoForge for the tooling, and the pseudopotential library for the physics. A DOI is not yet minted; check https://github.com/MHAmirkhani/pseudoforge for one before submitting."
+    MD_NOTE[pseudoforge]="Cite PseudoForge for the tooling, and the pseudopotential library for the physics. DOI: https://doi.org/10.5281/zenodo.23641884"
 
     # ---- Quantum ESPRESSO (the code, cited alongside anything ld1.x made) ---
     MD_OFFICIAL_URL[quantum-espresso]="https://www.quantum-espresso.org/"

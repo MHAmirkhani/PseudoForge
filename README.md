@@ -1,5 +1,7 @@
 # PseudoForge
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23641884.svg)](https://doi.org/10.5281/zenodo.23641884)
+
 A multi-engine pseudopotential generator, validator and reporting tool,
 written entirely in Bash. The command-line tool drives nine atomic codes
 — `ld1.x`, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, ADPACK —
@@ -448,12 +450,15 @@ Cite it as:
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
 > validator*, version 1.3.3 (2026). <https://amirkhani.me>
 
-A DOI is being minted for v1.3.3 by Zenodo. The resolvable link appears on
-the GitHub release page. Once minted, `MD_DOI[pseudoforge]` in
-`lib/metadata.sh` is set to it and every citation PseudoForge prints picks
-it up. The suggested archive title, so later references stay stable, is:
+The archived version is on Zenodo:
 
-> **PseudoForge — a multi-engine pseudopotential generator and validator**
+> M. H. Amirkhani, *PseudoForge — a multi-engine pseudopotential generator
+> and validator*, Zenodo (2026). <https://doi.org/10.5281/zenodo.23641884>
+
+That is the concept DOI: it always resolves to the latest release. The
+version DOI for this release is <https://doi.org/10.5281/zenodo.23641885>. Every citation
+PseudoForge prints reads `MD_DOI[pseudoforge]` in `lib/metadata.sh`, so a
+run's `CITATION.txt` resolves to the same record.
 
 PseudoForge generates pseudopotentials using atomic codes it does not own.
 Please cite the library you used and the generator that produced it as well —

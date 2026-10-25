@@ -54,6 +54,14 @@ keywords:
   - ultrasoft
 license: GPL-2.0-or-later
 version: 1.3.3
+doi: "10.5281/zenodo.23641884"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23641884"
+    description: "Concept DOI (all versions)"
+  - type: doi
+    value: "10.5281/zenodo.23641885"
+    description: "Version DOI (v1.3.3)"
 # Provenance of the DOIs below: the ONCVPSP, Vanderbilt, GTH, HGH and both
 # SSSP entries are the ones already recorded and checked in lib/metadata.sh.
 # The PAW, Troullier-Martins and Rappe entries were taken from the reference
