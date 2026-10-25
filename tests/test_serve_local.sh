@@ -48,6 +48,17 @@ kill "$srv_pid" 2>/dev/null || true
     && ok_ "curl with --noproxy \"*\" bypasses invalid http_proxy" \
     || bad_ "curl failed when http_proxy was set to unreachable host"
 
+printf '\n%s== inline server interpreter%s\n' "$DIM" "$RESET"
+# 4. Assert launched with "$PYTHON"
+grep -qE '"\$PYTHON"[[:space:]]+"\$TMPPY"' "$SCRIPT" \
+    && ok_ "inline Python server launched with \"\$PYTHON\"" \
+    || bad_ "inline server not launched with \"\$PYTHON\""
+
+# 5. Assert PYTHON resolves to venv path
+grep -qE 'PYTHON="\$ROOT/server/\.venv/bin/python3"' "$SCRIPT" \
+    && ok_ "\$PYTHON targets server/.venv/bin/python3" \
+    || bad_ "\$PYTHON does not target server/.venv/bin/python3"
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

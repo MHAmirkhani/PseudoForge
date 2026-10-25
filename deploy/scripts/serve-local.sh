@@ -85,7 +85,14 @@ if [ -z "$UVICORN" ]; then
     printf 'or set UVICORN_BIN to one you already have.\n' >&2
     exit 1
 fi
+
+PYTHON="$ROOT/server/.venv/bin/python3"
+if [ ! -x "$PYTHON" ]; then
+    PYTHON=$(command -v python3 || true)
+fi
+
 say "uvicorn: $UVICORN"
+say "python:  $PYTHON"
 say "core:    $ROOT/pseudoforge"
 
 # The served tree. Created empty if absent: the site works with nothing in it,
@@ -268,7 +275,7 @@ with socketserver.ThreadingTCPServer(("$HOST", $PORT), Handler) as httpd:
     httpd.serve_forever()
 PYEOF
 
-python3 "$TMPPY" & FRONT_PID=$!
+"$PYTHON" "$TMPPY" & FRONT_PID=$!
 sleep 1
 
 curl -fsS --noproxy "*" "http://127.0.0.1:$PORT/" >/dev/null 2>&1 \
