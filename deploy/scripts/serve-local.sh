@@ -49,6 +49,7 @@ HOST=${HOST:-127.0.0.1}
 PF_VAR_DIR=${PF_VAR_DIR:-/tmp/pseudoforge-local}
 
 say()  { printf '  %s\n' "$*"; }
+warn() { printf '  WARN: %s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
 
 # ---------------------------------------------------------------------------
@@ -118,6 +119,28 @@ else
     say "docs:    not built -- /docs/ will 404"
     say "         build them with: mkdocs build --strict --site-dir site"
 fi
+
+# --- converter: browser conversion needs upfconv.x -------------------
+if [ -z "${UPFCONV_BIN:-}" ]; then
+    for cand in \
+        "$ROOT/data/converter/upfconv.x" \
+        "$HOME/.pseudoforge/engines/bin/upfconv.x" \
+        ${QE_ROOT_DIR:-/opt/espresso}/*/upfconv.x \
+        "$(command -v upfconv.x 2>/dev/null || true)" \
+        "$(command -v upfconv   2>/dev/null || true)" ; do
+        [ -n "$cand" ] && [ -x "$cand" ] && { UPFCONV_BIN=$cand; break; }
+    done
+fi
+if [ -n "${UPFCONV_BIN:-}" ]; then
+    mkdir -p "$PF_VAR_DIR/converter"
+    ln -sf "$UPFCONV_BIN" "$PF_VAR_DIR/converter/upfconv.x"
+    export UPFCONV_BIN
+    say "converter: $UPFCONV_BIN"
+else
+    warn "upfconv.x not found; browser conversion will return 503"
+    warn "  Install Quantum ESPRESSO, or set UPFCONV_BIN to its path."
+fi
+# --- end converter --------------------------------------------------
 
 # ---------------------------------------------------------------------------
 step "starting"

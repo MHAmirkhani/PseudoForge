@@ -59,6 +59,58 @@ grep -qE 'PYTHON="\$ROOT/server/\.venv/bin/python3"' "$SCRIPT" \
     && ok_ "\$PYTHON targets server/.venv/bin/python3" \
     || bad_ "\$PYTHON does not target server/.venv/bin/python3"
 
+printf '\n%s== converter symlinking%s\n' "$DIM" "$RESET"
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+FAKE_UPF="$TMP_DIR/fake-upfconv.x"
+touch "$FAKE_UPF" && chmod +x "$FAKE_UPF"
+TEST_VAR="$TMP_DIR/var"
+
+CONV_BLOCK=$(sed -n '/^# --- converter:/,/^# --- end converter/p' "$SCRIPT")
+
+# 6. Run the search block with UPFCONV_BIN set to fake
+out_sym=$(
+    PF_VAR_DIR="$TEST_VAR"
+    UPFCONV_BIN="$FAKE_UPF"
+    ROOT="$ROOT"
+    say() { printf '  %s\n' "$*"; }
+    warn() { printf '  WARN: %s\n' "$*"; }
+    eval "$CONV_BLOCK"
+)
+
+if [ -L "$TEST_VAR/converter/upfconv.x" ] && [ "$(readlink "$TEST_VAR/converter/upfconv.x")" = "$FAKE_UPF" ]; then
+    ok_ "converter block symlinks UPFCONV_BIN into \$PF_VAR_DIR/converter/upfconv.x"
+else
+    bad_ "converter symlink not created or points to wrong target"
+fi
+
+# 7. Run the search block with empty UPFCONV_BIN and dummy environment where upfconv is not found
+SAFE_BIN="$TMP_DIR/safe_bin"
+mkdir -p "$SAFE_BIN"
+for cmd in sh bash mkdir ln sed grep awk head cut dirname basename; do
+    p=$(command -v "$cmd" 2>/dev/null || true)
+    [ -n "$p" ] && ln -sf "$p" "$SAFE_BIN/$cmd"
+done
+
+out_warn=$(
+    PF_VAR_DIR="$TMP_DIR/var2"
+    UPFCONV_BIN=""
+    QE_ROOT_DIR="$TMP_DIR/no_qe"
+    PATH="$SAFE_BIN"
+    HOME="$TMP_DIR/fakehome"
+    ROOT="$TMP_DIR/fakeroot"
+    say() { printf '  %s\n' "$*"; }
+    warn() { printf '  WARN: %s\n' "$*"; }
+    eval "$CONV_BLOCK" 2>&1
+)
+
+if printf '%s' "$out_warn" | grep -q "upfconv.x not found"; then
+    ok_ "warn path fires when upfconv.x is absent"
+else
+    bad_ "warn path did not fire when upfconv.x missing" "$out_warn"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \
