@@ -461,7 +461,7 @@ against the output of the upstream `.job` files. It is what backs the
 Cite it as:
 
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
-> validator*, version 1.3.3 (2026). <https://amirkhani.me>
+> validator*, version 1.3.4 (2026). <https://amirkhani.me>
 
 The archived version is on Zenodo:
 
@@ -469,7 +469,7 @@ The archived version is on Zenodo:
 > and validator*, Zenodo (2026). <https://doi.org/10.5281/zenodo.23641884>
 
 That is the concept DOI: it always resolves to the latest release. The
-version DOI for this release is <https://doi.org/10.5281/zenodo.23641885>. Every citation
+version DOI for this release is <https://doi.org/10.5281/zenodo.23642251>. Every citation
 PseudoForge prints reads `MD_DOI[pseudoforge]` in `lib/metadata.sh`, so a
 run's `CITATION.txt` resolves to the same record.
 
