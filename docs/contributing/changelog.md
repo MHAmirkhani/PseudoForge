@@ -45,5 +45,6 @@ PseudoForge follows the repository's tags. The tool version is recorded in
 every `PROVENANCE.txt`, so a result can be traced to the code that produced it
 without depending on anyone's memory of when they ran it.
 
-There is no DOI yet. `MD_DOI[pseudoforge]` is empty and stays empty until one
-is minted.
+Zenodo mints a DOI for every release. `MD_DOI[pseudoforge]` is set to the
+concept DOI from the first release after Zenodo integration, so every
+citation PseudoForge prints resolves.

@@ -1,0 +1,31 @@
+{
+  "title": "PseudoForge: a multi-engine pseudopotential generator and validator",
+  "description": "<p>PseudoForge generates and validates pseudopotentials by driving nine independent atomic structure codes — Quantum ESPRESSO's ld1, ONCVPSP, the Vanderbilt ultrasoft generator, fhi98PP, OPIUM, the Goedecker-Teter-Hutter fitting toolchain, AtomPAW, the Atomic Pseudopotential Engine and ADPACK — through a single interface, in pure Bash with no Python dependency.</p><p>It reproduces published libraries from those libraries' own published parameters rather than approximating them: PSlibrary is reproduced byte-identically (apart from two caesium decks where upstream is physically impossible, as declared in ERRATA.tsv), and the GTH coefficient tables are reproduced exactly for all 322 published element-functional combinations. Where a library's parameters are not published, PseudoForge says so and labels its own construction as such rather than issuing it under the library's name.</p><p>Validation asks each engine for its own analysis rather than forcing one engine's test on all of them, and records which analysis produced each verdict. Every run writes a provenance file recording the engine version and a fingerprint of the binary that ran, because two builds of the same engine version do not produce the same pseudopotential.</p><p>The source archives for eight of the nine engines are bundled in the repository under engines-src/, so ./install.sh --bootstrap builds them offline; Quantum ESPRESSO (ld1) is fetched and built on demand the first time a run needs it.</p>",
+  "creators": [
+    {
+      "name": "Amirkhani, Mohammad H.",
+      "affiliation": "Independent"
+    }
+  ],
+  "keywords": [
+    "pseudopotential",
+    "density functional theory",
+    "electronic structure",
+    "Quantum ESPRESSO",
+    "PAW",
+    "norm-conserving",
+    "ultrasoft",
+    "GTH",
+    "ONCVPSP"
+  ],
+  "license": "GPL-2.0-or-later",
+  "upload_type": "software",
+  "access_right": "open",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/MHAmirkhani/PseudoForge",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

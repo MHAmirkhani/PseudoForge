@@ -63,10 +63,11 @@ pf_metadata_load() {
 
     # ---- PseudoForge itself ------------------------------------------------
     #
-    # A DOI is not minted yet.  Rather than leave a placeholder that could be
-    # pasted into a paper as if it resolved, the citation carries the project
-    # URL and says so.  When the DOI exists, set MD_DOI[pseudoforge] and flip
-    # MD_VERIFIED to yes -- nothing else needs to change.
+    # Zenodo mints a DOI on every release after 2026-10-25.  This block is
+    # filled in by the release process: after the first Zenodo release, set
+    # MD_DOI[pseudoforge] to the concept DOI Zenodo returns and MD_VERIFIED
+    # stays yes.  Every citation PseudoForge prints reads that field, so a
+    # published run's CITATION.txt resolves once it is set.
     MD_OFFICIAL_URL[pseudoforge]="https://github.com/MHAmirkhani/pseudoforge"
     MD_MIRROR_PATH[pseudoforge]=""
     MD_LICENSE[pseudoforge]="GPL-2.0-or-later"

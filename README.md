@@ -446,11 +446,12 @@ against the output of the upstream `.job` files. It is what backs the
 Cite it as:
 
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
-> validator*, version 1.3.2 (2026). <https://amirkhani.me>
+> validator*, version 1.3.3 (2026). <https://amirkhani.me>
 
-A DOI has not been minted yet. When it is, set `MD_DOI[pseudoforge]` in
-`lib/metadata.sh` and every citation PseudoForge prints picks it up. The suggested
-archive title, so later references stay stable, is:
+A DOI is being minted for v1.3.3 by Zenodo. The resolvable link appears on
+the GitHub release page. Once minted, `MD_DOI[pseudoforge]` in
+`lib/metadata.sh` is set to it and every citation PseudoForge prints picks
+it up. The suggested archive title, so later references stay stable, is:
 
 > **PseudoForge — a multi-engine pseudopotential generator and validator**
 

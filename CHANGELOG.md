@@ -1,5 +1,64 @@
 # Changelog
 
+## Version 1.3.3 — installation system, first DOI
+
+### What this release adds
+
+`install.sh` gained `--deps`, `--bootstrap`, and `--dry-run`. `--deps`
+installs the build dependencies with the host package manager after
+showing the exact command and asking for confirmation. `--bootstrap`
+does the same, then builds every engine PseudoForge can build. Nothing
+is downloaded from GitHub without the user seeing what and where.
+
+The source archives for eight engines, plus the two libraries APE and
+ONCVPSP link against, are pinned in `engines-src/` with SHA256 checksums
+in `engines-src/MANIFEST.txt`. `build.sh` fetches from there and
+verifies the checksum before building. Total about 105 MB, inside the
+repository so a fresh clone has everything it needs offline.
+
+ADPACK is now buildable: `build_adpack` patches the upstream
+`source/makefile` to use the system's BLAS and LAPACK instead of the
+author's hardcoded `/home/ozaki` paths, and `build_all` includes it.
+Eight engines are built by PseudoForge itself.
+
+Quantum ESPRESSO's `ld1.x` is fetched and built on demand. The first
+time a run needs it, PseudoForge asks; if the user says yes, it
+downloads the QE source (~500 MB), builds only the `ld1.x` target
+(~15-30 minutes), installs the binary under
+`~/.pseudoforge/engines/bin/`, and records the path in the user's
+config. The prompt appears from the CLI, from `tui_review`, and from
+`wizard_main`.
+
+`doctor` now probes BLAS, LAPACK, unzip, and python3 in addition to the
+compilers. `pseudoforge doctor --check` exits non-zero when a required
+dependency is missing; the default `doctor` still exits 0 and stays
+informational.
+
+### Verified
+
+`tests/test_psl_roundtrip.sh` runs against the PSlibrary 1.0.0 source
+archive and confirms 565 generation decks and 462 test decks match
+upstream, with the two caesium decks differing only where
+`data/psl/ERRATA.tsv` declares a correction. The byte-identical claim
+in `README.md` and `CITATION.cff` is backed by a passing test.
+
+### Documentation
+
+Every markdown page reconciled with the code in a dedicated pass.
+`installation.md` describes what `install.sh` actually does today. The
+`engines.md` page names eight buildable engines and one external
+(Quantum ESPRESSO). `adpack.md` no longer calls itself external.
+
+### First DOI
+
+Zenodo mints a concept DOI and a version DOI for this release.
+`MD_DOI[pseudoforge]` in `lib/metadata.sh` is set to the concept DOI so
+every citation PseudoForge prints resolves. The suggested archive title
+is "PseudoForge — a multi-engine pseudopotential generator and
+validator".
+
+---
+
 ## Installation system overhaul and automated engine builds
 
 A full overhaul of the installation system added automated dependency management and reliable offline engine builds. The `install.sh` script now supports `--deps`, `--bootstrap`, and `--dry-run` across Debian, Fedora, Arch, and macOS; `doctor --check` provides non-zero exit validation for required tools. Source archives for eight engines and their supporting libraries are packaged in `engines-src/` and verified against `MANIFEST.txt` by `build_fetch_src` in `lib/build.sh`. ADPACK is now compiled from source via `build_adpack` with an automated makefile patch for standard compiler flags and system BLAS/LAPACK, and is included in `build_all`. Quantum ESPRESSO's `ld1.x` is handled via an on-demand prompt-and-install flow in `build_ld1` and `pf_ask_install_ld1`, which fetches QE source, builds only the `ld1` target, installs it into `~/.pseudoforge/engines/bin`, and records `LD1_BIN` in configuration, while also discovering existing QE installations across standard system directories.
