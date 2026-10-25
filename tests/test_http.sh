@@ -338,6 +338,17 @@ print(res.headers.get('accept-ranges', '') if hasattr(res, 'headers') else '')
             && ok_ "server/app.py download_head sets Accept-Ranges: bytes" \
             || bad_ "server/app.py download_head did not set Accept-Ranges: bytes (got '$head_ar')"
     fi
+
+    if [ -f "$ROOT/server/requirements.txt" ]; then
+        req_mk=$(grep -E '^\s*mkdocs(>=|==)' "$ROOT/server/requirements.txt" || true)
+        req_mat=$(grep -E '^\s*mkdocs-material(>=|==)' "$ROOT/server/requirements.txt" || true)
+        if [ -n "$req_mk" ] && [ -n "$req_mat" ]; then
+            ok_ "server/requirements.txt ships mkdocs and mkdocs-material"
+            printf '        found: %s, %s\n' "$req_mk" "$req_mat"
+        else
+            bad_ "server/requirements.txt missing mkdocs or mkdocs-material"
+        fi
+    fi
 fi
 
 printf '\n%s== the transport, over real HTTP%s\n' "$DIM" "$RESET"
