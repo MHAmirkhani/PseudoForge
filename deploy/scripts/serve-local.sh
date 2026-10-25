@@ -25,6 +25,13 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
+# Internal probes must not go through a proxy. The user may have
+# http_proxy exported for other work; an internal probe to 127.0.0.1
+# that tunnels through that proxy is not a probe of this machine.
+no_proxy="127.0.0.1,localhost,${no_proxy:-}"
+NO_PROXY="$no_proxy"
+export no_proxy NO_PROXY
+
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 
@@ -127,8 +134,8 @@ trap cleanup EXIT INT TERM
 
 up=0
 for _ in $(seq 1 60); do
-    curl -fsS "http://127.0.0.1:$API_PORT/api/version" >/dev/null 2>&1 && { up=1; break; }
-    curl -fsS "http://$HOST:$API_PORT/api/version"      >/dev/null 2>&1 && { up=1; break; }
+    curl -fsS --noproxy "*" "http://127.0.0.1:$API_PORT/api/version" >/dev/null 2>&1 && { up=1; break; }
+    curl -fsS --noproxy "*" "http://$HOST:$API_PORT/api/version"      >/dev/null 2>&1 && { up=1; break; }
     sleep 0.25
 done
 [ "$up" = 1 ] || { printf 'the API did not start\n' >&2; exit 1; }
@@ -264,7 +271,7 @@ PYEOF
 python3 "$TMPPY" & FRONT_PID=$!
 sleep 1
 
-curl -fsS "http://127.0.0.1:$PORT/" >/dev/null 2>&1 \
+curl -fsS --noproxy "*" "http://127.0.0.1:$PORT/" >/dev/null 2>&1 \
     || { printf 'the front door did not start\n' >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
