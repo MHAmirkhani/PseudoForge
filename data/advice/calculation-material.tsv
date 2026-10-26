@@ -1,0 +1,9 @@
+calculation	material	profile_hint	xc_override	why
+phonons	transition-metal	pseudodojo	pbesol	PseudoDojo's stringent NC sets have been validated against a phonon database for 3d transition metals. Iron, in particular, is known for soft modes if the pseudopotential is too soft.
+phonons	lanthanide	psl-high	pbesol	Lanthanide phonons are sensitive to 4f treatment; psl-high has the explicit 4f.
+elastic	transition-metal	pseudodojo	pbesol	Same as phonons.
+gw	any	pseudodojo	pbe	PseudoDojo's "stringent" NC sets have the multiple projectors that GW needs.
+optics	any	pseudodojo	pbe	Same as GW.
+magnetism	transition-metal	psl-high	pbe	PAW with 3s/3p semicore; PSLibrary's spin-polarised variants handle the spin correctly.
+magnetism	lanthanide	psl-high	pbe	Explicit 4f, spin-polarised.
+dft-u	transition-metal	psl-high	pbe	psl-high's PAW has the semicore needed for the U correction.

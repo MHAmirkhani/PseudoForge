@@ -1,0 +1,7 @@
+element	note
+Fe	Iron has a magnetic ground state; spin polarisation must be on.
+Co	Cobalt is magnetic; check spin.
+Ni	Nickel is magnetic, though the moment is smaller.
+O	Oxygen 2s is sometimes valence and sometimes core; check the reference you compare against.
+Eu	Europium's 4f is half-filled. Whether 4f is in the valence or the core shifts the lattice constant by about 0.1 Å.
+U	Uranium 5f needs care. For most properties, use psl-high PAW with explicit 5f; for GW, consider atompaw.
