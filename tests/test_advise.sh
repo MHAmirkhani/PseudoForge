@@ -8,6 +8,14 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
 export PF_ROOT=$ROOT PF_LIB=$ROOT/lib PF_DATA=$ROOT/data
 
+for m in core sink config deps elements xc namelist profiles metadata formats gth sssp params engines recipe advise; do
+    # shellcheck disable=SC1090
+    . "$PF_LIB/$m.sh" || { echo "cannot load $m.sh" >&2; exit 1; }
+done
+
+pf_config_defaults 2>/dev/null || true
+pf_elements_load; pf_xc_load; pf_profiles_load; pf_engines_load; pf_metadata_load; pf_params_load; pf_advice_load
+
 GREEN=$'\033[32m'; RED=$'\033[31m'; RESET=$'\033[0m'
 pass=0 fail=0 skip=0
 ok_()   { printf '  %sPASS%s  %s\n' "$GREEN" "$RESET" "$1"; pass=$((pass + 1)); }
@@ -61,6 +69,92 @@ check_tsv() {
 check_tsv "$PF_DATA/advice/calculations.tsv" 6 12
 check_tsv "$PF_DATA/advice/calculation-material.tsv" 5 8
 check_tsv "$PF_DATA/advice/element-notes.tsv" 2 6
+
+# ---------------------------------------------------------------------------
+# 2. Material class detection
+# ---------------------------------------------------------------------------
+[ "$(el_material_class Fe)" = "transition-metal" ] && ok_ "el_material_class Fe is transition-metal" || bad_ "el_material_class Fe"
+[ "$(el_material_class Si)" = "metalloid" ]        && ok_ "el_material_class Si is metalloid" || bad_ "el_material_class Si"
+[ "$(el_material_class U)" = "actinide" ]          && ok_ "el_material_class U is actinide" || bad_ "el_material_class U"
+[ "$(el_material_class Eu)" = "lanthanide" ]       && ok_ "el_material_class Eu is lanthanide" || bad_ "el_material_class Eu"
+[ "$(el_material_class Na)" = "alkali-metal" ]     && ok_ "el_material_class Na is alkali-metal" || bad_ "el_material_class Na"
+[ "$(el_material_class Ca)" = "alkaline-earth" ]   && ok_ "el_material_class Ca is alkaline-earth" || bad_ "el_material_class Ca"
+[ "$(el_material_class Cl)" = "halogen" ]          && ok_ "el_material_class Cl is halogen" || bad_ "el_material_class Cl"
+[ "$(el_material_class Ne)" = "noble-gas" ]        && ok_ "el_material_class Ne is noble-gas" || bad_ "el_material_class Ne"
+[ "$(el_material_class O)" = "main-group" ]        && ok_ "el_material_class O is main-group" || bad_ "el_material_class O"
+
+# ---------------------------------------------------------------------------
+# 3. advise_for logic checks
+# ---------------------------------------------------------------------------
+if advise_for Fe phonons qe; then
+    ok_ "advise_for Fe phonons exits 0"
+else
+    bad_ "advise_for Fe phonons" "exited non-zero"
+fi
+
+[ "$ADV_OUT_COUNT" -ge 1 ] && ok_ "Fe phonons has recommendations ($ADV_OUT_COUNT)" || bad_ "Fe phonons has recommendations"
+[ "${ADV_OUT_PROFILE[0]}" = "pseudodojo" ] && ok_ "Fe phonons top profile is pseudodojo" || bad_ "Fe phonons top profile: ${ADV_OUT_PROFILE[0]:-}"
+[ "${ADV_OUT_FAMILY[0]}" = "nc" ]          && ok_ "Fe phonons top family is nc" || bad_ "Fe phonons top family: ${ADV_OUT_FAMILY[0]:-}"
+[ "${ADV_OUT_XC[0]}" = "pbesol" ]          && ok_ "Fe phonons top xc is pbesol" || bad_ "Fe phonons top xc: ${ADV_OUT_XC[0]:-}"
+[ "${ADV_OUT_SCORE[0]}" -eq 18 ]           && ok_ "Fe phonons top score is 18" || bad_ "Fe phonons top score: ${ADV_OUT_SCORE[0]:-}"
+[ -n "${ADV_OUT_CUTOFF_VAL[0]}" ]          && ok_ "Fe phonons has cutoff (${ADV_OUT_CUTOFF_VAL[0]} Ry)" || bad_ "Fe phonons missing cutoff"
+
+# Avoid list checks
+has_psl_low=0
+has_psl_tot=0
+for ((i=0; i<ADV_OUT_AVOID_COUNT; i++)); do
+    [ "${ADV_OUT_AVOID_WHAT[i]}" = "psl-low" ] && has_psl_low=1
+    [ "${ADV_OUT_AVOID_WHAT[i]}" = "psl-tot" ] && has_psl_tot=1
+done
+[ "$has_psl_low" -eq 1 ] && ok_ "avoid list includes psl-low for phonons" || bad_ "avoid list missing psl-low"
+[ "$has_psl_tot" -eq 1 ] && ok_ "avoid list includes psl-tot" || bad_ "avoid list missing psl-tot"
+
+# JSON rendering check
+fe_json=$(advise_render_json)
+if printf '%s\n' "$fe_json" | python3 -m json.tool >/dev/null 2>&1; then
+    ok_ "advise_render_json emits valid JSON"
+else
+    bad_ "advise_render_json emits valid JSON" "$fe_json"
+fi
+
+# Check schema keys
+python3 -c '
+import json, sys
+data = json.loads(sys.stdin.read())
+req_top = ["element", "element_name", "material_class", "calculation", "code", "recommendations", "avoid", "related"]
+for k in req_top:
+    assert k in data, f"missing top key: {k}"
+assert len(data["recommendations"]) > 0, "empty recommendations"
+rec = data["recommendations"][0]
+req_rec = ["rank", "score", "profile", "profile_label", "family", "xc", "engine", "engine_label", "format", "why", "caveats", "citations", "cli_command"]
+for k in req_rec:
+    assert k in rec, f"missing rec key: {k}"
+' <<< "$fe_json" && ok_ "Fe phonons JSON matches schema keys exactly" || bad_ "JSON schema key validation failed"
+
+# Si gw check
+if advise_for Si gw; then
+    ok_ "advise_for Si gw exits 0"
+    [ "${ADV_OUT_PROFILE[0]}" = "pseudodojo" ] && ok_ "Si gw top profile is pseudodojo" || bad_ "Si gw top profile: ${ADV_OUT_PROFILE[0]:-}"
+    [ "${ADV_OUT_XC[0]}" = "pbe" ]              && ok_ "Si gw top xc is pbe" || bad_ "Si gw top xc: ${ADV_OUT_XC[0]:-}"
+    [ -n "${ADV_OUT_CUTOFF_VAL[0]}" ]           && ok_ "Si gw has cutoff (${ADV_OUT_CUTOFF_VAL[0]} Ry)" || bad_ "Si gw missing cutoff"
+else
+    bad_ "advise_for Si gw failed"
+fi
+
+# Overview mode check
+if advise_for Fe; then
+    ok_ "advise_for Fe (overview) exits 0"
+    [ "$ADV_OUT_IS_OVERVIEW" -eq 1 ] && ok_ "overview flag set" || bad_ "overview flag not set"
+    [ "$ADV_OVERVIEW_COUNT" -eq 12 ] && ok_ "overview covered 12 calculations" || bad_ "overview count: $ADV_OVERVIEW_COUNT"
+    fe_over_json=$(advise_render_json)
+    if printf '%s\n' "$fe_over_json" | python3 -m json.tool >/dev/null 2>&1; then
+        ok_ "overview JSON is valid"
+    else
+        bad_ "overview JSON invalid"
+    fi
+else
+    bad_ "advise_for Fe overview failed"
+fi
 
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]
