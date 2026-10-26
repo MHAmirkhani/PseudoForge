@@ -97,6 +97,10 @@ So the split is:
 Refusing and saying what to do instead is the honest answer. The frontend turns
 that response into a copyable command and a link to the installation page.
 
+The public mirror is at pseudo.amirkhani.me. If it is unreachable,
+run `deploy/scripts/serve-local.sh` and use
+http://127.0.0.1:8080 — same API, same frontend, same docs.
+
 ## Why FastAPI, and what that means
 
 Two options were on the table: a small Bash HTTP server (`websocketd`,

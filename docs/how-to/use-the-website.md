@@ -4,6 +4,10 @@
 file. Or find out what to run on your own machine, which is the honest answer
 for anything that needs an engine.
 
+The public mirror is at pseudo.amirkhani.me. If it is unreachable,
+run `deploy/scripts/serve-local.sh` and use
+http://127.0.0.1:8080 — same API, same frontend, same docs.
+
 ## What the site can and cannot do
 
 | | |
