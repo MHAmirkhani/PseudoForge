@@ -218,5 +218,23 @@ api_bad_json=$("$ROOT/pseudoforge" api GET '/api/advise' 2>"$TMP_DIR/api_bad.err
 api_bad_st=$(grep '^status:' "$TMP_DIR/api_bad.err" | awk '{print $2}')
 [ "$api_bad_st" = "400" ] && ok_ "GET /api/advise without element returns status 400" || bad_ "GET /api/advise without element status: $api_bad_st"
 
+# ---------------------------------------------------------------------------
+# 6. Comprehensive coverage
+# ---------------------------------------------------------------------------
+# Every calculation ID produces a recommendation for Fe and Si
+for c in "${ADV_CALC_ORDER[@]}"; do
+    advise_for Fe "$c" >/dev/null 2>&1
+    [ "${#ADV_OUT_PROFILE[@]}" -gt 0 ] && ok_ "Fe $c produces recommendation (${ADV_OUT_PROFILE[0]})" || bad_ "Fe $c has no recommendations"
+
+    advise_for Si "$c" >/dev/null 2>&1
+    [ "${#ADV_OUT_PROFILE[@]}" -gt 0 ] && ok_ "Si $c produces recommendation (${ADV_OUT_PROFILE[0]})" || bad_ "Si $c has no recommendations"
+done
+
+# Sample of 10 elements produces at least one recommendation
+for el in H C Si Fe Ni Cu Ag Au U Ce; do
+    advise_for "$el" eos >/dev/null 2>&1
+    [ "${#ADV_OUT_PROFILE[@]}" -gt 0 ] && ok_ "element $el produces recommendation (${ADV_OUT_PROFILE[0]})" || bad_ "element $el produces no recommendation"
+done
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

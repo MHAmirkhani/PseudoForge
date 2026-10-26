@@ -628,6 +628,9 @@ run_subsuite() {
 section "REST interface"
 run_subsuite "the website REST API contract" env http_proxy="" https_proxy="" no_proxy="*" bash "$HERE/test_http.sh"
 
+section "the advisory system"
+run_subsuite "the advisory system" bash "$HERE/test_advise.sh"
+
 section "Nginx configuration"
 run_subsuite "Nginx deployment configuration" bash "$HERE/test_nginx_config.sh"
 
