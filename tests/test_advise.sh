@@ -99,6 +99,22 @@ fi
 [ "${ADV_OUT_SCORE[0]}" -eq 18 ]           && ok_ "Fe phonons top score is 18" || bad_ "Fe phonons top score: ${ADV_OUT_SCORE[0]:-}"
 [ -n "${ADV_OUT_CUTOFF_VAL[0]}" ]          && ok_ "Fe phonons has cutoff (${ADV_OUT_CUTOFF_VAL[0]} Ry)" || bad_ "Fe phonons missing cutoff"
 
+# Check that material override why is attached only to the profile hint (PseudoDojo)
+dojo_why_matches=0
+other_why_matches=0
+for ((i=0; i<ADV_OUT_COUNT; i++)); do
+    if [[ "${ADV_OUT_WHY[i]}" == *"PseudoDojo's stringent NC sets have been validated"* ]]; then
+        if [ "${ADV_OUT_PROFILE[i]}" = "pseudodojo" ]; then
+            dojo_why_matches=$((dojo_why_matches + 1))
+        else
+            other_why_matches=$((other_why_matches + 1))
+        fi
+    fi
+done
+[ "$dojo_why_matches" -eq 1 ] && [ "$other_why_matches" -eq 0 ] \
+    && ok_ "material override why attached to pseudodojo only" \
+    || bad_ "material override why attached incorrectly (dojo=$dojo_why_matches, other=$other_why_matches)"
+
 # Avoid list checks
 has_psl_low=0
 has_psl_tot=0

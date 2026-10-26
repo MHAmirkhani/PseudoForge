@@ -388,7 +388,9 @@ advise_for() {
 
         # Why text
         local why_text="$rationale"
-        [ -n "$material_why" ] && why_text="$why_text\n\n$material_why"
+        if [ -n "$profile_hint" ] && [ "$c_prof" = "$profile_hint" ] && [ -n "$material_why" ]; then
+            why_text="$why_text\n\n$material_why"
+        fi
         [ -n "$element_note" ] && why_text="$why_text\n\n$element_note"
         ADV_OUT_WHY+=("$why_text")
 
