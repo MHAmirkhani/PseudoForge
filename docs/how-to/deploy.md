@@ -42,7 +42,7 @@ PF_VPS_BUDGET_MB=8192
 
 `deploy/local/` is gitignored in full. The real domain, the real host and the
 real paths stay out of the repository — see
-[`deploy/local/README.md`](https://github.com/MHAmirkhani/pseudoforge/blob/main/deploy/local/README.md)
+[`deploy/local/README.md`](https://github.com/MHAmirkhani/PseudoForge/blob/main/deploy/local/README.md)
 for what belongs there and what does not. SSH keys do not: they belong in
 `~/.ssh/`.
 
@@ -51,7 +51,7 @@ for what belongs there and what does not. SSH keys do not: they belong in
 On the VPS, once, as root:
 
 ```bash
-git clone https://github.com/MHAmirkhani/pseudoforge.git
+git clone https://github.com/MHAmirkhani/PseudoForge.git
 cd pseudoforge
 sudo deploy/scripts/install-vps.sh
 ```
@@ -250,7 +250,7 @@ The install script is idempotent, so re-running it is the update.
 
 **A conversion returns 503** — that converter is not installed. `converter/`
 holds `upfconv.x`, which is the only external converter any registered path
-uses; `doctor` names what is missing. A **refused** path returns 422 instead,
+uses; `doctor` names what is missing. A **refused** path returns 409 instead,
 with the core's reason — that is an answer, not an outage.
 
 **Disk filling** — `cache/` grows. It is safe to empty: everything in it is

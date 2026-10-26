@@ -72,6 +72,19 @@ done
     && ok_ "every page the site links to by name is there" \
     || bad_ "the frontend links to pages that will 404:$missing"
 
+# Claims and links in deploy.md match code and repo canonical URL
+if grep -C 1 'refused' "$ROOT/docs/how-to/deploy.md" | grep -q '409'; then
+    ok_ "deploy.md specifies 409 for refused conversions"
+else
+    bad_ "deploy.md does not specify 409 for refused conversions"
+fi
+
+if grep -q 'github\.com/MHAmirkhani/pseudoforge\b' "$ROOT/docs/how-to/deploy.md"; then
+    bad_ "deploy.md contains lowercase github.com/MHAmirkhani/pseudoforge URL"
+else
+    ok_ "deploy.md uses canonical repository casing in GitHub URL"
+fi
+
 printf '\n%s== every internal link in the built HTML resolves%s\n' "$DIM" "$RESET"
 # The built HTML, not the Markdown: this is what a browser will follow.
 # The path the site is served under, read from the configuration rather than
