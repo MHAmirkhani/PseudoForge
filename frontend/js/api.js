@@ -57,6 +57,7 @@ const API = (() => {
     convert:  (id, to)=> post('/convert', { id, to }),
     validate: (file)  => upload('/validate', file),
     generate: ()      => post('/generate', {}),
+    advise:   (params)=> get('/advise?' + new URLSearchParams(params).toString()),
     downloadUrl: (id) => base + '/download/' + id,
   };
 })();
