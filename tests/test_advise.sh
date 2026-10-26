@@ -115,6 +115,39 @@ done
     && ok_ "material override why attached to pseudodojo only" \
     || bad_ "material override why attached incorrectly (dojo=$dojo_why_matches, other=$other_why_matches)"
 
+# Check that pseudoforge-auto is penalized relative to real libraries for Fe phonons
+auto_rank=99
+psl_rank=99
+dojo_rank=99
+for ((i=0; i<ADV_OUT_COUNT; i++)); do
+    [ "${ADV_OUT_PROFILE[i]}" = "pseudoforge-auto" ] && auto_rank=${ADV_OUT_RANK[i]}
+    [ "${ADV_OUT_PROFILE[i]}" = "psl-high" ] && psl_rank=${ADV_OUT_RANK[i]}
+    [ "${ADV_OUT_PROFILE[i]}" = "pseudodojo" ] && dojo_rank=${ADV_OUT_RANK[i]}
+done
+if [ "$auto_rank" -gt "$psl_rank" ] && [ "$auto_rank" -gt "$dojo_rank" ]; then
+    ok_ "pseudoforge-auto ranked worse than real libraries for Fe phonons"
+else
+    bad_ "pseudoforge-auto rank ($auto_rank) not worse than real libraries (dojo=$dojo_rank, psl=$psl_rank)"
+fi
+
+# Assert pseudoforge-auto still appears for an element where libraries lack full coverage (U, or Z=95)
+advise_for U phonons >/dev/null 2>&1
+u_has_auto=0
+for ((i=0; i<ADV_OUT_COUNT; i++)); do
+    [ "${ADV_OUT_PROFILE[i]}" = "pseudoforge-auto" ] && u_has_auto=1
+done
+[ "$u_has_auto" -eq 1 ] && ok_ "pseudoforge-auto appears for U phonons" || bad_ "pseudoforge-auto missing for U phonons"
+
+advise_for Am phonons >/dev/null 2>&1
+am_has_auto=0
+for ((i=0; i<ADV_OUT_COUNT; i++)); do
+    [ "${ADV_OUT_PROFILE[i]}" = "pseudoforge-auto" ] && am_has_auto=1
+done
+[ "$am_has_auto" -eq 1 ] && ok_ "pseudoforge-auto appears for Z=95 (Am) phonons" || bad_ "pseudoforge-auto missing for Am phonons"
+
+# Re-run Fe phonons qe for subsequent tests
+advise_for Fe phonons qe >/dev/null 2>&1
+
 # Avoid list checks
 has_psl_low=0
 has_psl_tot=0

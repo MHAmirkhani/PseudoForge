@@ -135,9 +135,12 @@ advise_for() {
     pf_xc_load
 
     declare -gA SPEC 2>/dev/null || true
-    SPEC[xc]=${SPEC[xc]:-}
-    SPEC[rel]=${SPEC[rel]:-}
-    SPEC[family]=${SPEC[family]:-}
+    local saved_spec_fam=${SPEC[family]:-}
+    local saved_spec_xc=${SPEC[xc]:-}
+    local saved_spec_rel=${SPEC[rel]:-}
+    SPEC[family]=""
+    SPEC[xc]=""
+    SPEC[rel]=""
 
     local raw_el=$1
     local raw_calc=${2:-}
@@ -288,7 +291,7 @@ advise_for() {
     # Enumerate candidate profiles
     local candidates=()
     local p fam eng x score badge
-    for p in $(prof_list_sorted); do
+    for p in $(prof_list_sorted ""); do
         badge=$(prof_badge "$p" 2>/dev/null)
         for fam in nc paw us; do
             prof_supports_family "$p" "$fam" || continue
@@ -306,6 +309,9 @@ advise_for() {
             fi
 
             for x in "${test_xcs[@]}"; do
+                SPEC[family]=$fam
+                SPEC[xc]=$x
+                SPEC[rel]=$rel
                 prof_covers_element "$p" "$el" "$fam" "$x" "$rel" || continue
 
                 score=0
@@ -321,6 +327,7 @@ advise_for() {
                     case $calc in phonons|elastic|phonon-2d) score=$((score - 3)) ;; esac
                 fi
                 [ "$p" = "psl-tot" ] && score=$((score - 1))
+                [ "$p" = "pseudoforge-auto" ] && score=$((score - 3))
 
                 candidates+=("$score|$p|$fam|$x|$eng")
             done
@@ -489,6 +496,10 @@ advise_for() {
         ADV_OUT_RELATED_CLI+=("pseudoforge advise -e $el --calculation $rel1")
         ADV_OUT_RELATED_COUNT=$((ADV_OUT_RELATED_COUNT + 1))
     fi
+
+    SPEC[family]=$saved_spec_fam
+    SPEC[xc]=$saved_spec_xc
+    SPEC[rel]=$saved_spec_rel
 
     return 0
 }
