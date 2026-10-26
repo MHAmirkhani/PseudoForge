@@ -156,5 +156,36 @@ else
     bad_ "advise_for Fe overview failed"
 fi
 
+# ---------------------------------------------------------------------------
+# 4. CLI Dispatcher & flag parsing
+# ---------------------------------------------------------------------------
+help_out=$("$ROOT/pseudoforge" advise --help 2>&1)
+[ $? -eq 0 ] && [[ "$help_out" =~ "usage: pseudoforge advise" ]] && ok_ "pseudoforge advise --help exits 0" || bad_ "pseudoforge advise --help"
+
+err_out=$("$ROOT/pseudoforge" advise 2>&1 || true)
+[[ "$err_out" =~ "usage: pseudoforge advise" ]] && ok_ "pseudoforge advise without -e fails with usage" || bad_ "pseudoforge advise missing -e"
+
+quiet_cmd=$("$ROOT/pseudoforge" advise -e Fe --calculation phonons -q 2>&1)
+[[ "$quiet_cmd" =~ ^pseudoforge\ generate\ -e\ Fe ]] && ok_ "pseudoforge advise -q returns cli command" || bad_ "pseudoforge advise -q: $quiet_cmd"
+
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+# Run quiet command with --dry-run
+read -r -a dry_args <<< "${quiet_cmd#pseudoforge }"
+if ( cd "$TMP_DIR" && "$ROOT/pseudoforge" "${dry_args[@]}" --dry-run -q ); then
+    ok_ "recommended CLI command runs cleanly under --dry-run -q"
+else
+    bad_ "recommended CLI command failed under --dry-run"
+fi
+
+# CLI --json flag
+cli_json=$("$ROOT/pseudoforge" advise -e Fe --calculation phonons --json 2>&1)
+if printf '%s\n' "$cli_json" | python3 -m json.tool >/dev/null 2>&1; then
+    ok_ "pseudoforge advise --json outputs valid JSON"
+else
+    bad_ "pseudoforge advise --json emitted invalid JSON"
+fi
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

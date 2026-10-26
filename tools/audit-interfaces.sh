@@ -56,7 +56,7 @@ section() { printf '\n%s== %s%s\n' "$DIM" "$1" "$RESET"; }
 # ---------------------------------------------------------------------------
 SUBCMDS="
 generate wizard tui engines convert optimise doctor compare citation params
-profile xc validate import report plot api native recipe list show config help
+profile xc validate import report plot api native recipe list show config advise help
 "
 
 # Flags that are documented by a subcommand's own help rather than the
@@ -71,8 +71,8 @@ profile xc validate import report plot api native recipe list show config help
 # `tui` alias, --functional to the functional list filter, --no-plot to
 # the --plot flag's inverse.
 SUB_FLAGS="
---all --check --desc --description --dft --ecut --families --format --formats
---functional --help --json --label --license --no-cutoff-scan --no-plot
+--accuracy --all --calc --calculation --check --code --desc --description --dft --ecut --element --families --format --formats
+--functional --help --json --label --license --material --no-cutoff-scan --no-plot
 --note --notes --path --plot-bands --plot-dir --plot-dos --plot-format
 --plot-rlderiv --proxy --qe --reference --relativity --rho --routes
 --set-nc --set-paw --set-us --show-citation --status --summary --tag

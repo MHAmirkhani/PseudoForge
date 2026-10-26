@@ -45,6 +45,7 @@ USAGE
                             still pass transferability (ld1 oncvpsp opium ape)
     plot <project>          draw log derivatives and wavefunctions for a run
     doctor                  check the environment and the recipe database
+    advise -e EL [opts]     physics reasoning on which pseudopotential to choose
     config [--show|--edit|--set K=V]
     version | help
 
@@ -279,6 +280,28 @@ the file, and PseudoForge itself.  Use --attribution on `generate` for a
 per-run citation block.
 EOF
         ;;
+        advise) cat <<'EOF'
+usage: pseudoforge advise -e <element> [options]
+
+Physics-reasoned advice on which pseudopotential to choose.
+
+options:
+  -e, --element NAME       required; single element (Fe, Si, U, ...)
+      --calculation TYPE   phonons | elastic | eos | band-gap | gw | optics |
+                           xas | magnetism | dft-u | md | transport | phonon-2d
+                           (default: brief overview across all calculations)
+      --code CODE          qe | abinit | vasp | cp2k | siesta | openmx | castep
+                           (default: any; affects format preference only)
+      --material CLASS     override auto-detected material class:
+                           transition-metal | lanthanide | actinide | halogen |
+                           noble-gas | alkali-metal | alkaline-earth |
+                           main-group | metalloid
+      --functional XC      override the calculation's default functional
+      --accuracy LEVEL     speed | balanced | stringent (default: balanced)
+      --json               emit JSON rather than human text
+  -q, --quiet              command only, no banner or reasoning
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -322,6 +345,7 @@ cli_parse() {
     cli_recipe_preload "$@"
     while [ $# -gt 0 ]; do
         case $1 in
+            advise|advisory) shift; cmd_advise "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -1804,4 +1828,56 @@ cmd_native() {
             printf 'usage: pseudoforge native index|list|size [dir]\n' ;;
         *) die "unknown: pseudoforge native $sub  (index list size)" ;;
     esac
+}
+
+# ---------------------------------------------------------------------------
+# cmd_advise -- physics-reasoned pseudopotential recommendation
+# ---------------------------------------------------------------------------
+cmd_advise() {
+    case "${1:-}" in -h|--help) cli_help_for advise; return 0 ;; esac
+    local el="" calc="" code="" mat="" xc="" acc="balanced" as_json=0 quiet=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for advise; return 0 ;;
+            -e|--element|--elements)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                el=$2; shift 2 ;;
+            --calculation|--calc)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                calc=$2; shift 2 ;;
+            --code)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                code=$2; shift 2 ;;
+            --material)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                mat=$2; shift 2 ;;
+            --functional|-x)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                xc=$2; shift 2 ;;
+            --accuracy)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                acc=$2; shift 2 ;;
+            --json)
+                as_json=1; shift ;;
+            -q|--quiet)
+                quiet=1; shift ;;
+            *)
+                if [ -z "$el" ] && [[ "$1" != -* ]]; then
+                    el=$1; shift
+                else
+                    die "unknown option '$1' -- try: pseudoforge advise --help"
+                fi ;;
+        esac
+    done
+
+    [ -n "$el" ] || die "usage: pseudoforge advise -e <element> [options] -- try: pseudoforge advise --help"
+
+    advise_for "$el" "$calc" "$code" "$mat" "$xc" "$acc" || return 1
+
+    if [ "$as_json" -eq 1 ]; then
+        advise_render_json
+    else
+        advise_render_human "$quiet"
+    fi
 }
