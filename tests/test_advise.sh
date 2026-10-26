@@ -66,7 +66,7 @@ check_tsv() {
     fi
 }
 
-check_tsv "$PF_DATA/advice/calculations.tsv" 6 12
+check_tsv "$PF_DATA/advice/calculations.tsv" 7 12
 check_tsv "$PF_DATA/advice/calculation-material.tsv" 5 8
 check_tsv "$PF_DATA/advice/element-notes.tsv" 2 6
 
@@ -218,6 +218,21 @@ if advise_for Si gw; then
 else
     bad_ "advise_for Si gw failed"
 fi
+
+# Fix D checks: per-calculation accuracy defaults and explicit overrides
+advise_for Fe phonons
+[ "${ADV_OUT_SCORE[1]}" -eq 8 ] && ok_ "Fe phonons default accuracy produces score 8 for psl-high" || bad_ "Fe phonons score: ${ADV_OUT_SCORE[1]}"
+[ "${ADV_OUT_CUTOFF_SOURCE[0]}" = "SSSP efficiency" ] && ok_ "Fe phonons cutoff source is SSSP efficiency" || bad_ "Fe phonons cutoff source: ${ADV_OUT_CUTOFF_SOURCE[0]}"
+
+advise_for Fe phonons "" "" "" stringent
+[ "${ADV_OUT_SCORE[1]}" -eq 10 ] && ok_ "Fe phonons --accuracy stringent produces score 10 for psl-high" || bad_ "Fe phonons stringent score: ${ADV_OUT_SCORE[1]}"
+
+advise_for Si gw
+[ "${ADV_OUT_SCORE[1]}" -eq 12 ] && ok_ "Si gw default accuracy (stringent) produces score 12 for psl-high" || bad_ "Si gw score: ${ADV_OUT_SCORE[1]}"
+[ "${ADV_OUT_CUTOFF_SOURCE[0]}" = "SSSP precision" ] && ok_ "Si gw cutoff source is SSSP precision" || bad_ "Si gw cutoff source: ${ADV_OUT_CUTOFF_SOURCE[0]}"
+
+advise_for Si gw "" "" "" balanced
+[ "${ADV_OUT_SCORE[1]}" -eq 10 ] && ok_ "Si gw --accuracy balanced produces score 10 for psl-high" || bad_ "Si gw balanced score: ${ADV_OUT_SCORE[1]}"
 
 # Overview mode check
 if advise_for Fe; then

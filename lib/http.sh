@@ -376,8 +376,6 @@ http_h_advise() {
         [ -n "$q_acc" ] && acc=$q_acc
     fi
 
-    [ -n "$acc" ] || acc="balanced"
-
     if [ -z "$el" ]; then
         http_error 400 missing_element "The 'element' parameter is required."
         return 0

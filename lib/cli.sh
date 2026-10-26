@@ -1835,7 +1835,7 @@ cmd_native() {
 # ---------------------------------------------------------------------------
 cmd_advise() {
     case "${1:-}" in -h|--help) cli_help_for advise; return 0 ;; esac
-    local el="" calc="" code="" mat="" xc="" acc="balanced" as_json=0 quiet=0
+    local el="" calc="" code="" mat="" xc="" acc="" as_json=0 quiet=0
     while [ $# -gt 0 ]; do
         case $1 in
             -h|--help)

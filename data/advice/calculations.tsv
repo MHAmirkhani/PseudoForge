@@ -1,13 +1,13 @@
-id	label	xc_default	family_default	format_default	rationale
-phonons	Phonons	pbesol	nc	upf	PBEsol restores the correct gradient expansion for solids; lattice constants and phonon frequencies come out more accurate than with PBE. Norm-conserving keeps the calculation cheap.
-elastic	Elastic constants	pbesol	nc	upf	Same reasoning as phonons: PBEsol's gradient expansion is correct for solids.
-eos	Equation of state	pbesol	nc	upf	PBEsol reproduces experimental volumes; LDA overbinds by ~1%, PBE over-softens by ~1%.
-band-gap	Band gaps (DFT)	pbe	nc	upf	PBE underestimates gaps less than LDA. For predictive gaps, use GW (see 'gw').
-gw	GW / BSE	pbe	nc	upf	Unoccupied states matter more than the lattice. Use stringent sets with multiple projectors.
-optics	Optical properties	pbe	nc	upf	Same as GW: accurate unoccupied states.
-xas	XAS / XPS	pbe	nc	upf	A core hole is needed. ld1's --core-hole builds the right potential; set zval explicitly.
-magnetism	Magnetism	pbe	paw	upf	Semicore 3s/3p matters for 3d metals; PAW reproduces the density near the nucleus.
-dft-u	DFT+U	pbe	paw	upf	PAW+U is the standard. psl-high's PAW has the semicore you need.
-md	Molecular dynamics	pbe	nc	upf	Speed matters. GBRV or PseudoDojo efficiency sets.
-transport	Transport (BoltzTraP)	pbe	nc	upf	Accurate bands near the Fermi level. NLCC matters for some elements.
-phonon-2d	2D phonons	pbesol	nc	upf	Same as phonons, and especially sensitive to ghost states.
+id	label	xc_default	family_default	format_default	accuracy_default	rationale
+phonons	Phonons	pbesol	nc	upf	balanced	PBEsol restores the correct gradient expansion for solids; lattice constants and phonon frequencies come out more accurate than with PBE. Norm-conserving keeps the calculation cheap.
+elastic	Elastic constants	pbesol	nc	upf	balanced	Same reasoning as phonons: PBEsol's gradient expansion is correct for solids.
+eos	Equation of state	pbesol	nc	upf	balanced	PBEsol reproduces experimental volumes; LDA overbinds by ~1%, PBE over-softens by ~1%.
+band-gap	Band gaps (DFT)	pbe	nc	upf	balanced	PBE underestimates gaps less than LDA. For predictive gaps, use GW (see 'gw').
+gw	GW / BSE	pbe	nc	upf	stringent	Unoccupied states matter more than the lattice. Use stringent sets with multiple projectors.
+optics	Optical properties	pbe	nc	upf	stringent	Same as GW: accurate unoccupied states.
+xas	XAS / XPS	pbe	nc	upf	balanced	A core hole is needed. ld1's --core-hole builds the right potential; set zval explicitly.
+magnetism	Magnetism	pbe	paw	upf	balanced	Semicore 3s/3p matters for 3d metals; PAW reproduces the density near the nucleus.
+dft-u	DFT+U	pbe	paw	upf	balanced	PAW+U is the standard. psl-high's PAW has the semicore you need.
+md	Molecular dynamics	pbe	nc	upf	balanced	Speed matters. GBRV or PseudoDojo efficiency sets.
+transport	Transport (BoltzTraP)	pbe	nc	upf	balanced	Accurate bands near the Fermi level. NLCC matters for some elements.
+phonon-2d	2D phonons	pbesol	nc	upf	balanced	Same as phonons, and especially sensitive to ghost states.

@@ -21,7 +21,7 @@ pseudoforge advise -e <element> [options]
 | `--code` | `CODE` | Target DFT code: `qe`, `abinit`, `vasp`, `cp2k`, `siesta`, `openmx`, `castep`. Affects format preference only. |
 | `--material` | `CLASS` | Override auto-detected material class (see [Material classes](#material-classes) below). |
 | `--functional` | `XC` | Override the functional chosen for the calculation (e.g. `pbe`, `pbesol`, `lda`). |
-| `--accuracy` | `LEVEL` | `speed`, `balanced` (default), or `stringent`. |
+| `--accuracy` | `LEVEL` | `speed`, `balanced`, or `stringent`. Default depends on calculation (`stringent` for `gw` and `optics`, `balanced` for others). |
 | `--json` | None | Emit structured JSON rather than formatted text. |
 | `-q, --quiet` | None | Emit only the top recommended `pseudoforge generate` command line. |
 
@@ -31,20 +31,20 @@ pseudoforge advise -e <element> [options]
 
 The 12 calculation IDs recognized by the advisory system:
 
-| ID | Name | Default XC | Default Family | Physics considerations |
-|---|---|---|---|---|
-| `phonons` | Phonons & vibrational properties | `pbesol` | `nc` | Sensitive to potential softness; PBEsol provides accurate lattice constants and force constants. Soft potentials produce spurious imaginary modes. |
-| `elastic` | Elastic constants & stress-strain | `pbesol` | `nc` | Requires accurate stress tensor and second energy derivatives with respect to strain. |
-| `eos` | Equation of state & lattice parameter | `pbesol` | `paw` | PBEsol recovers accurate equilibrium volumes for solid-state crystals. PAW/USPP efficiency is preferred. |
-| `band-gap` | Band structure & gap | `pbe` | `paw` | Standard ground-state electronic structure; standard PBE or HSE06 ground states. |
-| `gw` | GW & quasiparticle spectra | `pbe` | `nc` | Requires accurate high-lying unoccupied states; multiple projector sets (stringent) are required to avoid completeness errors. |
-| `optics` | Optical absorption & dielectric function | `pbe` | `nc` | Unoccupied conduction bands and transition dipole matrix elements require norm-conserving potentials with multiple projectors. |
-| `xas` | X-ray absorption (XAS/XES) & core holes | `pbe` | `paw` | Core-hole generation requires PAW datasets with explicit core state unfreezing (`atompaw` or `ld1`). |
-| `magnetism` | Magnetic ground states & spin | `pbe` | `paw` | Transition metals and lanthanides require spin polarisation and often semicore state inclusions. |
-| `dft-u` | DFT+U & correlated electrons | `pbe` | `paw` | Localized d- and f-electron projections benefit from PAW projectors and Hubbard U corrections. |
-| `md` | Molecular dynamics & high temperature | `pbe` | `paw` | Computational speed and smooth forces are paramount; softer cutoffs reduce trajectory integration cost. |
-| `transport` | Electronic transport & Boltzmann equations | `pbe` | `paw` | Requires dense band velocity derivatives and reliable band curvatures. |
-| `phonon-2d` | 2D materials & slab phonons | `pbe` | `nc` | Slabs with vacuum require norm-conserving potentials to avoid charge augmentation overlap issues in vacuum regions. |
+| ID | Name | Default XC | Default Family | Default Accuracy | Physics considerations |
+|---|---|---|---|---|---|
+| `phonons` | Phonons & vibrational properties | `pbesol` | `nc` | `balanced` | Sensitive to potential softness; PBEsol provides accurate lattice constants and force constants. Soft potentials produce spurious imaginary modes. |
+| `elastic` | Elastic constants & stress-strain | `pbesol` | `nc` | `balanced` | Requires accurate stress tensor and second energy derivatives with respect to strain. |
+| `eos` | Equation of state & lattice parameter | `pbesol` | `paw` | `balanced` | PBEsol recovers accurate equilibrium volumes for solid-state crystals. PAW/USPP efficiency is preferred. |
+| `band-gap` | Band structure & gap | `pbe` | `paw` | `balanced` | Standard ground-state electronic structure; standard PBE or HSE06 ground states. |
+| `gw` | GW & quasiparticle spectra | `pbe` | `nc` | `stringent` | Requires accurate high-lying unoccupied states; multiple projector sets (stringent) are required to avoid completeness errors. |
+| `optics` | Optical absorption & dielectric function | `pbe` | `nc` | `stringent` | Unoccupied conduction bands and transition dipole matrix elements require norm-conserving potentials with multiple projectors. |
+| `xas` | X-ray absorption (XAS/XES) & core holes | `pbe` | `paw` | `balanced` | Core-hole generation requires PAW datasets with explicit core state unfreezing (`atompaw` or `ld1`). |
+| `magnetism` | Magnetic ground states & spin | `pbe` | `paw` | `balanced` | Transition metals and lanthanides require spin polarisation and often semicore state inclusions. |
+| `dft-u` | DFT+U & correlated electrons | `pbe` | `paw` | `balanced` | Localized d- and f-electron projections benefit from PAW projectors and Hubbard U corrections. |
+| `md` | Molecular dynamics & high temperature | `pbe` | `paw` | `balanced` | Computational speed and smooth forces are paramount; softer cutoffs reduce trajectory integration cost. |
+| `transport` | Electronic transport & Boltzmann equations | `pbe` | `paw` | `balanced` | Requires dense band velocity derivatives and reliable band curvatures. |
+| `phonon-2d` | 2D materials & slab phonons | `pbe` | `nc` | `balanced` | Slabs with vacuum require norm-conserving potentials to avoid charge augmentation overlap issues in vacuum regions. |
 
 ---
 

@@ -6,7 +6,7 @@
 # physics reasoning, cutoffs, caveats, citations, avoid list, and CLI syntax.
 # ---------------------------------------------------------------------------
 
-declare -gA ADV_CALC_LABEL ADV_CALC_XC ADV_CALC_FAMILY ADV_CALC_FORMAT ADV_CALC_RATIONALE
+declare -gA ADV_CALC_LABEL ADV_CALC_XC ADV_CALC_FAMILY ADV_CALC_FORMAT ADV_CALC_ACCURACY ADV_CALC_RATIONALE
 declare -ga ADV_CALC_ORDER=()
 declare -gA ADV_OVERRIDE_PROFILE ADV_OVERRIDE_XC ADV_OVERRIDE_WHY
 declare -gA ADV_ELEMENT_NOTE
@@ -68,14 +68,15 @@ pf_advice_load() {
     [ -f "$f_over" ] || die "overrides table missing: $f_over"
     [ -f "$f_elem" ] || die "element notes table missing: $f_elem"
 
-    local id lbl xc fam fmt rat
-    while IFS=$'\t' read -r id lbl xc fam fmt rat || [ -n "$id" ]; do
+    local id lbl xc fam fmt acc rat
+    while IFS=$'\t' read -r id lbl xc fam fmt acc rat || [ -n "$id" ]; do
         case $id in ''|\#*|id) continue ;; esac
         rat=${rat%$'\r'}
         ADV_CALC_LABEL[$id]=$lbl
         ADV_CALC_XC[$id]=$xc
         ADV_CALC_FAMILY[$id]=$fam
         ADV_CALC_FORMAT[$id]=$fmt
+        ADV_CALC_ACCURACY[$id]=$acc
         ADV_CALC_RATIONALE[$id]=$rat
         ADV_CALC_ORDER+=("$id")
     done < "$f_calc"
@@ -147,7 +148,7 @@ advise_for() {
     local raw_code=${3:-}
     local raw_mat=${4:-}
     local raw_xc=${5:-}
-    local raw_acc=${6:-balanced}
+    local raw_acc=${6:-}
 
     local el
     el=$(el_canon "$raw_el") || { error "unknown element '$raw_el'"; return 1; }
@@ -239,6 +240,8 @@ advise_for() {
     local xc_target="${ADV_CALC_XC[$calc]}"
     local family_target="${ADV_CALC_FAMILY[$calc]}"
     local format_target="${ADV_CALC_FORMAT[$calc]}"
+    local acc_target="$raw_acc"
+    [ -z "$acc_target" ] && acc_target="${ADV_CALC_ACCURACY[$calc]:-balanced}"
     local rationale="${ADV_CALC_RATIONALE[$calc]}"
 
     # Check override
@@ -274,7 +277,7 @@ advise_for() {
 
     # SSSP probe
     local sssp_acc="efficiency"
-    [ "$raw_acc" = "stringent" ] && sssp_acc="precision"
+    [ "$acc_target" = "stringent" ] && sssp_acc="precision"
     local sssp_rec sssp_lib="" sssp_prof="" sssp_wfc=""
     sssp_rec=$(SSSP_ACCURACY="$sssp_acc" sssp_entry "$el" "$xc_target" 2>/dev/null || \
                SSSP_ACCURACY="$sssp_acc" sssp_entry "$el" "pbe" 2>/dev/null || true)
@@ -319,7 +322,7 @@ advise_for() {
                 [ "$x" = "$xc_target" ] && score=$((score + 5))
                 [ "$fam" = "$family_target" ] && score=$((score + 3))
                 [ -n "$sssp_prof" ] && [ "$p" = "$sssp_prof" ] && score=$((score + 2))
-                if [ "$raw_acc" = "stringent" ]; then
+                if [ "$acc_target" = "stringent" ]; then
                     case $p in *high*|*str*|pseudodojo) score=$((score + 2)) ;; esac
                 fi
                 [ "$badge" = "import-only" ] && score=$((score - 5))
@@ -423,7 +426,7 @@ advise_for() {
             ADV_OUT_CUTOFF_VAL+=("$clean_wfc")
             ADV_OUT_CUTOFF_UNIT+=("Ry")
             local src="SSSP efficiency"
-            [ "$raw_acc" = "stringent" ] && src="SSSP precision"
+            [ "$acc_target" = "stringent" ] && src="SSSP precision"
             ADV_OUT_CUTOFF_SOURCE+=("$src")
         else
             ADV_OUT_CUTOFF_VAL+=("")
