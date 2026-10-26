@@ -236,5 +236,47 @@ for el in H C Si Fe Ni Cu Ag Au U Ce; do
     [ "${#ADV_OUT_PROFILE[@]}" -gt 0 ] && ok_ "element $el produces recommendation (${ADV_OUT_PROFILE[0]})" || bad_ "element $el produces no recommendation"
 done
 
+# ---------------------------------------------------------------------------
+# 7. End-to-end smoke — advise, render, and dry-run every recommendation
+# ---------------------------------------------------------------------------
+smoke_txt=$("$ROOT/pseudoforge" advise -e Fe --calculation phonons 2>&1)
+[[ "$smoke_txt" == *"For Fe, phonons:"* ]] && ok_ "smoke: human text contains element and calculation" || bad_ "smoke: human text header missing"
+[[ "$smoke_txt" == *"1. "* && "$smoke_txt" == *"2. "* && "$smoke_txt" == *"3. "* ]] && ok_ "smoke: human text renders 3 ranked recommendations" || bad_ "smoke: missing ranked recommendations"
+[[ "$smoke_txt" == *"Why:"* ]] && ok_ "smoke: human text renders Why explanation" || bad_ "smoke: Why explanation missing"
+[[ "$smoke_txt" == *"Engine:"* && "$smoke_txt" == *"Library:"* ]] && ok_ "smoke: human text renders citations" || bad_ "smoke: citations missing"
+[[ "$smoke_txt" == *"pseudoforge generate"* ]] && ok_ "smoke: human text renders cli command" || bad_ "smoke: cli command missing"
+[[ "$smoke_txt" == *"Avoid:"* ]] && ok_ "smoke: human text renders avoid section" || bad_ "smoke: avoid section missing"
+
+smoke_cases=(
+    "Fe phonons"
+    "Si gw"
+    "C eos"
+    "Ni magnetism"
+    "Ti elastic"
+)
+
+for case_spec in "${smoke_cases[@]}"; do
+    el="${case_spec%% *}"
+    calc="${case_spec#* }"
+    json_out=$("$ROOT/pseudoforge" advise -e "$el" --calculation "$calc" --json 2>&1)
+    cmd_count=0
+    while IFS= read -r rcmd; do
+        [ -n "$rcmd" ] || continue
+        cmd_count=$((cmd_count + 1))
+        read -r -a rargs <<< "${rcmd#pseudoforge }"
+        if ( cd "$TMP_DIR" && "$ROOT/pseudoforge" "${rargs[@]}" --dry-run -q ); then
+            ok_ "smoke: dry-run passed for: $rcmd"
+        else
+            bad_ "smoke: dry-run failed for: $rcmd"
+        fi
+    done < <(printf '%s\n' "$json_out" | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+for r in data.get("recommendations", []):
+    print(r.get("cli_command", ""))
+')
+    [ "$cmd_count" -gt 0 ] && ok_ "smoke: $el $calc generated $cmd_count recommendations" || bad_ "smoke: $el $calc generated 0 recommendations"
+done
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

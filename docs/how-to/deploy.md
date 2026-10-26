@@ -26,6 +26,10 @@ deployed.
     It also has to run **inside WSL or Linux** -- the API shells out to
     `pseudoforge`, which is a Bash program.
 
+!!! tip "Port 8080 conflicts on WSL2"
+    Under WSL2, port 8080 may already be bound by a Windows portproxy or service.
+    Override the port with `PORT=8081 deploy/scripts/serve-local.sh`.
+
 ## 1. Configure
 
 ```bash
