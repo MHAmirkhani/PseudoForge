@@ -457,16 +457,14 @@ advise_for() {
     ADV_OUT_AVOID_WHY+=("psl-tot holds upstream's untested extras. Use it only when nothing else covers the element.")
     ADV_OUT_AVOID_COUNT=$((ADV_OUT_AVOID_COUNT + 1))
 
-    # Import-only profiles covering element
-    local avoid_p
-    for avoid_p in "${PROF_ORDER[@]}"; do
-        if [ "$(prof_badge "$avoid_p" 2>/dev/null)" = "import-only" ]; then
-            if prof_covers_element "$avoid_p" "$el" "" "" "$rel" 2>/dev/null; then
-                ADV_OUT_AVOID_WHAT+=("$avoid_p")
-                ADV_OUT_AVOID_WHY+=("$avoid_p is import-only; you cannot generate it here, only download published files.")
-                ADV_OUT_AVOID_COUNT=$((ADV_OUT_AVOID_COUNT + 1))
-                break
-            fi
+    # Import-only profiles from prof_list_sorted
+    local avoid_p b
+    for avoid_p in $(prof_list_sorted ""); do
+        b=$(prof_badge "$avoid_p" 2>/dev/null)
+        if [ "$b" = "import-only" ]; then
+            ADV_OUT_AVOID_WHAT+=("$avoid_p")
+            ADV_OUT_AVOID_WHY+=("$avoid_p is import-only; it can be downloaded from the library but not generated here.")
+            ADV_OUT_AVOID_COUNT=$((ADV_OUT_AVOID_COUNT + 1))
         fi
     done
 

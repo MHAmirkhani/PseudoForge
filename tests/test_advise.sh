@@ -158,6 +158,35 @@ done
 [ "$has_psl_low" -eq 1 ] && ok_ "avoid list includes psl-low for phonons" || bad_ "avoid list missing psl-low"
 [ "$has_psl_tot" -eq 1 ] && ok_ "avoid list includes psl-tot" || bad_ "avoid list missing psl-tot"
 
+# Assert all import-only profiles appear in avoid list
+all_import_in_avoid=1
+for avoid_p in $(prof_list_sorted ""); do
+    if [ "$(prof_badge "$avoid_p" 2>/dev/null)" = "import-only" ]; then
+        found_p=0
+        for ((i=0; i<ADV_OUT_AVOID_COUNT; i++)); do
+            [ "${ADV_OUT_AVOID_WHAT[i]}" = "$avoid_p" ] && found_p=1
+        done
+        [ "$found_p" -eq 1 ] || all_import_in_avoid=0
+    fi
+done
+[ "$all_import_in_avoid" -eq 1 ] && ok_ "all import-only profiles appear in avoid list" || bad_ "some import-only profiles missing from avoid list"
+
+# Assert no generated/derived/build-engine profile is in avoid list (except psl-low and psl-tot)
+no_unwanted_in_avoid=1
+for ((i=0; i<ADV_OUT_AVOID_COUNT; i++)); do
+    item="${ADV_OUT_AVOID_WHAT[i]}"
+    case $item in
+        psl-low|psl-tot) continue ;;
+    esac
+    badge=$(prof_badge "$item" 2>/dev/null)
+    case $badge in
+        generated|derived|"build engine")
+            no_unwanted_in_avoid=0
+            ;;
+    esac
+done
+[ "$no_unwanted_in_avoid" -eq 1 ] && ok_ "no generated/derived/build engine profile in avoid list" || bad_ "unexpected profile in avoid list"
+
 # JSON rendering check
 fe_json=$(advise_render_json)
 if printf '%s\n' "$fe_json" | python3 -m json.tool >/dev/null 2>&1; then
