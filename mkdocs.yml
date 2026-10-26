@@ -111,6 +111,7 @@ nav:
       - Deploy the website: how-to/deploy.md
   - Reference:
       - Command line: reference/cli.md
+      - The advisory system: reference/advise.md
       - The wizard: reference/wizard.md
       - Engines:
           - Overview: reference/engines.md

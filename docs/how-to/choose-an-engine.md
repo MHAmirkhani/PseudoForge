@@ -7,6 +7,8 @@ means generating something else and calling it by the library's name.
 
 `--engine` exists for when you are not reproducing a library.
 
+For physics reasoning on which pseudopotential and engine to select for a specific calculation, see [`pseudoforge advise`](../reference/advise.md).
+
 ## Decide by what you need
 
 **A PAW or ultrasoft dataset for Quantum ESPRESSO**
