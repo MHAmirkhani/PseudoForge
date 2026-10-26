@@ -30,6 +30,8 @@ pseudoforge api POST /api/convert body.json
 | `GET` | `/api/profiles` | Every library profile |
 | `GET` | `/api/xc` | Every exchange-correlation functional |
 | `GET` | `/api/elements` | The element table |
+| `GET` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
+| `POST` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `GET` | `/api/native` | Native files available on this server |
 | `GET` | `/api/native/:id` | One native file: metadata and provenance |
 | `POST` | `/api/convert` | Convert a native file to another format |

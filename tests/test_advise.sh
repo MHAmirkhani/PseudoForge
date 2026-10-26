@@ -187,5 +187,36 @@ else
     bad_ "pseudoforge advise --json emitted invalid JSON"
 fi
 
+# ---------------------------------------------------------------------------
+# 5. REST API (/api/advise)
+# ---------------------------------------------------------------------------
+api_get_json=$("$ROOT/pseudoforge" api GET '/api/advise?element=Fe&calculation=phonons' 2>"$TMP_DIR/api_get.err")
+api_get_st=$(grep '^status:' "$TMP_DIR/api_get.err" | awk '{print $2}')
+[ "$api_get_st" = "200" ] && ok_ "GET /api/advise returns status 200" || bad_ "GET /api/advise status: $api_get_st"
+if printf '%s\n' "$api_get_json" | python3 -m json.tool >/dev/null 2>&1; then
+    ok_ "GET /api/advise outputs valid JSON"
+else
+    bad_ "GET /api/advise invalid JSON"
+fi
+
+cat <<'EOF' > "$TMP_DIR/post_body.json"
+{
+  "element": "Si",
+  "calculation": "gw"
+}
+EOF
+api_post_json=$("$ROOT/pseudoforge" api POST /api/advise "$TMP_DIR/post_body.json" 2>"$TMP_DIR/api_post.err")
+api_post_st=$(grep '^status:' "$TMP_DIR/api_post.err" | awk '{print $2}')
+[ "$api_post_st" = "200" ] && ok_ "POST /api/advise returns status 200" || bad_ "POST /api/advise status: $api_post_st"
+if printf '%s\n' "$api_post_json" | python3 -m json.tool >/dev/null 2>&1; then
+    ok_ "POST /api/advise outputs valid JSON"
+else
+    bad_ "POST /api/advise invalid JSON"
+fi
+
+api_bad_json=$("$ROOT/pseudoforge" api GET '/api/advise' 2>"$TMP_DIR/api_bad.err" || true)
+api_bad_st=$(grep '^status:' "$TMP_DIR/api_bad.err" | awk '{print $2}')
+[ "$api_bad_st" = "400" ] && ok_ "GET /api/advise without element returns status 400" || bad_ "GET /api/advise without element status: $api_bad_st"
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

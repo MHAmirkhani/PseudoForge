@@ -195,6 +195,32 @@ def elements():
     return _passthrough("/api/elements")
 
 
+@app.get("/api/advise")
+def advise_get(request: Request):
+    q = request.url.query
+    path = "/api/advise" + (f"?{q}" if q else "")
+    status, body = call_core("GET", path)
+    return JSONResponse(status_code=status, content=body)
+
+
+@app.post("/api/advise")
+async def advise_post(request: Request):
+    raw = await request.body()
+    if len(raw) > 64 * 1024:
+        return JSONResponse(
+            status_code=413,
+            content={"error": "body_too_large", "message": "An advise request is a small JSON object."},
+        )
+    with tempfile.NamedTemporaryFile("wb", suffix=".json", delete=False) as fh:
+        fh.write(raw)
+        tmp = fh.name
+    try:
+        status, body = call_core("POST", "/api/advise", tmp)
+    finally:
+        os.unlink(tmp)
+    return JSONResponse(status_code=status, content=body)
+
+
 @app.get("/api/native")
 def native_list():
     return _passthrough("/api/native")

@@ -62,6 +62,8 @@ GET	/api/formats	http_h_formats	Every format, and every conversion path with its
 GET	/api/profiles	http_h_profiles	Every library profile
 GET	/api/xc	http_h_xc	Every exchange-correlation functional
 GET	/api/elements	http_h_elements	The element table
+GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
+POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 GET	/api/native	http_h_native_list	Native files available on this server
 GET	/api/native/:id	http_h_native_one	One native file: metadata and provenance
 POST	/api/convert	http_h_convert	Convert a native file to another format
@@ -101,7 +103,11 @@ http_error() {   # http_error <status> <code> <message> [extra-json]
 # ---------------------------------------------------------------------------
 http_match() {   # http_match <method> <path>
     local method=$1 path=$2 m p h _s
-    HTTP_HANDLER='' HTTP_PARAM=''
+    HTTP_HANDLER='' HTTP_PARAM='' HTTP_QUERY=''
+    if [[ "$path" == *\?* ]]; then
+        HTTP_QUERY="${path#*\?}"
+        path="${path%%\?*}"
+    fi
     path=${path%/}; [ -n "$path" ] || path=/
 
     while IFS=$'\t' read -r m p h _s; do
@@ -136,6 +142,7 @@ http_match() {   # http_match <method> <path>
 # ---------------------------------------------------------------------------
 http_handle() {
     local method=$1 path=$2 body=${3:-}
+    local HTTP_QUERY=''
     HTTP_STATUS=200
 
     # The registries the handlers read.  Each loader returns early when it has
@@ -148,6 +155,7 @@ http_handle() {
     pf_engines_load  2>/dev/null || true
     pf_convert_load  2>/dev/null || true
     pf_formats_load  2>/dev/null || true
+    pf_advice_load   2>/dev/null || true
 
     # Messages must never reach the body; only the handler's JSON does.
     pf_sink_use null
@@ -156,8 +164,11 @@ http_handle() {
         # A path that exists under another method is a 405, not a 404 -- the
         # difference tells a client whether to fix the verb or the URL.
         local m p h _s found=0
+        local check_path=$path
+        [[ "$check_path" == *\?* ]] && check_path="${check_path%%\?*}"
+        check_path=${check_path%/}; [ -n "$check_path" ] || check_path=/
         while IFS=$'\t' read -r m p h _s; do
-            [ "$p" = "${path%/}" ] && found=1
+            [ "$p" = "$check_path" ] && found=1
         done < <(http_routes)
         if [ "$found" = 1 ]; then
             http_error 405 method_not_allowed "That path does not accept $method."
@@ -292,6 +303,92 @@ http_h_elements() {
             "$(http_json_str "${EL_SERIES[$s]:-}")"
     done | http_json_array
     printf '\n'
+}
+
+# ---------------------------------------------------------------------------
+# Query string helper
+# ---------------------------------------------------------------------------
+http_query_param() {   # http_query_param <query_string> <param_name>
+    local q="${1:-}" key="$2"
+    local pair k v
+    local old_ifs=$IFS
+    IFS='&'
+    for pair in $q; do
+        k="${pair%%=*}"
+        v="${pair#*=}"
+        if [ "$k" = "$key" ]; then
+            IFS=$old_ifs
+            v="${v//+/ }"
+            printf '%b' "${v//%/\\x}"
+            return 0
+        fi
+    done
+    IFS=$old_ifs
+    return 1
+}
+
+# ---------------------------------------------------------------------------
+# Advise -- physics-reasoned pseudopotential recommendations.
+#
+# GET  /api/advise?element=Fe&calculation=phonons&code=qe&accuracy=balanced
+# POST /api/advise (body: {"element":"Fe","calculation":"phonons",...})
+# ---------------------------------------------------------------------------
+http_h_advise() {
+    local body=${1:-}
+    local el="" calc="" code="" mat="" xc="" acc="balanced"
+
+    if [ -n "$body" ] && [ -f "$body" ]; then
+        el=$(http_body_field "$body" element)
+        [ -n "$el" ] || el=$(http_body_field "$body" el)
+        calc=$(http_body_field "$body" calculation)
+        [ -n "$calc" ] || calc=$(http_body_field "$body" calc)
+        code=$(http_body_field "$body" code)
+        mat=$(http_body_field "$body" material)
+        [ -n "$mat" ] || mat=$(http_body_field "$body" mat)
+        xc=$(http_body_field "$body" functional)
+        [ -n "$xc" ] || xc=$(http_body_field "$body" xc)
+        acc=$(http_body_field "$body" accuracy)
+        [ -n "$acc" ] || acc=$(http_body_field "$body" acc)
+    fi
+
+    if [ -n "${HTTP_QUERY:-}" ]; then
+        local q_el; q_el=$(http_query_param "$HTTP_QUERY" element)
+        [ -n "$q_el" ] || q_el=$(http_query_param "$HTTP_QUERY" el)
+        [ -n "$q_el" ] && el=$q_el
+
+        local q_calc; q_calc=$(http_query_param "$HTTP_QUERY" calculation)
+        [ -n "$q_calc" ] || q_calc=$(http_query_param "$HTTP_QUERY" calc)
+        [ -n "$q_calc" ] && calc=$q_calc
+
+        local q_code; q_code=$(http_query_param "$HTTP_QUERY" code)
+        [ -n "$q_code" ] && code=$q_code
+
+        local q_mat; q_mat=$(http_query_param "$HTTP_QUERY" material)
+        [ -n "$q_mat" ] || q_mat=$(http_query_param "$HTTP_QUERY" mat)
+        [ -n "$q_mat" ] && mat=$q_mat
+
+        local q_xc; q_xc=$(http_query_param "$HTTP_QUERY" functional)
+        [ -n "$q_xc" ] || q_xc=$(http_query_param "$HTTP_QUERY" xc)
+        [ -n "$q_xc" ] && xc=$q_xc
+
+        local q_acc; q_acc=$(http_query_param "$HTTP_QUERY" accuracy)
+        [ -n "$q_acc" ] || q_acc=$(http_query_param "$HTTP_QUERY" acc)
+        [ -n "$q_acc" ] && acc=$q_acc
+    fi
+
+    [ -n "$acc" ] || acc="balanced"
+
+    if [ -z "$el" ]; then
+        http_error 400 missing_element "The 'element' parameter is required."
+        return 0
+    fi
+
+    if ! advise_for "$el" "$calc" "$code" "$mat" "$xc" "$acc"; then
+        http_error 400 advise_failed "Could not generate advice for element '$el'."
+        return 0
+    fi
+
+    advise_render_json
 }
 
 # ---------------------------------------------------------------------------
