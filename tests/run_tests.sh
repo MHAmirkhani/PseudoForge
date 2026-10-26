@@ -587,7 +587,57 @@ else
     bad_ "interface audit" "run: tools/audit-interfaces.sh"
 fi
 
+# Website and transport suites.
+if [ -z "${UVICORN_BIN:-}" ] && [ -x "$ROOT/server/.venv/bin/uvicorn" ]; then
+    export UVICORN_BIN="$ROOT/server/.venv/bin/uvicorn"
+fi
+if [ -z "${MKDOCS_BIN:-}" ] && [ -x "$ROOT/server/.venv/bin/mkdocs" ]; then
+    export MKDOCS_BIN="$ROOT/server/.venv/bin/mkdocs"
+fi
+
+run_subsuite() {
+    local label=$1; shift
+    local out rc=0 p=0 f=0 s=0
+    out=$("$@" 2>&1) || rc=$?
+    local clean summary
+    clean=$(printf '%s\n' "$out" | sed -E 's/\x1B\[[0-9;]*[mK]//g')
+    summary=$(printf '%s\n' "$clean" | grep -E '^[0-9]+ passed, [0-9]+ failed, [0-9]+ skipped' | tail -1)
+    if [ -n "$summary" ]; then
+        p=$(printf '%s' "$summary" | awk '{print $1}')
+        f=$(printf '%s' "$summary" | awk '{print $3}')
+        s=$(printf '%s' "$summary" | awk '{print $5}')
+        pass=$((pass + p))
+        fail=$((fail + f))
+        skip=$((skip + s))
+        if [ "$f" -eq 0 ] && [ "$rc" -eq 0 ]; then
+            ok_ "$label ($p checks)"
+            pass=$((pass - 1))
+        else
+            bad_ "$label ($f failed of $((p + f)))" "$(printf '%s\n' "$clean" | grep 'FAIL' | head -3)"
+            fail=$((fail - 1))
+        fi
+    else
+        if [ "$rc" -eq 0 ]; then
+            ok_ "$label"
+        else
+            bad_ "$label" "exit code $rc"
+        fi
+    fi
+}
+
+section "REST interface"
+run_subsuite "the website REST API contract" env http_proxy="" https_proxy="" no_proxy="*" bash "$HERE/test_http.sh"
+
+section "Nginx configuration"
+run_subsuite "Nginx deployment configuration" bash "$HERE/test_nginx_config.sh"
+
 if [ "${1:-}" = --all ]; then
+    section "documentation build (strict)"
+    run_subsuite "MkDocs strict build" bash "$HERE/test_mkdocs.sh"
+
+    section "documentation deployment (links and structure)"
+    run_subsuite "deployed documentation structure" bash "$HERE/test_docs_deploy.sh"
+
     section "PSlibrary round-trip (slow)"
     if bash "$HERE/test_psl_roundtrip.sh"; then ok_ "round-trip"; else bad_ "round-trip"; fi
 
@@ -634,6 +684,10 @@ if [ "${1:-}" = --all ]; then
     # it knows it exists:
     section "engine matrix"
     skip_ "run separately: tests/test_engine_matrix.sh  (needs real engines)"
+else
+    section "documentation site (slow)"
+    skip_ "run with --all: tests/test_mkdocs.sh"
+    skip_ "run with --all: tests/test_docs_deploy.sh"
 fi
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \

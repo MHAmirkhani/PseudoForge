@@ -22,6 +22,11 @@
 # ---------------------------------------------------------------------------
 set -uo pipefail
 
+# Internal probes must not go through a proxy.
+no_proxy="127.0.0.1,localhost,${no_proxy:-}"
+NO_PROXY="$no_proxy"
+export no_proxy NO_PROXY
+
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
 export PF_ROOT=$ROOT PF_LIB=$ROOT/lib PF_DATA=$ROOT/data
