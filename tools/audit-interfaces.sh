@@ -71,10 +71,10 @@ profile xc validate import report plot api native recipe list show config advise
 # `tui` alias, --functional to the functional list filter, --no-plot to
 # the --plot flag's inverse.
 SUB_FLAGS="
---accuracy --all --calc --calculation --check --code --desc --description --dft --ecut --element --families --format --formats
---functional --help --json --label --license --material --no-cutoff-scan --no-plot
+--accuracy --all --calc --calculation --check --code --desc --description --dft --diff --ecut --element --families --format --formats
+--functional --help --json --label --license --material --meta --no-cutoff-scan --no-plot
 --note --notes --path --plot-bands --plot-dir --plot-dos --plot-format
---plot-rlderiv --proxy --qe --reference --relativity --rho --routes
+--plot-rlderiv --project --proxy --qe --reference --relativity --rho --routes
 --set-nc --set-paw --set-us --show-citation --status --summary --tag
 --template --tui --type --which-augfun --why --yes
 "
