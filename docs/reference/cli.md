@@ -53,6 +53,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `doctor` | -- | check the environment and the recipe database |
 | `advise` | `-e EL [opts]` | physics reasoning on which pseudopotential to choose |
 | `provenance` | `<id>` | show provenance record for a native file |
+| `element` | `<symbol>` | list native store files and missing profiles for an element |
 
 ### Options
 
@@ -124,6 +125,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `--` | no | `--` |
 
 <!-- generated:end -->
+
 
 ---
 

@@ -52,6 +52,7 @@ const API = (() => {
     profiles: ()      => get('/profiles'),
     xc:       ()      => get('/xc'),
     elements: ()      => get('/elements'),
+    element:  (sym)   => get('/elements/' + encodeURIComponent(sym)),
     native:   ()      => get('/native'),
     nativeOne:(id)    => get('/native/' + encodeURIComponent(id)),
     convert:  (id, to)=> post('/convert', { id, to }),

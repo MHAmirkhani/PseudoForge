@@ -62,6 +62,7 @@ GET	/api/formats	http_h_formats	Every format, and every conversion path with its
 GET	/api/profiles	http_h_profiles	Every library profile
 GET	/api/xc	http_h_xc	Every exchange-correlation functional
 GET	/api/elements	http_h_elements	The element table
+GET	/api/elements/:symbol	http_h_element	Native files and profiles for one element
 GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 GET	/api/native	http_h_native_list	Native files available on this server
@@ -304,6 +305,19 @@ http_h_elements() {
             "$(http_json_str "${EL_SERIES[$s]:-}")"
     done | http_json_array
     printf '\n'
+}
+
+http_h_element() {
+    local sym=$HTTP_PARAM
+    [ -n "$sym" ] || {
+        http_error 400 bad_request "An element symbol is required."
+        return 0
+    }
+    if ! element_summary_for "$sym"; then
+        http_error 404 not_found "Unknown element: $sym"
+        return 0
+    fi
+    element_render_json
 }
 
 # ---------------------------------------------------------------------------

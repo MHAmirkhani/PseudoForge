@@ -30,6 +30,7 @@ pseudoforge api POST /api/convert body.json
 | `GET` | `/api/profiles` | Every library profile |
 | `GET` | `/api/xc` | Every exchange-correlation functional |
 | `GET` | `/api/elements` | The element table |
+| `GET` | `/api/elements/:symbol` | Native files and profiles for one element |
 | `GET` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `POST` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `GET` | `/api/native` | Native files available on this server |
@@ -41,6 +42,7 @@ pseudoforge api POST /api/convert body.json
 | `POST` | `/api/generate` | Refused here: generation is a local operation |
 
 <!-- generated:end -->
+
 
 ---
 

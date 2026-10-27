@@ -444,3 +444,18 @@ tui_provenance() {
     pf_sink_use cli
     ui_msg "Provenance: $id" "$(pf_sink_filter all)" 24 78
 }
+
+tui_element() {
+    local sym
+    sym=$(ui_input "Element" \
+        "Element symbol (e.g. Si, Fe):" 10 70 "Si") || return 0
+    [ -n "$sym" ] || return 0
+    pf_sink_use capture; pf_sink_reset
+    if element_summary_for "$sym"; then
+        element_render_human
+    else
+        printf 'No data found for element: %s\n' "$sym"
+    fi
+    pf_sink_use cli
+    ui_msg "Element: $sym" "$(pf_sink_filter all)" 24 78
+}

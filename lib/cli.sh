@@ -47,6 +47,7 @@ USAGE
     doctor                  check the environment and the recipe database
     advise -e EL [opts]     physics reasoning on which pseudopotential to choose
     provenance <id>         show provenance record for a native file
+    element <symbol>        list native store files and missing profiles for an element
     config [--show|--edit|--set K=V]
     version | help
 
@@ -311,6 +312,14 @@ binary fingerprint, build date, profile, upstream source, generation command,
 size, and SHA256.
 EOF
         ;;
+        element) cat <<'EOF'
+usage: pseudoforge element <symbol> [--json]
+
+List all native files in the store for an element grouped by family (NC, PAW,
+US) and functional, with sizes and engines.  Also lists missing profiles with
+copyable commands to generate them.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -356,6 +365,7 @@ cli_parse() {
         case $1 in
             advise|advisory) shift; cmd_advise "$@"; exit 0 ;;
             provenance) shift; cmd_provenance "$@"; exit 0 ;;
+            element) shift; cmd_element "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -1921,5 +1931,37 @@ cmd_provenance() {
         provenance_render_json
     else
         provenance_render_human
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_element -- show files and available profiles for an element
+# ---------------------------------------------------------------------------
+cmd_element() {
+    case "${1:-}" in -h|--help) cli_help_for element; return 0 ;; esac
+    local sym="" as_json=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for element; return 0 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                if [ -z "$sym" ] && [[ "$1" != -* ]]; then
+                    sym=$1; shift
+                else
+                    die "unknown option '$1' -- try: pseudoforge element --help"
+                fi ;;
+        esac
+    done
+
+    [ -n "$sym" ] || die "usage: pseudoforge element <symbol> [--json] -- try: pseudoforge element --help"
+
+    element_summary_for "$sym" || exit 1
+
+    if [ "$as_json" -eq 1 ]; then
+        element_render_json
+    else
+        element_render_human
     fi
 }

@@ -200,6 +200,11 @@ def elements():
     return _passthrough("/api/elements")
 
 
+@app.get("/api/elements/{symbol}")
+def elements_one(symbol: str):
+    return _passthrough(f"/api/elements/{symbol}")
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query
