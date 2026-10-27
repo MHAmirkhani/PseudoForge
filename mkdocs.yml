@@ -118,6 +118,9 @@ nav:
       - Coverage: reference/coverage.md
       - Recent files: reference/recent.md
       - Capabilities: reference/capabilities.md
+      - Compare: reference/compare.md
+      - Cutoff: reference/cutoff.md
+      - Build command: reference/build-command.md
       - Engines:
           - Overview: reference/engines.md
           - ld1.x: reference/engines/ld1.md
