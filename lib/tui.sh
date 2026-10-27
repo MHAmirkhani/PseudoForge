@@ -483,3 +483,21 @@ tui_coverage() {
     ui_text "Coverage Matrix" "$tmp" 24 78
     rm -f "$tmp"
 }
+
+tui_recent() {
+    local count
+    count=$(ui_input "Recent Files" \
+        "Number of recent files to show (default: 10):" 10 50 "10") || return 0
+    count=${count:-10}
+    pf_sink_use capture; pf_sink_reset
+    if recent_files "$count"; then
+        recent_render_human "$count"
+    else
+        printf 'Could not retrieve recent files.\n'
+    fi
+    pf_sink_use cli
+    local tmp; tmp=$(mktemp)
+    pf_sink_filter all > "$tmp"
+    ui_text "Recent Files" "$tmp" 24 78
+    rm -f "$tmp"
+}

@@ -55,6 +55,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `provenance` | `<id>` | show provenance record for a native file |
 | `element` | `<symbol>` | list native store files and missing profiles for an element |
 | `coverage` | `[--profile P]` | matrix of element x profile availability |
+| `recent` | `[--count N]` | show most recently added files to the store |
 
 ### Options
 

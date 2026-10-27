@@ -66,6 +66,7 @@ GET	/api/elements/:symbol	http_h_element	Native files and profiles for one eleme
 GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
+GET	/api/recent	http_h_recent	Recently added files in the store
 GET	/api/native	http_h_native_list	Native files available on this server
 GET	/api/native/:id	http_h_native_one	One native file: metadata and provenance
 GET	/api/provenance/:id	http_h_provenance	Show provenance for a native file
@@ -414,6 +415,17 @@ http_h_coverage() {
         return 0
     fi
     coverage_render_json
+}
+
+http_h_recent() {
+    local count
+    count=$(http_query_param "$HTTP_QUERY" count)
+    count=${count:-10}
+    if ! recent_files "$count"; then
+        http_error 500 recent_failed "Could not retrieve recent files."
+        return 0
+    fi
+    recent_render_json
 }
 
 # ---------------------------------------------------------------------------

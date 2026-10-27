@@ -1089,7 +1089,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-here').addEventListener('click', onHere);
   document.getElementById('btn-build').addEventListener('click', onBuild);
   document.getElementById('btn-compare').addEventListener('click', onCompare);
+  loadRecentSection();
 });
+
+async function loadRecentSection() {
+  const container = document.getElementById('recent-list');
+  if (!container) return;
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  try {
+    const res = await api.recent(5);
+    if (res.status !== 200 || !Array.isArray(res.body) || res.body.length === 0) {
+      container.innerHTML = '<p class="quiet">No recently added files found.</p>';
+      return;
+    }
+    const html = `
+      <table class="recent-table" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+        <thead>
+          <tr style="text-align: left; border-bottom: 1px solid var(--line);">
+            <th style="padding: 0.5rem 0.6rem; color: var(--muted); font-size: 0.82rem;">Date</th>
+            <th style="padding: 0.5rem 0.6rem; color: var(--muted); font-size: 0.82rem;">File</th>
+            <th style="padding: 0.5rem 0.6rem; color: var(--muted); font-size: 0.82rem;">Profile</th>
+            <th style="padding: 0.5rem 0.6rem; color: var(--muted); font-size: 0.82rem;">Family</th>
+            <th style="padding: 0.5rem 0.6rem; color: var(--muted); font-size: 0.82rem;">Functional</th>
+            <th style="padding: 0.5rem 0.6rem; text-align: right; color: var(--muted); font-size: 0.82rem;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${res.body.map(f => `
+            <tr style="border-bottom: 1px solid var(--line);">
+              <td style="padding: 0.45rem 0.6rem; color: var(--muted); font-size: 0.82rem; white-space: nowrap;">${esc(f.date || '')}</td>
+              <td style="padding: 0.45rem 0.6rem; font-family: var(--mono); font-weight: 500;">${esc(f.filename || '')}</td>
+              <td style="padding: 0.45rem 0.6rem;">${esc(f.profile || '—')}</td>
+              <td style="padding: 0.45rem 0.6rem;">${esc((f.family || '—').toUpperCase())}</td>
+              <td style="padding: 0.45rem 0.6rem;">${esc((f.xc || '—').toUpperCase())}</td>
+              <td style="padding: 0.45rem 0.6rem; text-align: right; white-space: nowrap;">
+                ${f.id ? `<a href="/provenance/?id=${encodeURIComponent(f.id)}" class="btn-sm" style="margin-right: 0.35rem; display: inline-block; padding: 0.2rem 0.45rem; font-size: 0.78rem; text-decoration: none; border: 1px solid var(--line); border-radius: 4px; color: var(--fg);">Provenance</a>` : ''}
+                ${f.id ? `<a href="${api.downloadUrl(f.id)}" class="btn-sm primary" style="display: inline-block; padding: 0.2rem 0.45rem; font-size: 0.78rem; text-decoration: none; background: var(--accent); color: #fff; border-radius: 4px;" download>Download</a>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = '<p class="quiet">Unable to load recent files.</p>';
+  }
+}
 
 
 /* ---------------------------------------------------------------------------

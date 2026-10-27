@@ -212,6 +212,13 @@ def coverage_get(request: Request):
     return _passthrough(path)
 
 
+@app.get("/api/recent")
+def recent_get(request: Request):
+    q = request.url.query
+    path = "/api/recent" + (f"?{q}" if q else "")
+    return _passthrough(path)
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query
