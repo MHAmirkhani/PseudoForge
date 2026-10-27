@@ -50,7 +50,14 @@ pf_config_defaults() {
     # The deployment target is a 1-core, 1 GB VPS with 10 GB of disk that does
     # not run engines.  The budget is asserted by tests/test_vps_layout.sh so
     # the layout cannot quietly outgrow the machine it is meant for.
-    : "${PF_VAR_DIR:=/var/lib/pseudoforge}"
+    if [ -z "${PF_VAR_DIR:-}" ]; then
+        local vps_var="${PF_VPS_VAR_DIR:-/var/lib/pseudoforge}"
+        if [ -d "$vps_var" ] && [ -w "$vps_var" ]; then
+            PF_VAR_DIR="$vps_var"
+        else
+            PF_VAR_DIR="$HOME/.pseudoforge"
+        fi
+    fi
     : "${PF_NATIVE_DIR:=$PF_VAR_DIR/native}"
     : "${PF_CACHE_DIR:=$PF_VAR_DIR/cache}"
     : "${PF_VPS_BUDGET_MB:=8192}"

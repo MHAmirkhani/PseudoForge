@@ -35,7 +35,14 @@ HTTP_HANDLER=
 
 # Where the served files live.  Overridable so a test can point at a fixture
 # tree without a VPS.
-: "${PF_VAR_DIR:=/var/lib/pseudoforge}"
+if [ -z "${PF_VAR_DIR:-}" ]; then
+    vps_var="${PF_VPS_VAR_DIR:-/var/lib/pseudoforge}"
+    if [ -d "$vps_var" ] && [ -w "$vps_var" ]; then
+        PF_VAR_DIR="$vps_var"
+    else
+        PF_VAR_DIR="$HOME/.pseudoforge"
+    fi
+fi
 : "${PF_NATIVE_DIR:=$PF_VAR_DIR/native}"
 : "${PF_CACHE_DIR:=$PF_VAR_DIR/cache}"
 
