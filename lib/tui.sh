@@ -389,6 +389,7 @@ tui_main() {
             quick    "Generate -- I know what I want" \
             recipe   "Start from a recipe saved earlier" \
             advanced "Advanced options are $([ "$TUI_ADVANCED" = 1 ] && echo shown || echo hidden)" \
+            tools    "Advisory, provenance, coverage, and more" \
             profiles "Library profiles and what they cover" \
             recipes  "Browse the recipe database" \
             xc       "Exchange-correlation functionals" \
@@ -405,6 +406,7 @@ tui_main() {
             quick)    ui_quick ;;
             recipe)   tui_load_recipe && tui_review ;;
             advanced) TUI_ADVANCED=$([ "$TUI_ADVANCED" = 1 ] && echo 0 || echo 1) ;;
+            tools)    tui_tools ;;
             profiles) ui_browse_profiles ;;
             recipes)  ui_browse_recipes ;;
             xc)       ui_browse_xc ;;
@@ -430,19 +432,70 @@ tui_doctor_panel() {
     rm -f "$tmp"
 }
 
+tui_tools() {
+    local tchoice
+    while : ; do
+        UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+        tchoice=$(ui_menu "PseudoForge Tools" \
+"\nAdvisory, diagnostic and store exploration tools.\n" \
+            20 12 \
+            advise        "Which pseudopotential for my calculation?" \
+            provenance    "Where did a file come from?" \
+            element       "What exists for element X?" \
+            coverage      "What's available, what's not" \
+            recent        "Recently added files" \
+            capabilities  "What this installation can and cannot do") || return 0
+
+        case $tchoice in
+            advise)       tui_advise ;;
+            provenance)   tui_provenance ;;
+            element)      tui_element ;;
+            coverage)     tui_coverage ;;
+            recent)       tui_recent ;;
+            capabilities) tui_capabilities ;;
+        esac
+    done
+}
+
+tui_advise() {
+    local el calc
+    el=$(ui_input "Advisory System" \
+        "Element symbol (e.g. Fe, Si, Cu):" 10 50 "Fe") || return 0
+    [ -n "$el" ] || return 0
+
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+    calc=$(ui_menu "Calculation Type" \
+        "Select the primary calculation you intend to run:" 18 8 \
+        scf         "Self-consistent field (ground state, energy)" \
+        bands       "Band structure and density of states" \
+        phonons     "Phonon dispersions and vibrational properties" \
+        gw          "Many-body perturbation theory (GW / BSE)" \
+        high-p      "High-pressure and extreme compression" \
+        magnetic    "Magnetic systems, spin-orbit, non-collinear" \
+        defect      "Defects, vacancies, impurities, charged cells" \
+        surface     "Surfaces, interfaces, 2D materials, slabs") || return 0
+
+    local out
+    if advise_for "$el" "$calc"; then
+        out=$(advise_render_human)
+    else
+        out="Could not compute advisory recommendations for $el + $calc."
+    fi
+    ui_msg "Advisory: $el ($calc)" "$out" 24 78
+}
+
 tui_provenance() {
     local id
     id=$(ui_input "Provenance" \
         "File id (e.g. Si.pbe-n-oncv.UPF):" 10 70 "") || return 0
     [ -n "$id" ] || return 0
-    pf_sink_use capture; pf_sink_reset
+    local out
     if provenance_for "$id"; then
-        provenance_render_human
+        out=$(provenance_render_human)
     else
-        printf 'No native file or provenance found for: %s\n' "$id"
+        out="No native file or provenance found for: $id"
     fi
-    pf_sink_use cli
-    ui_msg "Provenance: $id" "$(pf_sink_filter all)" 24 78
+    ui_msg "Provenance: $id" "$out" 24 78
 }
 
 tui_element() {
@@ -450,14 +503,13 @@ tui_element() {
     sym=$(ui_input "Element" \
         "Element symbol (e.g. Si, Fe):" 10 70 "Si") || return 0
     [ -n "$sym" ] || return 0
-    pf_sink_use capture; pf_sink_reset
+    local out
     if element_summary_for "$sym"; then
-        element_render_human
+        out=$(element_render_human)
     else
-        printf 'No data found for element: %s\n' "$sym"
+        out="No data found for element: $sym"
     fi
-    pf_sink_use cli
-    ui_msg "Element: $sym" "$(pf_sink_filter all)" 24 78
+    ui_msg "Element: $sym" "$out" 24 78
 }
 
 tui_coverage() {
@@ -471,15 +523,12 @@ tui_coverage() {
             *) e=$filter ;;
         esac
     fi
-    pf_sink_use capture; pf_sink_reset
-    if coverage_matrix "$p" "$e"; then
-        coverage_render_human
-    else
-        printf 'Could not compute coverage matrix.\n'
-    fi
-    pf_sink_use cli
     local tmp; tmp=$(mktemp)
-    pf_sink_filter all > "$tmp"
+    if coverage_matrix "$p" "$e"; then
+        coverage_render_human > "$tmp"
+    else
+        printf 'Could not compute coverage matrix.\n' > "$tmp"
+    fi
     ui_text "Coverage Matrix" "$tmp" 24 78
     rm -f "$tmp"
 }
@@ -489,29 +538,23 @@ tui_recent() {
     count=$(ui_input "Recent Files" \
         "Number of recent files to show (default: 10):" 10 50 "10") || return 0
     count=${count:-10}
-    pf_sink_use capture; pf_sink_reset
-    if recent_files "$count"; then
-        recent_render_human "$count"
-    else
-        printf 'Could not retrieve recent files.\n'
-    fi
-    pf_sink_use cli
     local tmp; tmp=$(mktemp)
-    pf_sink_filter all > "$tmp"
+    if recent_files "$count"; then
+        recent_render_human "$count" > "$tmp"
+    else
+        printf 'Could not retrieve recent files.\n' > "$tmp"
+    fi
     ui_text "Recent Files" "$tmp" 24 78
     rm -f "$tmp"
 }
 
 tui_capabilities() {
-    pf_sink_use capture; pf_sink_reset
-    if capabilities_for; then
-        capabilities_render_human
-    else
-        printf 'Could not load capabilities.\n'
-    fi
-    pf_sink_use cli
     local tmp; tmp=$(mktemp)
-    pf_sink_filter all > "$tmp"
+    if capabilities_for; then
+        capabilities_render_human > "$tmp"
+    else
+        printf 'Could not load capabilities.\n' > "$tmp"
+    fi
     ui_text "PseudoForge Capabilities" "$tmp" 24 78
     rm -f "$tmp"
 }
