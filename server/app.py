@@ -45,6 +45,11 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 PF_BIN = os.environ.get("PF_BIN", "pseudoforge")
 PF_VAR_DIR = Path(os.environ.get("PF_VAR_DIR", "/var/lib/pseudoforge"))
 PF_NATIVE_DIR = Path(os.environ.get("PF_NATIVE_DIR", PF_VAR_DIR / "native"))
+if not (PF_NATIVE_DIR / "index.tsv").is_file():
+    for _fallback in [Path.home() / "pf-native", Path.home() / "pf-var" / "native"]:
+        if (_fallback / "index.tsv").is_file():
+            PF_NATIVE_DIR = _fallback
+            break
 PF_CACHE_DIR = Path(os.environ.get("PF_CACHE_DIR", PF_VAR_DIR / "cache"))
 DECOMPRESSED_DIR = Path(os.environ.get("PF_DECOMPRESSED_DIR", PF_VAR_DIR / "decompressed"))
 PF_TIMEOUT = int(os.environ.get("PF_API_TIMEOUT", "60"))
@@ -229,6 +234,11 @@ def native_list():
 @app.get("/api/native/{file_id}")
 def native_one(file_id: str):
     return _passthrough(f"/api/native/{file_id}")
+
+
+@app.get("/api/provenance/{file_id:path}")
+def provenance_one(file_id: str):
+    return _passthrough(f"/api/provenance/{file_id}")
 
 
 @app.get("/api/routes")

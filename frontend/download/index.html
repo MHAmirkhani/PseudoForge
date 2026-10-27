@@ -215,9 +215,9 @@ function render() {
         '<td><code>' + esc(r.format) + '</code></td>' +
         '<td>' + ((r.size || 0) / 1024).toFixed(0) + ' kB</td>' +
         '<td>' + (r.has_provenance
-          ? 'recorded'
+          ? '<a href="/provenance/?id=' + encodeURIComponent(r.id) + '">recorded</a>'
           : '<span class="warn">none</span>') + '</td>' +
-        '<td><a class="btn" href="' + API.downloadUrl(r.id) + '">Download</a></td>' +
+        '<td><a class="btn" href="' + API.downloadUrl(r.id) + '">Download</a> <a class="btn" style="margin-left:0.35rem;" href="/provenance/?id=' + encodeURIComponent(r.id) + '">Provenance</a></td>' +
       '</tr>'
     ).join('') +
     '</tbody></table>';

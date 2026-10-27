@@ -46,6 +46,7 @@ USAGE
     plot <project>          draw log derivatives and wavefunctions for a run
     doctor                  check the environment and the recipe database
     advise -e EL [opts]     physics reasoning on which pseudopotential to choose
+    provenance <id>         show provenance record for a native file
     config [--show|--edit|--set K=V]
     version | help
 
@@ -302,6 +303,14 @@ options:
   -q, --quiet              command only, no banner or reasoning
 EOF
         ;;
+        provenance) cat <<'EOF'
+usage: pseudoforge provenance <id> [--json]
+
+Show full provenance record for a native pseudopotential file: engine,
+binary fingerprint, build date, profile, upstream source, generation command,
+size, and SHA256.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -346,6 +355,7 @@ cli_parse() {
     while [ $# -gt 0 ]; do
         case $1 in
             advise|advisory) shift; cmd_advise "$@"; exit 0 ;;
+            provenance) shift; cmd_provenance "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -1879,5 +1889,37 @@ cmd_advise() {
         advise_render_json
     else
         advise_render_human "$quiet"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_provenance -- show provenance record for a native file
+# ---------------------------------------------------------------------------
+cmd_provenance() {
+    case "${1:-}" in -h|--help) cli_help_for provenance; return 0 ;; esac
+    local id="" as_json=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for provenance; return 0 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                if [ -z "$id" ] && [[ "$1" != -* ]]; then
+                    id=$1; shift
+                else
+                    die "unknown option '$1' -- try: pseudoforge provenance --help"
+                fi ;;
+        esac
+    done
+
+    [ -n "$id" ] || die "usage: pseudoforge provenance <id> [--json] -- try: pseudoforge provenance --help"
+
+    provenance_for "$id" || exit 1
+
+    if [ "$as_json" -eq 1 ]; then
+        provenance_render_json
+    else
+        provenance_render_human
     fi
 }

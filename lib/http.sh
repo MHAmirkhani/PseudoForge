@@ -66,6 +66,7 @@ GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 GET	/api/native	http_h_native_list	Native files available on this server
 GET	/api/native/:id	http_h_native_one	One native file: metadata and provenance
+GET	/api/provenance/:id	http_h_provenance	Show provenance for a native file
 POST	/api/convert	http_h_convert	Convert a native file to another format
 GET	/api/download/:id...	http_h_download	Serve a native or converted file
 POST	/api/validate	http_h_validate	Validate an uploaded pseudopotential
@@ -399,7 +400,17 @@ http_h_advise() {
 #   id <TAB> element <TAB> xc <TAB> family <TAB> rel <TAB> engine
 #      <TAB> format <TAB> path <TAB> size <TAB> sha256 <TAB> provenance
 # ---------------------------------------------------------------------------
-http_native_index() { printf '%s/index.tsv\n' "$PF_NATIVE_DIR"; }
+http_native_index() {
+    if [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+        printf '%s/index.tsv\n' "$PF_NATIVE_DIR"
+    elif [ -f "$HOME/pf-native/index.tsv" ]; then
+        printf '%s/index.tsv\n' "$HOME/pf-native"
+    elif [ -f "$HOME/pf-var/native/index.tsv" ]; then
+        printf '%s/index.tsv\n' "$HOME/pf-var/native"
+    else
+        printf '%s/index.tsv\n' "$PF_NATIVE_DIR"
+    fi
+}
 
 # The index columns, by name.  Five call sites used to reach into an index
 # line with `cut -f8`, and adding two columns moved `path` to field 10 --
@@ -701,6 +712,19 @@ http_h_native_one() {
         return 0
     fi
     printf '%s' "$line" | http_native_json
+}
+
+http_h_provenance() {
+    local id=$HTTP_PARAM
+    [ -n "$id" ] || {
+        http_error 400 bad_request "A file id is required."
+        return 0
+    }
+    if ! provenance_for "$id"; then
+        http_error 404 not_found "No native file or provenance found for: $id"
+        return 0
+    fi
+    provenance_render_json
 }
 
 # ---------------------------------------------------------------------------

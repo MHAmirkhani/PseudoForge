@@ -34,6 +34,7 @@ pseudoforge api POST /api/convert body.json
 | `POST` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `GET` | `/api/native` | Native files available on this server |
 | `GET` | `/api/native/:id` | One native file: metadata and provenance |
+| `GET` | `/api/provenance/:id` | Show provenance for a native file |
 | `POST` | `/api/convert` | Convert a native file to another format |
 | `GET` | `/api/download/:id...` | Serve a native or converted file |
 | `POST` | `/api/validate` | Validate an uploaded pseudopotential |

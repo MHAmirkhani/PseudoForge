@@ -429,3 +429,18 @@ tui_doctor_panel() {
     ui_text "This machine" "$tmp" "$(ui_fit_h $((rows + 8)))" "$(ui_fit_w $((cols + 8)))"
     rm -f "$tmp"
 }
+
+tui_provenance() {
+    local id
+    id=$(ui_input "Provenance" \
+        "File id (e.g. Si.pbe-n-oncv.UPF):" 10 70 "") || return 0
+    [ -n "$id" ] || return 0
+    pf_sink_use capture; pf_sink_reset
+    if provenance_for "$id"; then
+        provenance_render_human
+    else
+        printf 'No native file or provenance found for: %s\n' "$id"
+    fi
+    pf_sink_use cli
+    ui_msg "Provenance: $id" "$(pf_sink_filter all)" 24 78
+}

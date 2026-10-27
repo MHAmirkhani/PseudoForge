@@ -52,6 +52,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `plot` | `<project>` | draw log derivatives and wavefunctions for a run |
 | `doctor` | -- | check the environment and the recipe database |
 | `advise` | `-e EL [opts]` | physics reasoning on which pseudopotential to choose |
+| `provenance` | `<id>` | show provenance record for a native file |
 
 ### Options
 
