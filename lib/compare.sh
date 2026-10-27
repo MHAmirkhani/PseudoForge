@@ -177,13 +177,13 @@ compare_render_json() {
         "$(http_json_str "$CMP_EL_A")" \
         "$(http_json_str "$CMP_ENG_A")" \
         "$(http_json_str "$CMP_XC_A")" \
-        "${CMP_CUTOFF_A_JSON:-{}}"
+        "${CMP_CUTOFF_A_JSON:-"{}"}"
     printf '  "b": { "id": %s, "element": %s, "engine": %s, "xc": %s, "cutoffs": %s },\n' \
         "$(http_json_str "$CMP_ID_B")" \
         "$(http_json_str "$CMP_EL_B")" \
         "$(http_json_str "$CMP_ENG_B")" \
         "$(http_json_str "$CMP_XC_B")" \
-        "${CMP_CUTOFF_B_JSON:-{}}"
+        "${CMP_CUTOFF_B_JSON:-"{}"}"
     printf '  "diff": {\n'
     printf '    "size_bytes_delta": %d,\n' "$CMP_DELTA_SIZE"
     printf '    "sha256_equal": %s,\n' "$CMP_SHA_EQUAL"

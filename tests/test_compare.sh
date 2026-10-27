@@ -83,6 +83,11 @@ if grep -q '"diff"' <<< "$out4" && grep -q '"warnings"' <<< "$out4"; then
 else
     bad_ "pseudoforge compare --json failed" "$out4"
 fi
+if python3 -m json.tool <<< "$out4" >/dev/null 2>&1; then
+    ok_ "pseudoforge compare --json produces valid JSON"
+else
+    bad_ "pseudoforge compare --json produces invalid JSON" "$out4"
+fi
 
 printf '\n%s== 2. API compare%s\n' "$DIM" "$RESET"
 
@@ -114,6 +119,12 @@ if grep -q "status: 200" <<< "$out7" && grep -q '"engine_changed": true' <<< "$o
     ok_ "POST /api/compare returns 200 and diff fields"
 else
     bad_ "POST /api/compare failed on valid request" "$out7"
+fi
+out7_body=$(grep -v '^status:' <<< "$out7")
+if python3 -m json.tool <<< "$out7_body" >/dev/null 2>&1; then
+    ok_ "POST /api/compare produces valid JSON body"
+else
+    bad_ "POST /api/compare produces invalid JSON body" "$out7"
 fi
 
 printf '\n%s== 3. TUI presence%s\n' "$DIM" "$RESET"
