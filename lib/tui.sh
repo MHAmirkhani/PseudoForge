@@ -459,3 +459,27 @@ tui_element() {
     pf_sink_use cli
     ui_msg "Element: $sym" "$(pf_sink_filter all)" 24 78
 }
+
+tui_coverage() {
+    local filter
+    filter=$(ui_input "Coverage Matrix" \
+        "Optional filter (profile or element, leave blank for default):" 10 70 "") || return 0
+    local p="" e=""
+    if [ -n "$filter" ]; then
+        case "$filter" in
+            psl-high|pseudodojo|gbrv|sssp|atompaw|sg15|cp2k-gth) p=$filter ;;
+            *) e=$filter ;;
+        esac
+    fi
+    pf_sink_use capture; pf_sink_reset
+    if coverage_matrix "$p" "$e"; then
+        coverage_render_human
+    else
+        printf 'Could not compute coverage matrix.\n'
+    fi
+    pf_sink_use cli
+    local tmp; tmp=$(mktemp)
+    pf_sink_filter all > "$tmp"
+    ui_text "Coverage Matrix" "$tmp" 24 78
+    rm -f "$tmp"
+}

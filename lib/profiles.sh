@@ -436,7 +436,7 @@ prof_incompatible_reason() {
 #   True when a run with these settings would use *that library's* parameters.
 prof_covers_element() {
     local prof=$1 el=$2
-    local fam=${3:-${SPEC[family]}} xc=${4:-${SPEC[xc]}} rel=${5:-${SPEC[rel]}}
+    local fam=${3:-${SPEC[family]:-}} xc=${4:-${SPEC[xc]:-}} rel=${5:-${SPEC[rel]:-}}
 
     prof_compatible "$prof" "$fam" "$xc" "$rel" || return 1
 
@@ -461,7 +461,7 @@ prof_covers_element() {
     # family -- gipaw splits ultrasoft from norm-conserving by directory name --
     # so leaving it at whatever the caller happened to have set made every
     # column of the coverage table report the same family's answer.
-    local saved_xc=${SPEC[xc]} saved_rel=${SPEC[rel]} saved_fam=${SPEC[family]:-} found=1
+    local saved_xc=${SPEC[xc]:-} saved_rel=${SPEC[rel]:-} saved_fam=${SPEC[family]:-} found=1
     SPEC[xc]=$xc; SPEC[rel]=$rel; SPEC[family]=$fam
     params_find "$prof" "$el" >/dev/null 2>&1 && found=0
     SPEC[xc]=$saved_xc; SPEC[rel]=$saved_rel; SPEC[family]=$saved_fam
@@ -470,7 +470,7 @@ prof_covers_element() {
 
 # Every element a profile covers under the current settings.
 prof_covered_elements() {
-    local prof=$1 fam=${2:-${SPEC[family]}} xc=${3:-${SPEC[xc]}} rel=${4:-${SPEC[rel]}}
+    local prof=$1 fam=${2:-${SPEC[family]:-}} xc=${3:-${SPEC[xc]:-}} rel=${4:-${SPEC[rel]:-}}
     local el
     for el in "${EL_ORDER[@]}"; do
         prof_covers_element "$prof" "$el" "$fam" "$xc" "$rel" && printf '%s\n' "$el"

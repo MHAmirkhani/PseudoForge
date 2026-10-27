@@ -205,6 +205,13 @@ def elements_one(symbol: str):
     return _passthrough(f"/api/elements/{symbol}")
 
 
+@app.get("/api/coverage")
+def coverage_get(request: Request):
+    q = request.url.query
+    path = "/api/coverage" + (f"?{q}" if q else "")
+    return _passthrough(path)
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query

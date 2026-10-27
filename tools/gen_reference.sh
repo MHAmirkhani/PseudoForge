@@ -20,9 +20,9 @@ set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
-export PF_ROOT=$ROOT PF_LIB=$ROOT/lib PF_DATA=$ROOT/data
-DOCS=$ROOT/docs
-AWKDIR=$HERE/awk
+export PF_ROOT="$ROOT" PF_LIB="$ROOT/lib" PF_DATA="$ROOT/data"
+DOCS="$ROOT/docs"
+AWKDIR="$HERE/awk"
 
 BEGIN='<!-- generated:begin -->'
 END='<!-- generated:end -->'

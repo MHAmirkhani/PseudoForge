@@ -33,6 +33,7 @@ pseudoforge api POST /api/convert body.json
 | `GET` | `/api/elements/:symbol` | Native files and profiles for one element |
 | `GET` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `POST` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
+| `GET` | `/api/coverage` | Element x profile coverage matrix |
 | `GET` | `/api/native` | Native files available on this server |
 | `GET` | `/api/native/:id` | One native file: metadata and provenance |
 | `GET` | `/api/provenance/:id` | Show provenance for a native file |

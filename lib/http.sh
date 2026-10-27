@@ -65,6 +65,7 @@ GET	/api/elements	http_h_elements	The element table
 GET	/api/elements/:symbol	http_h_element	Native files and profiles for one element
 GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
+GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
 GET	/api/native	http_h_native_list	Native files available on this server
 GET	/api/native/:id	http_h_native_one	One native file: metadata and provenance
 GET	/api/provenance/:id	http_h_provenance	Show provenance for a native file
@@ -402,6 +403,17 @@ http_h_advise() {
     fi
 
     advise_render_json
+}
+
+http_h_coverage() {
+    local prof el
+    prof=$(http_query_param "$HTTP_QUERY" profile)
+    el=$(http_query_param "$HTTP_QUERY" element)
+    if ! coverage_matrix "$prof" "$el"; then
+        http_error 400 coverage_failed "Could not compute coverage matrix."
+        return 0
+    fi
+    coverage_render_json
 }
 
 # ---------------------------------------------------------------------------

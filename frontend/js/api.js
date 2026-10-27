@@ -60,6 +60,7 @@ const API = (() => {
     generate: ()      => post('/generate', {}),
     advise:   (params)=> get('/advise?' + new URLSearchParams(params).toString()),
     provenance: (id)  => get('/provenance/' + encodeURIComponent(id)),
+    coverage:   (params) => get('/coverage' + (params ? '?' + new URLSearchParams(params).toString() : '')),
     downloadUrl: (id) => base + '/download/' + id,
   };
 })();

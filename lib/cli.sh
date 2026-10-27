@@ -48,6 +48,7 @@ USAGE
     advise -e EL [opts]     physics reasoning on which pseudopotential to choose
     provenance <id>         show provenance record for a native file
     element <symbol>        list native store files and missing profiles for an element
+    coverage [--profile P]  matrix of element x profile availability
     config [--show|--edit|--set K=V]
     version | help
 
@@ -320,6 +321,14 @@ US) and functional, with sizes and engines.  Also lists missing profiles with
 copyable commands to generate them.
 EOF
         ;;
+        coverage) cat <<'EOF'
+usage: pseudoforge coverage [--profile <prof>] [--element <el>] [--json]
+
+Show element x profile availability matrix: what is in store (green),
+what is buildable locally (blue), what is import-only (yellow), and what
+is absent (white).
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -366,6 +375,7 @@ cli_parse() {
             advise|advisory) shift; cmd_advise "$@"; exit 0 ;;
             provenance) shift; cmd_provenance "$@"; exit 0 ;;
             element) shift; cmd_element "$@"; exit 0 ;;
+            coverage) shift; cmd_coverage "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -1963,5 +1973,37 @@ cmd_element() {
         element_render_json
     else
         element_render_human
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_coverage -- matrix of element x profile availability
+# ---------------------------------------------------------------------------
+cmd_coverage() {
+    case "${1:-}" in -h|--help) cli_help_for coverage; return 0 ;; esac
+    local prof="" el="" as_json=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for coverage; return 0 ;;
+            --profile|-p)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                prof=$2; shift 2 ;;
+            --element|-e)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                el=$2; shift 2 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                die "unknown option '$1' -- try: pseudoforge coverage --help" ;;
+        esac
+    done
+
+    coverage_matrix "$prof" "$el" || exit 1
+
+    if [ "$as_json" -eq 1 ]; then
+        coverage_render_json
+    else
+        coverage_render_human
     fi
 }
