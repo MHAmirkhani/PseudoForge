@@ -22,37 +22,46 @@ ok_()   { printf '  %sPASS%s  %s\n' "$GREEN" "$RESET" "$1"; pass=$((pass + 1)); 
 bad_()  { printf '  %sFAIL%s  %s\n' "$RED" "$RESET" "$1"; [ -n "${2:-}" ] && printf '        %s\n' "$2"; fail=$((fail + 1)); }
 skip_() { printf '  SKIP  %s\n' "$1"; skip=$((skip + 1)); }
 
-# 1. Default recent_files runs
-if recent_files 10; then
-    ok_ "recent_files succeeds with default count"
-    [ "${#RECENT_OUT_FILENAME[@]}" -gt 0 ] && ok_ "found files in store (${#RECENT_OUT_FILENAME[@]})" || bad_ "no files found"
+TEST_STORE=$(_recent_find_native_dir)
+if [ -f "$TEST_STORE/index.tsv" ]; then
+    # 1. Default recent_files runs
+    if recent_files 10; then
+        ok_ "recent_files succeeds with default count"
+        [ "${#RECENT_OUT_FILENAME[@]}" -gt 0 ] && ok_ "found files in store (${#RECENT_OUT_FILENAME[@]})" || bad_ "no files found"
+    else
+        bad_ "recent_files failed"
+    fi
+
+    # 2. Count limit
+    if recent_files 3; then
+        [ "${#RECENT_OUT_FILENAME[@]}" -le 3 ] && ok_ "count limit respected (${#RECENT_OUT_FILENAME[@]})" || bad_ "count limit failed"
+    else
+        bad_ "recent_files with count 3 failed"
+    fi
+
+    # 3. Human renderer
+    h_out=$(recent_files 5 && recent_render_human 5 2>&1)
+    grep -q "most recent files in the store" <<< "$h_out" && ok_ "human output includes header" || bad_ "header missing"
+    [ -n "${RECENT_OUT_FILENAME[0]:-}" ] && grep -q "${RECENT_OUT_FILENAME[0]}" <<< "$h_out" && ok_ "human output includes first filename" || bad_ "filename missing"
+
+    # 4. JSON renderer
+    j_out=$(recent_files 2 && recent_render_json 2>&1)
+    grep -q '"date":' <<< "$j_out" && ok_ "json output includes date" || bad_ "date missing from json"
+    grep -q '"filename":' <<< "$j_out" && ok_ "json output includes filename" || bad_ "filename missing from json"
+    grep -q '"profile":' <<< "$j_out" && ok_ "json output includes profile" || bad_ "profile missing from json"
+    grep -q '"family":' <<< "$j_out" && ok_ "json output includes family" || bad_ "family missing from json"
+    grep -q '"xc":' <<< "$j_out" && ok_ "json output includes xc" || bad_ "xc missing from json"
+
+    # 5. CLI pseudoforge recent
+    cli_out=$("$ROOT/pseudoforge" recent --count 3 2>&1)
+    grep -q "most recent files in the store" <<< "$cli_out" && ok_ "CLI recent outputs header" || bad_ "CLI header missing"
 else
-    bad_ "recent_files failed"
+    skip_ "no native index.tsv available to test recent store files"
+    skip_ "count limit (needs store)"
+    skip_ "human renderer (needs store)"
+    skip_ "json renderer (needs store)"
+    skip_ "CLI recent (needs store)"
 fi
-
-# 2. Count limit
-if recent_files 3; then
-    [ "${#RECENT_OUT_FILENAME[@]}" -le 3 ] && ok_ "count limit respected (${#RECENT_OUT_FILENAME[@]})" || bad_ "count limit failed"
-else
-    bad_ "recent_files with count 3 failed"
-fi
-
-# 3. Human renderer
-h_out=$(recent_files 5 && recent_render_human 5 2>&1)
-grep -q "most recent files in the store" <<< "$h_out" && ok_ "human output includes header" || bad_ "header missing"
-[ -n "${RECENT_OUT_FILENAME[0]:-}" ] && grep -q "${RECENT_OUT_FILENAME[0]}" <<< "$h_out" && ok_ "human output includes first filename" || bad_ "filename missing"
-
-# 4. JSON renderer
-j_out=$(recent_files 2 && recent_render_json 2>&1)
-grep -q '"date":' <<< "$j_out" && ok_ "json output includes date" || bad_ "date missing from json"
-grep -q '"filename":' <<< "$j_out" && ok_ "json output includes filename" || bad_ "filename missing from json"
-grep -q '"profile":' <<< "$j_out" && ok_ "json output includes profile" || bad_ "profile missing from json"
-grep -q '"family":' <<< "$j_out" && ok_ "json output includes family" || bad_ "family missing from json"
-grep -q '"xc":' <<< "$j_out" && ok_ "json output includes xc" || bad_ "xc missing from json"
-
-# 5. CLI pseudoforge recent
-cli_out=$("$ROOT/pseudoforge" recent --count 3 2>&1)
-grep -q "most recent files in the store" <<< "$cli_out" && ok_ "CLI recent outputs header" || bad_ "CLI header missing"
 
 # 6. CLI help
 help_out=$("$ROOT/pseudoforge" recent --help 2>&1)

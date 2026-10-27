@@ -35,7 +35,11 @@ if element_summary_for "Si" >/dev/null 2>&1; then
     [ "$EL_OUT_SYMBOL" = "Si" ] && ok_ "sets symbol Si" || bad_ "wrong symbol: $EL_OUT_SYMBOL"
     [ "$EL_OUT_NAME" = "Silicon" ] && ok_ "sets name Silicon" || bad_ "wrong name: $EL_OUT_NAME"
     [ "$EL_OUT_Z" -eq 14 ] && ok_ "sets Z=14" || bad_ "wrong Z: $EL_OUT_Z"
-    [ "$EL_OUT_TOTAL" -ge 1 ] && ok_ "found native files for Si ($EL_OUT_TOTAL total)" || bad_ "no files found"
+    if [ -f "$(_elem_find_native_dir)/index.tsv" ]; then
+        [ "$EL_OUT_TOTAL" -ge 1 ] && ok_ "found native files for Si ($EL_OUT_TOTAL total)" || bad_ "no files found"
+    else
+        skip_ "no native index.tsv available to test store file counts"
+    fi
 else
     bad_ "element_summary_for failed for Si"
 fi
@@ -50,7 +54,11 @@ fi
 # 4. Human renderer
 h_out=$(element_render_human 2>&1)
 echo "$h_out" | grep -q 'Si (Silicon, Z=14)' && ok_ "human renderer includes header" || bad_ "header missing: $h_out"
-echo "$h_out" | grep -q 'NC — norm-conserving' && ok_ "human renderer includes NC section" || bad_ "NC missing"
+if [ "$EL_OUT_TOTAL" -ge 1 ]; then
+    echo "$h_out" | grep -q 'NC — norm-conserving' && ok_ "human renderer includes NC section" || bad_ "NC missing"
+else
+    skip_ "no native files in store to test NC section rendering"
+fi
 
 # 5. JSON renderer
 j_out=$(element_render_json 2>&1)

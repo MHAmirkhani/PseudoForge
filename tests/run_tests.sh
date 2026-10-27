@@ -21,6 +21,7 @@ TMP=$(mktemp -d)
 # to look at the real `~/pf-native` when the user has one, and `$HOME` after
 # the override points at a directory that never has a store.
 ORIG_HOME=$HOME
+ORIG_PATH=$PATH
 export HOME=$TMP/home
 export PF_RC=$HOME/.pseudoforgerc
 export LD1_BIN=$HERE/mock/ld1.x
@@ -633,6 +634,24 @@ run_subsuite "the advisory system" bash "$HERE/test_advise.sh"
 
 section "Nginx configuration"
 run_subsuite "Nginx deployment configuration" bash "$HERE/test_nginx_config.sh"
+
+section "provenance tool"
+run_subsuite "provenance tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" PATH="$ORIG_PATH" bash "$HERE/test_provenance.sh"
+
+section "element tool"
+run_subsuite "element tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_element.sh"
+
+section "coverage tool"
+run_subsuite "coverage tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_coverage.sh"
+
+section "recent files tool"
+run_subsuite "recent files tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_recent.sh"
+
+section "capabilities tool"
+run_subsuite "capabilities tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_capabilities.sh"
+
+section "TUI tools menu"
+run_subsuite "TUI tools menu" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_tools_tui.sh"
 
 if [ "${1:-}" = --all ]; then
     section "documentation build (strict)"
