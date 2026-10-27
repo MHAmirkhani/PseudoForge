@@ -567,7 +567,7 @@ advise_render_human() {
 
         # Render why
         local first_w=1 w_line
-        while IFS= read -r w_line; do
+        while IFS= read -r w_line || [ -n "$w_line" ]; do
             if [ -z "$w_line" ]; then
                 printf '\n'
             elif [ "$first_w" -eq 1 ]; then
@@ -576,13 +576,13 @@ advise_render_human() {
             else
                 printf '        %s\n' "$w_line"
             fi
-        done < <(printf '%b' "${ADV_OUT_WHY[i]}")
+        done < <(printf '%b\n' "${ADV_OUT_WHY[i]}")
         printf '\n'
 
         # Caveats
         if [ -n "${ADV_OUT_CAVEATS[i]}" ]; then
             local first_c=1 c_line
-            while IFS= read -r c_line; do
+            while IFS= read -r c_line || [ -n "$c_line" ]; do
                 [ -z "$c_line" ] && continue
                 if [ "$first_c" -eq 1 ]; then
                     printf '   Caveat: %s\n' "$c_line"
@@ -590,7 +590,7 @@ advise_render_human() {
                 else
                     printf '           %s\n' "$c_line"
                 fi
-            done < <(printf '%b' "${ADV_OUT_CAVEATS[i]}")
+            done < <(printf '%b\n' "${ADV_OUT_CAVEATS[i]}")
             printf '\n'
         fi
 

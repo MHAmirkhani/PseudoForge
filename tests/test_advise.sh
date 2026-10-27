@@ -234,6 +234,23 @@ advise_for Si gw
 advise_for Si gw "" "" "" balanced
 [ "${ADV_OUT_SCORE[1]}" -eq 10 ] && ok_ "Si gw --accuracy balanced produces score 10 for psl-high" || bad_ "Si gw balanced score: ${ADV_OUT_SCORE[1]}"
 
+# Wave 1.2 checks: Base rationale on every candidate, override on hint only
+si_gw_json=$(./pseudoforge advise -e Si --calculation gw --json)
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+recs = data.get("recommendations", [])
+assert len(recs) == 3, f"expected 3 recs, got {len(recs)}"
+assert all(r.get("why") for r in recs), "empty why in recommendation"
+' <<< "$si_gw_json" && ok_ "Si gw --json has non-empty why on every recommendation" || bad_ "Si gw empty why in json"
+
+si_gw_human=$(./pseudoforge advise -e Si --calculation gw 2>&1)
+si_gw_override_count=$(grep -c 'multiple projectors that GW needs' <<< "$si_gw_human" || true)
+[ "$si_gw_override_count" -eq 1 ] && ok_ "Si gw override appears exactly once" || bad_ "Si gw override count: $si_gw_override_count"
+
+si_gw_base_count=$(grep -c 'Unoccupied states matter more than the lattice' <<< "$si_gw_human" || true)
+[ "$si_gw_base_count" -eq 3 ] && ok_ "Si gw base rationale appears exactly 3 times" || bad_ "Si gw base rationale count: $si_gw_base_count"
+
 # Overview mode check
 if advise_for Fe; then
     ok_ "advise_for Fe (overview) exits 0"
