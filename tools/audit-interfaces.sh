@@ -1698,7 +1698,7 @@ section "Q. every tool is reachable from CLI and TUI"
 # belong to the tools group (not the pipeline). Adding a tool means
 # adding it here AND to the TUI menu in the same commit.
 
-TOOLS="advise provenance element coverage recent capabilities"
+TOOLS="advise provenance element coverage recent capabilities compare cutoff build-command"
 
 # 1. Every tool is a valid CLI subcommand
 for tool in $TOOLS; do
@@ -1716,13 +1716,58 @@ done
 
 # 3. Every TUI tool has a CLI counterpart
 tui_tools=$(awk '/^tui_tools\(\)/,/^}/' "$PF_LIB/tui.sh" \
-    | grep -oE '^[[:space:]]+[a-z]+[[:space:]]+"' \
+    | grep -oE '^[[:space:]]+[a-z-]+[[:space:]]+"' \
     | tr -d ' "' | sort -u)
 for t in $tui_tools; do
     ./pseudoforge "$t" --help >/dev/null 2>&1 \
         && ok_ "TUI tool $t is a CLI subcommand" \
         || bad_ "TUI tool $t has no CLI counterpart"
 done
+
+# 4. Web-only pages (/playground/ and /search/)
+WEBONLY="/playground/ /search/"
+
+# 4.1 Static HTML exists
+for p in $WEBONLY; do
+    html_file="$ROOT/frontend${p}index.html"
+    [ -f "$html_file" ] \
+        && ok_ "static HTML exists for $p" \
+        || bad_ "missing static HTML for $p ($html_file)"
+done
+
+# 4.2 Neither CLI nor TUI has an entry for web-only pages
+for p in $WEBONLY; do
+    name=$(tr -d '/' <<< "$p")
+    ! ./pseudoforge "$name" --help >/dev/null 2>&1 \
+        && ok_ "web-only $p is not a CLI subcommand" \
+        || bad_ "web-only $p has a CLI subcommand"
+    ! grep -q "^[[:space:]]*${name}[[:space:]]" "$PF_LIB/tui.sh" \
+        && ok_ "web-only $p is not in TUI tools menu" \
+        || bad_ "web-only $p appears in TUI tools menu"
+done
+
+# 4.3 Web-only page is served (HTTP 200)
+PORT=$(( 31000 + RANDOM % 10000 ))
+python3 -c "
+import http.server, socketserver
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory='$ROOT/frontend', **kwargs)
+    def log_message(self, *args): pass
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer((\"127.0.0.1\", $PORT), Handler) as httpd:
+    httpd.serve_forever()
+" &
+srv_pid=$!
+sleep 0.3
+for p in $WEBONLY; do
+    st=$(curl -s -o /dev/null -w "%{http_code}" --noproxy "*" "http://127.0.0.1:$PORT$p" 2>/dev/null || echo 000)
+    [ "$st" = "200" ] \
+        && ok_ "web-only page $p is served (HTTP 200)" \
+        || bad_ "web-only page $p returned HTTP $st (want 200)"
+done
+kill "$srv_pid" 2>/dev/null || true
+
 # ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
