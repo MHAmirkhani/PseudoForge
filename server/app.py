@@ -224,6 +224,14 @@ def capabilities_get():
     return _passthrough("/api/capabilities")
 
 
+@app.get("/api/cutoff")
+def cutoff_get(request: Request):
+    q = request.url.query
+    path = "/api/cutoff" + (f"?{q}" if q else "")
+    status, body = call_core("GET", path)
+    return JSONResponse(status_code=status, content=body)
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query

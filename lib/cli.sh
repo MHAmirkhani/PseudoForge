@@ -345,6 +345,13 @@ Show honest capability matrix: what can be done with the store alone,
 with CLI installed but no engines, and with CLI plus engines.
 EOF
         ;;
+        cutoff) cat <<'EOF'
+usage: pseudoforge cutoff -e <element> [--accuracy efficiency|precision] [--xc PBE|PBEsol] [-o <project-dir>] [--json]
+
+Report recommended kinetic-energy cutoff (ecutwfc and ecutrho) for an element.
+Drawn from SSSP verification tables, PseudoDojo parameters, or project scans.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -394,6 +401,7 @@ cli_parse() {
             coverage) shift; cmd_coverage "$@"; exit 0 ;;
             recent) shift; cmd_recent "$@"; exit 0 ;;
             capabilities) shift; cmd_capabilities "$@"; exit 0 ;;
+            cutoff) shift; cmd_cutoff "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -2095,5 +2103,48 @@ cmd_capabilities() {
         capabilities_render_json
     else
         capabilities_render_human
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_cutoff -- recommended kinetic-energy cutoff for an element
+# ---------------------------------------------------------------------------
+cmd_cutoff() {
+    case "${1:-}" in -h|--help) cli_help_for cutoff; return 0 ;; esac
+    local el="" acc="efficiency" xc="PBE" proj="" as_json=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for cutoff; return 0 ;;
+            --element|-e)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                el=$2; shift 2 ;;
+            --accuracy|-a)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                acc=$2; shift 2 ;;
+            --xc|-x)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                xc=$2; shift 2 ;;
+            --project|-o)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                proj=$2; shift 2 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                if [ -z "$el" ] && [[ "$1" != -* ]]; then
+                    el=$1; shift
+                else
+                    die "unknown option '$1' -- try: pseudoforge cutoff --help"
+                fi ;;
+        esac
+    done
+
+    [ -n "$el" ] || die "element required: use -e/--element <symbol>"
+    cutoff_for "$el" "$acc" "$xc" "$proj" || die "no recommended cutoff found for $el ($acc, $xc)"
+
+    if [ "$as_json" -eq 1 ]; then
+        cutoff_render_json
+    else
+        cutoff_render_human
     fi
 }

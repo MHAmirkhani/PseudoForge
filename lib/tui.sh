@@ -441,6 +441,7 @@ tui_tools() {
             20 12 \
             advise        "Which pseudopotential for my calculation?" \
             compare       "Diff two pseudopotentials across all dimensions" \
+            cutoff        "Recommended kinetic-energy cutoff for an element" \
             provenance    "Where did a file come from?" \
             element       "What exists for element X?" \
             coverage      "What's available, what's not" \
@@ -450,6 +451,7 @@ tui_tools() {
         case $tchoice in
             advise)       tui_advise ;;
             compare)      tui_compare ;;
+            cutoff)       tui_cutoff ;;
             provenance)   tui_provenance ;;
             element)      tui_element ;;
             coverage)     tui_coverage ;;
@@ -503,6 +505,32 @@ tui_compare() {
         ui_msg "Comparison Error" "Could not resolve one or both files: '$a', '$b'" 14 70
     fi
     rm -f "$tmp"
+}
+
+tui_cutoff() {
+    local el acc xc
+    el=$(ui_input "Cutoff Finder" \
+        "Element symbol (e.g. Fe, Si, Cu):" 10 50 "Fe") || return 0
+    [ -n "$el" ] || return 0
+
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+    acc=$(ui_menu "Accuracy Level" \
+        "Choose accuracy target:" 12 50 \
+        efficiency "Standard efficiency (faster, recommended for screening)" \
+        precision  "Stringent precision (tighter convergence)") || return 0
+
+    xc=$(ui_menu "Functional (XC)" \
+        "Choose exchange-correlation functional:" 12 50 \
+        PBE    "Perdew-Burke-Ernzerhof (standard)" \
+        PBEsol "PBEsol (densely packed solids)") || return 0
+
+    local out
+    if cutoff_for "$el" "$acc" "$xc"; then
+        out=$(cutoff_render_human)
+    else
+        out="No recommended cutoff found for element $el ($acc, $xc)."
+    fi
+    ui_msg "Cutoff: $el ($acc, $xc)" "$out" 16 65
 }
 
 tui_provenance() {

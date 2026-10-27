@@ -34,6 +34,7 @@ pseudoforge api POST /api/convert body.json
 | `GET` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `POST` | `/api/advise` | Physics-reasoned pseudopotential recommendation |
 | `POST` | `/api/compare` | Compare two pseudopotentials across all dimensions |
+| `GET` | `/api/cutoff` | Recommended kinetic-energy cutoff for an element |
 | `GET` | `/api/coverage` | Element x profile coverage matrix |
 | `GET` | `/api/recent` | Recently added files in the store |
 | `GET` | `/api/capabilities` | Honest capability matrix across deployment tiers |

@@ -73,6 +73,7 @@ GET	/api/elements/:symbol	http_h_element	Native files and profiles for one eleme
 GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/compare	http_h_compare	Compare two pseudopotentials across all dimensions
+GET	/api/cutoff	http_h_cutoff	Recommended kinetic-energy cutoff for an element
 GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
 GET	/api/recent	http_h_recent	Recently added files in the store
 GET	/api/capabilities	http_h_capabilities	Honest capability matrix across deployment tiers
@@ -437,6 +438,31 @@ http_h_compare() {
 
     HTTP_STATUS=200
     compare_render_json
+}
+
+http_h_cutoff() {
+    local el acc xc proj
+    el=$(http_query_param "$HTTP_QUERY" element)
+    acc=$(http_query_param "$HTTP_QUERY" accuracy)
+    xc=$(http_query_param "$HTTP_QUERY" xc)
+    proj=$(http_query_param "$HTTP_QUERY" project)
+
+    [ -z "$el" ] && el=$(http_query_param "$HTTP_QUERY" e)
+    [ -z "$acc" ] && acc="efficiency"
+    [ -z "$xc" ] && xc="PBE"
+
+    if [ -z "$el" ]; then
+        http_error 400 missing_element "The 'element' parameter is required."
+        return 0
+    fi
+
+    if ! cutoff_for "$el" "$acc" "$xc" "$proj"; then
+        http_error 404 not_found "No recommended cutoff found for element '$el' ($acc, $xc)."
+        return 0
+    fi
+
+    HTTP_STATUS=200
+    cutoff_render_json
 }
 
 http_h_coverage() {
