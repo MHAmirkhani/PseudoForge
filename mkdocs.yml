@@ -113,6 +113,11 @@ nav:
       - Command line: reference/cli.md
       - The advisory system: reference/advise.md
       - The wizard: reference/wizard.md
+      - Provenance: reference/provenance.md
+      - Element: reference/element.md
+      - Coverage: reference/coverage.md
+      - Recent files: reference/recent.md
+      - Capabilities: reference/capabilities.md
       - Engines:
           - Overview: reference/engines.md
           - ld1.x: reference/engines/ld1.md
