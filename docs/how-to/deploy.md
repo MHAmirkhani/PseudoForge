@@ -27,8 +27,15 @@ deployed.
     `pseudoforge`, which is a Bash program.
 
 !!! tip "Port 8080 conflicts on WSL2"
-    Under WSL2, port 8080 may already be bound by a Windows portproxy or service.
-    Override the port with `PORT=8081 deploy/scripts/serve-local.sh`.
+    Under WSL2, port 8080 may already be bound by a Windows portproxy, WinNAT
+    reserved port ranges, or a host service. When `serve-local.sh` fails to bind
+    or connect on 8080 (`Failed to connect to 127.0.0.1 port 8080: Connection refused`),
+    override the port by passing `PORT`:
+    ```bash
+    PORT=8081 deploy/scripts/serve-local.sh    # -> http://127.0.0.1:8081
+    ```
+    All endpoints (`/`, `/api/`, `/docs/`, `/provenance/`, `/elements/`, `/coverage/`,
+    `/recent/`, `/capabilities/`) will be available seamlessly on the selected port.
 
 ## 1. Configure
 
