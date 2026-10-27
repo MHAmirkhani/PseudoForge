@@ -1686,6 +1686,43 @@ for r in /api/native /api/native/:id /api/download/:id...; do
         && ok_ "route $r is declared" \
         || bad_ "route $r is missing from /api --routes"
 done
+
+# ---------------------------------------------------------------------------
+section "Q. every tool is reachable from CLI and TUI"
+
+# The four-interface invariant. A tool that exists only in the CLI
+# is a menu item a TUI user cannot reach. A tool that exists only in
+# the TUI is undefined outside it. Both are bugs.
+#
+# The TOOLS list is the set of `pseudoforge <sub>` subcommands that
+# belong to the tools group (not the pipeline). Adding a tool means
+# adding it here AND to the TUI menu in the same commit.
+
+TOOLS="advise provenance element coverage recent capabilities"
+
+# 1. Every tool is a valid CLI subcommand
+for tool in $TOOLS; do
+    ./pseudoforge "$tool" --help >/dev/null 2>&1 \
+        && ok_ "CLI has $tool --help" \
+        || bad_ "CLI has no $tool --help"
+done
+
+# 2. Every tool appears in the TUI tools menu
+for tool in $TOOLS; do
+    grep -q "^[[:space:]]*${tool}[[:space:]]" "$PF_LIB/tui.sh" \
+        && ok_ "TUI menu has $tool" \
+        || bad_ "TUI menu has no $tool (add to tui_tools)"
+done
+
+# 3. Every TUI tool has a CLI counterpart
+tui_tools=$(awk '/^tui_tools\(\)/,/^}/' "$PF_LIB/tui.sh" \
+    | grep -oE '^[[:space:]]+[a-z]+[[:space:]]+"' \
+    | tr -d ' "' | sort -u)
+for t in $tui_tools; do
+    ./pseudoforge "$t" --help >/dev/null 2>&1 \
+        && ok_ "TUI tool $t is a CLI subcommand" \
+        || bad_ "TUI tool $t has no CLI counterpart"
+done
 # ---------------------------------------------------------------------------
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
