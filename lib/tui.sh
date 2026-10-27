@@ -440,6 +440,7 @@ tui_tools() {
 "\nAdvisory, diagnostic and store exploration tools.\n" \
             20 12 \
             advise        "Which pseudopotential for my calculation?" \
+            compare       "Diff two pseudopotentials across all dimensions" \
             provenance    "Where did a file come from?" \
             element       "What exists for element X?" \
             coverage      "What's available, what's not" \
@@ -448,6 +449,7 @@ tui_tools() {
 
         case $tchoice in
             advise)       tui_advise ;;
+            compare)      tui_compare ;;
             provenance)   tui_provenance ;;
             element)      tui_element ;;
             coverage)     tui_coverage ;;
@@ -482,6 +484,25 @@ tui_advise() {
         out="Could not compute advisory recommendations for $el + $calc."
     fi
     ui_msg "Advisory: $el ($calc)" "$out" 24 78
+}
+
+tui_compare() {
+    local a b
+    a=$(ui_input "Compare Pseudopotentials" \
+        "First file ID or path (UPF):" 10 70 "") || return 0
+    [ -n "$a" ] || return 0
+    b=$(ui_input "Compare Pseudopotentials" \
+        "Second file ID or path (UPF):" 10 70 "") || return 0
+    [ -n "$b" ] || return 0
+
+    local tmp; tmp=$(mktemp)
+    if compare_for "$a" "$b"; then
+        compare_render_human > "$tmp"
+        ui_text "Comparison: $(basename "$a") vs $(basename "$b")" "$tmp" 24 78
+    else
+        ui_msg "Comparison Error" "Could not resolve one or both files: '$a', '$b'" 14 70
+    fi
+    rm -f "$tmp"
 }
 
 tui_provenance() {

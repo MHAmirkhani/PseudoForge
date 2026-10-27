@@ -1598,7 +1598,7 @@ XC_EOF
 cmd_compare() {
     case "${1:-}" in -h|--help)
         cat <<'CMP_EOF'
-usage: pseudoforge compare <a> <b> [--ecut N]
+usage: pseudoforge compare <a> <b> [--ecut N] [--diff] [--json]
 
 Compare two pseudopotentials.  Both files are read, their log derivatives
 are computed and drawn side by side, and the differences in cutoff
@@ -1607,15 +1607,30 @@ convergence are reported.
 CMP_EOF
         return 0 ;;
     esac
-    local a=${1:-} b=${2:-} ecut=""
-    [ -n "$a" ] && [ -n "$b" ] || die "usage: pseudoforge compare <a.UPF> <b.UPF> [--ecut N]"
+    local a=${1:-} b=${2:-} ecut="" mode_diff=0 mode_json=0
+    [ -n "$a" ] && [ -n "$b" ] || die "usage: pseudoforge compare <a.UPF> <b.UPF> [--ecut N] [--diff] [--json]"
     shift 2
     while [ $# -gt 0 ]; do
         case $1 in
             --ecut) ecut=$2; shift 2 ;;
+            --diff|--meta) mode_diff=1; shift ;;
+            --json) mode_json=1; shift ;;
             *) die "unknown option '$1'" ;;
         esac
     done
+
+    if [ "$mode_json" = 1 ]; then
+        compare_for "$a" "$b" || die "could not compare $a and $b"
+        compare_render_json
+        return 0
+    fi
+
+    if [ "$mode_diff" = 1 ] || ! deps_have_pw; then
+        compare_for "$a" "$b" || die "could not compare $a and $b"
+        compare_render_human
+        return 0
+    fi
+
     deps_resolve_qe
     banner "Comparing"
     cmp_pseudos "$a" "$b" "$ecut"

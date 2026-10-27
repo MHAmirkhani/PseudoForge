@@ -72,6 +72,7 @@ GET	/api/elements	http_h_elements	The element table
 GET	/api/elements/:symbol	http_h_element	Native files and profiles for one element
 GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
+POST	/api/compare	http_h_compare	Compare two pseudopotentials across all dimensions
 GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
 GET	/api/recent	http_h_recent	Recently added files in the store
 GET	/api/capabilities	http_h_capabilities	Honest capability matrix across deployment tiers
@@ -412,6 +413,30 @@ http_h_advise() {
     fi
 
     advise_render_json
+}
+
+http_h_compare() {
+    local body=${1:-}
+    local a="" b=""
+    if [ -n "$body" ] && [ -f "$body" ]; then
+        a=$(http_body_field "$body" a)
+        b=$(http_body_field "$body" b)
+    fi
+    [ -z "$a" ] && a=$(http_query_param "$HTTP_QUERY" a)
+    [ -z "$b" ] && b=$(http_query_param "$HTTP_QUERY" b)
+
+    if [ -z "$a" ] || [ -z "$b" ]; then
+        http_error 400 missing_parameter "Both 'a' and 'b' parameters are required."
+        return 0
+    fi
+
+    if ! compare_for "$a" "$b"; then
+        http_error 404 not_found "Could not resolve one or both files: '$a', '$b'"
+        return 0
+    fi
+
+    HTTP_STATUS=200
+    compare_render_json
 }
 
 http_h_coverage() {
