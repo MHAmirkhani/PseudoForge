@@ -448,7 +448,9 @@ http_h_capabilities() {
 #      <TAB> format <TAB> path <TAB> size <TAB> sha256 <TAB> provenance
 # ---------------------------------------------------------------------------
 http_native_index() {
-    if [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != "/var/lib/pseudoforge/native" ]; then
+        printf '%s/index.tsv\n' "$PF_NATIVE_DIR"
+    elif [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
         printf '%s/index.tsv\n' "$PF_NATIVE_DIR"
     elif [ -f "$HOME/pf-native/index.tsv" ]; then
         printf '%s/index.tsv\n' "$HOME/pf-native"
