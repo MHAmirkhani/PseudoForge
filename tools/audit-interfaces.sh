@@ -1440,7 +1440,7 @@ section "O. wizard text-mode, end to end"
 WIZ_LIBS="core sink config deps elements xc namelist profiles metadata
           formats gth sssp convert doctor params engines build recipe
           input_builder executor fetch project run upf testing validate
-          report cli ui tui wizard"
+          report advise cli ui tui wizard"
 
 drive_wizard_full() {
     local input=$1
@@ -1467,6 +1467,7 @@ drive_wizard_full() {
 # --- Cancel at confirmation ----------------------------------------------
 #
 # Answers land in the order the prompts appear:
+#   0: guidance prompt (n = skip to step 1)
 #   1: family (3 = nc)
 #   2: functional (1 = pbe, always first in the short list)
 #   3: relativity (1 = scalar)
@@ -1478,7 +1479,7 @@ drive_wizard_full() {
 wiz_out=$TMP/wiz-cancel
 rm -rf "$wiz_out"
 
-out=$(drive_wizard_full "3\n1\n1\n1\n1\nSi\n$wiz_out\nn\n")
+out=$(drive_wizard_full "n\n3\n1\n1\n1\n1\nSi\n$wiz_out\nn\n")
 
 fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
 xc=$(printf '%s\n'  "$out" | awk -F= '$1=="SPEC[xc]"{print $2}')
@@ -1508,7 +1509,7 @@ fi
 wiz_out2=$TMP/wiz-cancel2
 rm -rf "$wiz_out2"
 
-out=$(drive_wizard_full "1\n2\n2\n1\n1\nFe\n$wiz_out2\nn\n")
+out=$(drive_wizard_full "n\n1\n2\n2\n1\n1\nFe\n$wiz_out2\nn\n")
 
 fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
 xc=$(printf '%s\n'  "$out" | awk -F= '$1=="SPEC[xc]"{print $2}')
@@ -1526,6 +1527,15 @@ else
     ok_ "wizard: second Cancel wrote nothing"
 fi
 
+# --- Guidance / advise path ----------------------------------------------
+#
+# Answering 'y' to guidance asks calculation type and element, pre-filling
+# SPEC before proceeding through the remaining steps.
+out=$(drive_wizard_full "y\n1\nSi\n\n\n\n\n\nSi\n$TMP/wiz-advise\nn\n")
+fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
+xc=$(printf '%s\n'  "$out" | awk -F= '$1=="SPEC[xc]"{print $2}')
+[ -n "$fam" ] && [ -n "$xc" ] && ok_ "wizard: advice pre-fills family ($fam) and xc ($xc)" || bad_ "wizard: advice path failed"
+
 # --- Bad answers leave SPEC alone ----------------------------------------
 #
 # An answer that is not on the menu is not a choice.  If the wizard
@@ -1533,7 +1543,7 @@ fi
 # again; if it leaves SPEC at its previous value the run is at least
 # not silently wrong.
 
-out=$(DEFAULT_PSEUDOTYPE=nc drive_wizard_full "9\n")
+out=$(DEFAULT_PSEUDOTYPE=nc drive_wizard_full "n\n9\n")
 
 fam=$(printf '%s\n' "$out" | awk -F= '$1=="SPEC[family]"{print $2}')
 if [ "$fam" = nc ]; then

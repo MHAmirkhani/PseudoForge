@@ -70,13 +70,13 @@ case $cmd in
     wizard|w)
         case "${2:-}" in -h|--help) cli_usage; exit 0 ;; esac
         shift
-        [ -t 0 ] && [ -t 1 ] || die "the wizard needs an interactive terminal; use 'pseudoforge generate' instead"
+        [ -t 0 ] && [ -t 1 ] || [ -n "${PF_FORCE_TEXT:-}" ] || die "the wizard needs an interactive terminal; use 'pseudoforge generate' instead"
         # With a terminal backend, tui_wizard drives the same nine-layer
         # flow that `pseudoforge tui`'s "guided" entry does -- one flow,
         # one set of layers, one source of truth.  Without whiptail the
         # text-mode wizard_main takes over and asks the same questions
         # without menus.
-        if deps_tui_backend >/dev/null; then tui_wizard; clear; else wizard_main; fi ;;
+        if [ -z "${PF_FORCE_TEXT:-}" ] && deps_tui_backend >/dev/null; then tui_wizard; clear; else wizard_main; fi ;;
     engines|engine)
         shift; cmd_engines "$@" ;;
     convert)

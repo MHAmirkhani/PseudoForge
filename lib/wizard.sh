@@ -437,6 +437,59 @@ This is the slow one -- a handful of small SCF runs per element." defno; then
 }
 
 # ---------------------------------------------------------------------------
+# wiz_advise_or_skip -- ask whether the user wants advice before step 1
+# ---------------------------------------------------------------------------
+wiz_advise_or_skip() {
+    if ! wiz_yesno "Guidance?" \
+"Do you know which pseudopotential you need, or should
+PseudoForge advise you based on the calculation you will run?
+
+Answering 'yes' asks the calculation type, then pre-fills the
+wizard from the recommendation. Answering 'no' proceeds to step 1
+as before." ; then
+        return 0   # user said no; proceed normally
+    fi
+
+    local calc
+    calc=$(wiz_menu "What will you compute?" \
+"Pick the calculation type; the recommendation is the starting
+point, not a commitment." \
+        phonons   "Phonons" \
+        elastic   "Elastic constants" \
+        eos       "Equation of state" \
+        gw        "GW / BSE (unoccupied states)" \
+        optics    "Optical properties" \
+        xas       "XAS / XPS (core hole)" \
+        magnetism "Magnetism" \
+        dft-u     "DFT+U" \
+        md        "Molecular dynamics" ) || return 0
+
+    # The element is not yet known here; the wizard asks for it
+    # in step 6. So: ask element early in this path.
+    local sym
+    sym=$(wiz_input "Element" "Symbol or Z:" "Si") || return 0
+    [ -n "$sym" ] || return 0
+
+    local rec
+    rec=$(advise_top_one "$sym" "$calc") || return 0
+
+    local rec_prof rec_fam rec_xc
+    rec_prof=$(echo "$rec" | cut -f1)
+    rec_fam=$(echo "$rec" | cut -f2)
+    rec_xc=$(echo "$rec" | cut -f3)
+
+    SPEC[profile]=$rec_prof
+    SPEC[family]=$rec_fam
+    SPEC[xc]=$rec_xc
+
+    wiz_msg "Starting point" \
+"Recommendation: $rec_prof $rec_fam $rec_xc
+
+The wizard will ask the remaining questions; you can change any of
+these as you go."
+}
+
+# ---------------------------------------------------------------------------
 # wizard_main -- the whole flow
 # ---------------------------------------------------------------------------
 wizard_main() {
@@ -445,6 +498,7 @@ wizard_main() {
 
     spec_init
     SPEC[source]=${DEFAULT_SOURCE:-local}
+    wiz_advise_or_skip || return 1
 
     wiz_step_family   || { info "cancelled"; return 1; }
     wiz_step_xc       || { info "cancelled"; return 1; }

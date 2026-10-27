@@ -755,3 +755,18 @@ advise_render_json() {
     printf '  ]\n'
     printf '}\n'
 }
+
+# ---------------------------------------------------------------------------
+# advise_top_one <element> <calculation>
+#
+# Return the highest-ranked profile, family, xc as tab-separated values.
+# ---------------------------------------------------------------------------
+advise_top_one() {
+    local sym=$1 calc=$2
+    advise_for "$sym" "$calc" >/dev/null 2>&1 || return 1
+    if [ "${ADV_OUT_COUNT:-0}" -gt 0 ]; then
+        printf '%s\t%s\t%s\n' "${ADV_OUT_PROFILE[0]}" "${ADV_OUT_FAMILY[0]}" "${ADV_OUT_XC[0]}"
+        return 0
+    fi
+    return 1
+}
