@@ -50,6 +50,7 @@ USAGE
     element <symbol>        list native store files and missing profiles for an element
     coverage [--profile P]  matrix of element x profile availability
     recent [--count N]      show most recently added files to the store
+    capabilities            show capability matrix across deployment tiers
     config [--show|--edit|--set K=V]
     version | help
 
@@ -337,6 +338,13 @@ Show the most recently added files in the store, most recent first.
 Default count is 10.
 EOF
         ;;
+        capabilities) cat <<'EOF'
+usage: pseudoforge capabilities [--json]
+
+Show honest capability matrix: what can be done with the store alone,
+with CLI installed but no engines, and with CLI plus engines.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -385,6 +393,7 @@ cli_parse() {
             element) shift; cmd_element "$@"; exit 0 ;;
             coverage) shift; cmd_coverage "$@"; exit 0 ;;
             recent) shift; cmd_recent "$@"; exit 0 ;;
+            capabilities) shift; cmd_capabilities "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -2045,5 +2054,31 @@ cmd_recent() {
         recent_render_json
     else
         recent_render_human "$count"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_capabilities -- show capability matrix across deployment tiers
+# ---------------------------------------------------------------------------
+cmd_capabilities() {
+    case "${1:-}" in -h|--help) cli_help_for capabilities; return 0 ;; esac
+    local as_json=0
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for capabilities; return 0 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                die "unknown option '$1' -- try: pseudoforge capabilities --help" ;;
+        esac
+    done
+
+    capabilities_for || exit 1
+
+    if [ "$as_json" -eq 1 ]; then
+        capabilities_render_json
+    else
+        capabilities_render_human
     fi
 }

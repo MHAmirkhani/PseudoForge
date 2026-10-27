@@ -501,3 +501,17 @@ tui_recent() {
     ui_text "Recent Files" "$tmp" 24 78
     rm -f "$tmp"
 }
+
+tui_capabilities() {
+    pf_sink_use capture; pf_sink_reset
+    if capabilities_for; then
+        capabilities_render_human
+    else
+        printf 'Could not load capabilities.\n'
+    fi
+    pf_sink_use cli
+    local tmp; tmp=$(mktemp)
+    pf_sink_filter all > "$tmp"
+    ui_text "PseudoForge Capabilities" "$tmp" 24 78
+    rm -f "$tmp"
+}

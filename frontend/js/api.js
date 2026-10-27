@@ -62,6 +62,7 @@ const API = (() => {
     provenance: (id)  => get('/provenance/' + encodeURIComponent(id)),
     coverage:   (params) => get('/coverage' + (params ? '?' + new URLSearchParams(params).toString() : '')),
     recent:     (count)  => get('/recent' + (count ? '?count=' + encodeURIComponent(count) : '')),
+    capabilities: ()     => get('/capabilities'),
     downloadUrl: (id) => base + '/download/' + id,
   };
 })();

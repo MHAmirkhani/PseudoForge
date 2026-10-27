@@ -67,6 +67,7 @@ GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
 GET	/api/recent	http_h_recent	Recently added files in the store
+GET	/api/capabilities	http_h_capabilities	Honest capability matrix across deployment tiers
 GET	/api/native	http_h_native_list	Native files available on this server
 GET	/api/native/:id	http_h_native_one	One native file: metadata and provenance
 GET	/api/provenance/:id	http_h_provenance	Show provenance for a native file
@@ -426,6 +427,14 @@ http_h_recent() {
         return 0
     fi
     recent_render_json
+}
+
+http_h_capabilities() {
+    if ! capabilities_for; then
+        http_error 500 capabilities_failed "Could not load capabilities."
+        return 0
+    fi
+    capabilities_render_json
 }
 
 # ---------------------------------------------------------------------------

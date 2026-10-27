@@ -56,6 +56,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `element` | `<symbol>` | list native store files and missing profiles for an element |
 | `coverage` | `[--profile P]` | matrix of element x profile availability |
 | `recent` | `[--count N]` | show most recently added files to the store |
+| `capabilities` | -- | show capability matrix across deployment tiers |
 
 ### Options
 

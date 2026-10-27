@@ -219,6 +219,11 @@ def recent_get(request: Request):
     return _passthrough(path)
 
 
+@app.get("/api/capabilities")
+def capabilities_get():
+    return _passthrough("/api/capabilities")
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query
