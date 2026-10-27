@@ -161,8 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
           ${caveatsHtml}
           ${citationsHtml}
           <div class="advise-cmd-box">
-            <code>${esc(rec.cli_command)}</code>
-            <button type="button" class="btn copy-btn" data-cmd="${esc(rec.cli_command)}">Copy</button>
+            <code id="cmd-rec-${idx}">${esc(rec.cli_command)}</code>
+            <div style="display:flex;gap:0.5rem;">
+              <button type="button" class="btn copy-btn" data-cmd="${esc(rec.cli_command)}">Copy</button>
+              <button type="button" class="btn tune-btn" data-target="cmd-rec-${idx}" data-el="${esc(data.element)}" data-fam="${esc(rec.family)}" data-xc="${esc(rec.xc)}" data-eng="${esc(rec.engine)}">Customize</button>
+            </div>
           </div>
         </div>`;
     });
@@ -192,6 +195,33 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsDiv.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         copyText(btn.dataset.cmd, btn);
+      });
+    });
+
+    // Attach tune button listeners
+    resultsDiv.querySelectorAll('.tune-btn').forEach(b => {
+      b.addEventListener('click', async () => {
+        const targetId = b.dataset.target;
+        const codeEl = document.getElementById(targetId);
+        const rel = b.dataset.rel === 'full' ? 'scalar' : 'full';
+        b.dataset.rel = rel;
+        b.textContent = rel === 'full' ? 'Using Full Rel' : 'Customize';
+        try {
+          const u = new URL('/api/build-command', window.location.origin);
+          u.searchParams.set('element', b.dataset.el);
+          u.searchParams.set('family', b.dataset.fam);
+          u.searchParams.set('xc', b.dataset.xc);
+          u.searchParams.set('relativity', rel);
+          const r = await fetch(u.toString());
+          if (r.ok) {
+            const data = await r.json();
+            if (data.command && codeEl) {
+              codeEl.textContent = data.command;
+              const copyBtn = b.parentElement.querySelector('.copy-btn');
+              if (copyBtn) copyBtn.dataset.cmd = data.command;
+            }
+          }
+        } catch (e) {}
       });
     });
 

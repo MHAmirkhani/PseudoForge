@@ -232,6 +232,14 @@ def cutoff_get(request: Request):
     return JSONResponse(status_code=status, content=body)
 
 
+@app.get("/api/build-command")
+def build_command_get(request: Request):
+    q = request.url.query
+    path = "/api/build-command" + (f"?{q}" if q else "")
+    status, body = call_core("GET", path)
+    return JSONResponse(status_code=status, content=body)
+
+
 @app.get("/api/advise")
 def advise_get(request: Request):
     q = request.url.query

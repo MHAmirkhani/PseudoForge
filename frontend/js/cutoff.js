@@ -18,13 +18,25 @@
 
   let currentElement = 'Fe';
 
-  function updateCommand() {
+  async function updateCommand() {
     const wfc = parseInt(numWfc.value, 10) || 0;
     const rho = parseInt(numRho.value, 10) || 0;
     if (wfc > 0 && rho > 0) {
       const ratio = (rho / wfc).toFixed(1);
       valDual.textContent = ratio + 'x';
-      cutCmd.textContent = `pseudoforge generate -e ${currentElement} --ecut ${wfc} --dual ${ratio}`;
+      let fallback = `pseudoforge generate -e ${currentElement} --ecut ${wfc} --dual ${ratio}`;
+      cutCmd.textContent = fallback;
+      try {
+        const u = new URL('/api/build-command', window.location.origin);
+        u.searchParams.set('element', currentElement);
+        u.searchParams.set('ecut', wfc);
+        u.searchParams.set('dual', ratio);
+        const r = await fetch(u.toString());
+        if (r.ok) {
+          const d = await r.json();
+          if (d.command) cutCmd.textContent = d.command;
+        }
+      } catch (e) {}
     } else {
       valDual.textContent = '--';
       cutCmd.textContent = `pseudoforge generate -e ${currentElement}`;

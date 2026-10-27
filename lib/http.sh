@@ -74,6 +74,7 @@ GET	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/advise	http_h_advise	Physics-reasoned pseudopotential recommendation
 POST	/api/compare	http_h_compare	Compare two pseudopotentials across all dimensions
 GET	/api/cutoff	http_h_cutoff	Recommended kinetic-energy cutoff for an element
+GET	/api/build-command	http_h_build_command	Turn physics choices into exact CLI invocation
 GET	/api/coverage	http_h_coverage	Element x profile coverage matrix
 GET	/api/recent	http_h_recent	Recently added files in the store
 GET	/api/capabilities	http_h_capabilities	Honest capability matrix across deployment tiers
@@ -463,6 +464,53 @@ http_h_cutoff() {
 
     HTTP_STATUS=200
     cutoff_render_json
+}
+
+http_h_build_command() {
+    local el fam xc eng rel prof fmt ecut dual
+    el=$(http_query_param "$HTTP_QUERY" element)
+    [ -z "$el" ] && el=$(http_query_param "$HTTP_QUERY" e)
+    fam=$(http_query_param "$HTTP_QUERY" family)
+    [ -z "$fam" ] && fam=$(http_query_param "$HTTP_QUERY" t)
+    xc=$(http_query_param "$HTTP_QUERY" xc)
+    [ -z "$xc" ] && xc=$(http_query_param "$HTTP_QUERY" x)
+    eng=$(http_query_param "$HTTP_QUERY" engine)
+    rel=$(http_query_param "$HTTP_QUERY" relativity)
+    [ -z "$rel" ] && rel=$(http_query_param "$HTTP_QUERY" rel)
+    [ -z "$rel" ] && rel=$(http_query_param "$HTTP_QUERY" r)
+    prof=$(http_query_param "$HTTP_QUERY" profile)
+    [ -z "$prof" ] && prof=$(http_query_param "$HTTP_QUERY" p)
+    fmt=$(http_query_param "$HTTP_QUERY" formats)
+    [ -z "$fmt" ] && fmt=$(http_query_param "$HTTP_QUERY" format)
+    [ -z "$fmt" ] && fmt=$(http_query_param "$HTTP_QUERY" f)
+    ecut=$(http_query_param "$HTTP_QUERY" ecut)
+    dual=$(http_query_param "$HTTP_QUERY" dual)
+
+    if [ -z "$el" ]; then
+        http_error 400 missing_element "The 'element' parameter is required."
+        return 0
+    fi
+
+    local args=("-e" "$el")
+    [ -n "$fam" ] && args+=("-t" "$fam")
+    [ -n "$xc" ] && args+=("-x" "$xc")
+    [ -n "$eng" ] && args+=("--engine" "$eng")
+    [ -n "$rel" ] && args+=("-r" "$rel")
+    [ -n "$prof" ] && args+=("-p" "$prof")
+    [ -n "$fmt" ] && args+=("-f" "$fmt")
+    [ -n "$ecut" ] && args+=("--ecut" "$ecut")
+    [ -n "$dual" ] && args+=("--dual" "$dual")
+
+    if ! build_command_for "${args[@]}"; then
+        HTTP_STATUS=409
+        printf '{"error":%s,"reason":%s}\n' \
+            "$(http_json_str "refused")" \
+            "$(http_json_str "$BUILD_REFUSAL")"
+        return 0
+    fi
+
+    HTTP_STATUS=200
+    build_command_render_json
 }
 
 http_h_coverage() {

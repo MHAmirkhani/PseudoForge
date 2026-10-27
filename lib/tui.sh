@@ -442,6 +442,7 @@ tui_tools() {
             advise        "Which pseudopotential for my calculation?" \
             compare       "Diff two pseudopotentials across all dimensions" \
             cutoff        "Recommended kinetic-energy cutoff for an element" \
+            build-command "Turn physics choices into exact CLI invocation" \
             provenance    "Where did a file come from?" \
             element       "What exists for element X?" \
             coverage      "What's available, what's not" \
@@ -449,10 +450,11 @@ tui_tools() {
             capabilities  "What this installation can and cannot do") || return 0
 
         case $tchoice in
-            advise)       tui_advise ;;
-            compare)      tui_compare ;;
-            cutoff)       tui_cutoff ;;
-            provenance)   tui_provenance ;;
+            advise)        tui_advise ;;
+            compare)       tui_compare ;;
+            cutoff)        tui_cutoff ;;
+            build-command) tui_build_command ;;
+            provenance)    tui_provenance ;;
             element)      tui_element ;;
             coverage)     tui_coverage ;;
             recent)       tui_recent ;;
@@ -531,6 +533,38 @@ tui_cutoff() {
         out="No recommended cutoff found for element $el ($acc, $xc)."
     fi
     ui_msg "Cutoff: $el ($acc, $xc)" "$out" 16 65
+}
+
+tui_build_command() {
+    local el fam xc rel
+    el=$(ui_input "Build Command" \
+        "Element symbol (e.g. Fe, Si, Cu):" 10 50 "Fe") || return 0
+    [ -n "$el" ] || return 0
+
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+    fam=$(ui_menu "Family" \
+        "Pseudopotential family:" 12 50 \
+        paw "PAW (Projector Augmented-Wave)" \
+        nc  "NC (Norm-Conserving)" \
+        us  "Ultrasoft") || return 0
+
+    xc=$(ui_menu "Functional" \
+        "Exchange-correlation functional:" 12 50 \
+        pbe    "PBE (Perdew-Burke-Ernzerhof)" \
+        pbesol "PBEsol (densely packed solids)" \
+        pz     "Perdew-Zunger (LDA)") || return 0
+
+    rel=$(ui_menu "Relativity" \
+        "Relativistic treatment:" 12 50 \
+        scalar "Scalar relativistic" \
+        full   "Fully relativistic (spin-orbit)") || return 0
+
+    local args=("-e" "$el" "-t" "$fam" "-x" "$xc" "-r" "$rel")
+    if build_command_for "${args[@]}"; then
+        ui_msg "Exact Command Line" "\nRun on your machine:\n\n  $BUILD_CMD\n" 14 75
+    else
+        ui_msg "Incompatible Choices" "\n$BUILD_REFUSAL\n" 14 75
+    fi
 }
 
 tui_provenance() {

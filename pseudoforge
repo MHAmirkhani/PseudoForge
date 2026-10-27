@@ -27,7 +27,7 @@ PF_DATA=${PF_DATA:-$PF_ROOT/data}
 export PF_ROOT PF_LIB PF_DATA
 
 # ---- load the library -----------------------------------------------------
-for _m in core sink config deps elements xc namelist profiles metadata formats gth sssp convert doctor params engines build recipe input_builder executor fetch project run upf testing validate plot report advise provenance element coverage recent capabilities compare cutoff http optimise cli ui tui wizard; do
+for _m in core sink config deps elements xc namelist profiles metadata formats gth sssp convert doctor params engines build recipe input_builder executor fetch project run upf testing validate plot report advise provenance element coverage recent capabilities compare cutoff build_command http optimise cli ui tui wizard; do
     # shellcheck disable=SC1090
     . "$PF_LIB/$_m.sh" || { echo "pseudoforge: cannot load $PF_LIB/$_m.sh" >&2; exit 1; }
 done
@@ -142,6 +142,8 @@ case $cmd in
         shift; cmd_capabilities "$@" ;;
     cutoff)
         shift; cmd_cutoff "$@" ;;
+    build-command|command)
+        shift; cmd_build_command "$@" ;;
     version|--version|-V)
         printf '%s %s -- %s
 ' "$PSEUDOFORGE_NAME" "$PSEUDOFORGE_VERSION" "$PSEUDOFORGE_TAGLINE"

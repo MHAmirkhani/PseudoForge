@@ -1032,9 +1032,23 @@ function buildCmd(sym, w, profile) {
     ` -o ./out`;
 }
 
-function onBuild() {
-  const el = state.element ? state.element.symbol : '<element>';
-  const cmd = buildCmd(el, want(), state.match ? state.match.profile : null);
+async function onBuild() {
+  const el = state.element ? state.element.symbol : 'Fe';
+  const w = want();
+  let cmd = buildCmd(el, w, state.match ? state.match.profile : null);
+
+  try {
+    const u = new URL('/api/build-command', window.location.origin);
+    u.searchParams.set('element', el);
+    if (w.family) u.searchParams.set('family', w.family);
+    if (w.xc) u.searchParams.set('xc', w.xc);
+    if (w.rel) u.searchParams.set('relativity', w.rel);
+    const resp = await fetch(u.toString());
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.command) cmd = data.command;
+    }
+  } catch (e) {}
 
   show(
     `<h3>Build it on your machine</h3>

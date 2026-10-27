@@ -352,6 +352,13 @@ Report recommended kinetic-energy cutoff (ecutwfc and ecutrho) for an element.
 Drawn from SSSP verification tables, PseudoDojo parameters, or project scans.
 EOF
         ;;
+        build-command|command) cat <<'EOF'
+usage: pseudoforge build-command [options]
+
+Turn physics choices into an exact CLI generation command.
+Validates parameters with cli_check_spec and formats with spec_cmdline.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac
@@ -402,6 +409,7 @@ cli_parse() {
             recent) shift; cmd_recent "$@"; exit 0 ;;
             capabilities) shift; cmd_capabilities "$@"; exit 0 ;;
             cutoff) shift; cmd_cutoff "$@"; exit 0 ;;
+            build-command|command) shift; cmd_build_command "$@"; exit 0 ;;
             -e|--elements)
                             # Several -e on one line accumulate, as they always
                             # have.  But the first one after --recipe replaces
@@ -2146,5 +2154,33 @@ cmd_cutoff() {
         cutoff_render_json
     else
         cutoff_render_human
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# cmd_build_command -- turn physics choices into an exact CLI generation command
+# ---------------------------------------------------------------------------
+cmd_build_command() {
+    case "${1:-}" in -h|--help) cli_help_for build-command; return 0 ;; esac
+    local as_json=0 args=()
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                cli_help_for build-command; return 0 ;;
+            --json)
+                as_json=1; shift ;;
+            *)
+                args+=("$1"); shift ;;
+        esac
+    done
+
+    if ! build_command_for "${args[@]}"; then
+        die "$BUILD_REFUSAL"
+    fi
+
+    if [ "$as_json" -eq 1 ]; then
+        build_command_render_json
+    else
+        build_command_render_human
     fi
 }
