@@ -653,6 +653,18 @@ run_subsuite "capabilities tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/
 section "TUI tools menu"
 run_subsuite "TUI tools menu" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_tools_tui.sh"
 
+section "compare tool"
+run_subsuite "compare tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_compare.sh"
+
+section "cutoff tool"
+run_subsuite "cutoff tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_cutoff.sh"
+
+section "build-command tool"
+run_subsuite "build-command tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_build_command.sh"
+
+section "docs search"
+run_subsuite "docs search" bash "$HERE/test_search.sh"
+
 if [ "${1:-}" = --all ]; then
     section "documentation build (strict)"
     run_subsuite "MkDocs strict build" bash "$HERE/test_mkdocs.sh"
