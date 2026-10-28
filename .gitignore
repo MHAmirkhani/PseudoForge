@@ -55,6 +55,9 @@ server/.venv/
 *.orig
 *.rej
 
+# PSlibrary round-trip cache
+data/psl/.roundtrip.cache
+
 # Audit output.  Not ignored: these are the record of what the last full
 # audit found, and the CHANGELOG entries reference them by name.  They
 # regenerate in a second via tools/audit.sh, but the committed copy is what

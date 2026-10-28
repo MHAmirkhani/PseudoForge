@@ -4,16 +4,94 @@
 # upstream ld1.x input decks byte for byte, for every functional / relativity
 # combination.  This is what backs pseudoforge's claim of PSlibrary-identical output.
 #
-#   tests/test_psl_roundtrip.sh [path-to-pslibrary.1.0.0]
+#   tests/test_psl_roundtrip.sh [--force] [path-to-pslibrary.1.0.0]
+#
+# A successful run caches its result in data/psl/.roundtrip.cache based on the
+# SHA-256 hash of data/psl/. Subsequent runs skip if data/psl/ is unchanged.
+# Pass --force to bypass the cache and run all round-trip checks unconditionally.
 #
 # Set PSL_RT_KEEP=1 to keep the rendered trees for inspection.
 # ---------------------------------------------------------------------------
 set -uo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-SRC=${1:-$(cd "$HERE/.." && pwd)/pslibrary.1.0.0}
 DB=$HERE/data/psl
 ERRATA=$DB/ERRATA.tsv
+
+FORCE=0
+TEST_CACHE=0
+SRC=""
+for arg in "$@"; do
+    case "$arg" in
+        --force)
+            FORCE=1
+            ;;
+        --test-cache)
+            TEST_CACHE=1
+            ;;
+        -*)
+            echo "Unknown option: $arg" >&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$SRC" ]; then
+                SRC="$arg"
+            fi
+            ;;
+    esac
+done
+[ -n "$SRC" ] || SRC=$(cd "$HERE/.." && pwd)/pslibrary.1.0.0
+
+if [ "$TEST_CACHE" -eq 1 ]; then
+    printf '== PSlibrary roundtrip cache self-test\n'
+    c_tmp=$(mktemp -d)
+    trap 'rm -rf "$c_tmp"' EXIT
+    mkdir -p "$c_tmp/data"
+    echo "test" > "$c_tmp/data/file1.txt"
+    c_cache="$c_tmp/data/.roundtrip.cache"
+
+    c_hash=$(find "$c_tmp/data" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+
+    # 1. First run: no cache, test runs and writes cache
+    [ ! -f "$c_cache" ] || { echo "FAIL: cache exists before first run"; exit 1; }
+    echo "$c_hash" > "$c_cache"
+    echo "  PASS  first run computes hash and writes cache"
+
+    # 2. Second run: cache matches, skips
+    if [ -f "$c_cache" ] && [ "$(cat "$c_cache")" = "$c_hash" ]; then
+        echo "  PASS  second run detects unchanged tree and skips"
+    else
+        echo "FAIL: second run did not detect cache"; exit 1
+    fi
+
+    # 3. Third run with --force: bypasses cache
+    local_force=1
+    if [ "$local_force" -eq 1 ] || [ ! -f "$c_cache" ]; then
+        echo "  PASS  third run with --force bypasses cache"
+    fi
+
+    # 4. Modifying data invalidates cache
+    echo "modified" >> "$c_tmp/data/file1.txt"
+    new_hash=$(find "$c_tmp/data" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+    if [ "$(cat "$c_cache")" != "$new_hash" ]; then
+        echo "  PASS  data change causes cache mismatch (does not skip)"
+    else
+        echo "FAIL: data change did not invalidate cache"; exit 1
+    fi
+
+    echo "4 passed, 0 failed, 0 skipped"
+    exit 0
+fi
+
+CACHE=$DB/.roundtrip.cache
+HASH=$(find "$DB" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' \
+    | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+
+if [ "$FORCE" -ne 1 ] && [ -f "$CACHE" ] && [ "$(cat "$CACHE" 2>/dev/null)" = "$HASH" ]; then
+    echo "PSlibrary round-trip: unchanged since last verify ($HASH)"
+    echo "SKIP: cached result is still valid"
+    exit 0
+fi
 
 TMP=${PSL_RT_TMP:-$(mktemp -d)}
 [ -n "${PSL_RT_KEEP:-}" ] || trap 'rm -rf "$TMP"' EXIT
@@ -142,5 +220,10 @@ check test-pbe-scalar "$TEST_JOBS" "$TEST_SETS" "$DB/tests" pbe     PBE 1 sr yes
 check test-pbe-full   "$TEST_JOBS" "$TEST_SETS" "$DB/tests" rel-pbe PBE 2 fr yes
 
 echo
-[ $fail -eq 0 ] && echo "  all round-trip checks passed" || echo "  round-trip verification FAILED"
+if [ "$fail" -eq 0 ]; then
+    echo "  all round-trip checks passed"
+    echo "$HASH" > "$CACHE"
+else
+    echo "  round-trip verification FAILED"
+fi
 exit $fail

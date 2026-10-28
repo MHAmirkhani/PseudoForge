@@ -678,6 +678,8 @@ if [ "${1:-}" = --all ]; then
     section "PSlibrary round-trip (slow)"
     if bash "$HERE/test_psl_roundtrip.sh"; then ok_ "round-trip"; else bad_ "round-trip"; fi
 
+    run_subsuite "PSlibrary round-trip cache" bash "$HERE/test_psl_cache.sh"
+
     # Custom-potential coverage: every key a user can set is reachable from
     # the CLI, from the TUI advanced screen, and (for the identity keys)
     # from the wizard; the guard rails and the menus agree.  Fast, no engine.
