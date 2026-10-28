@@ -1250,6 +1250,7 @@ ib_build_ape() {
         printf 'CalculationMode = ae + pp\n'
         printf 'Verbose = 30\n'
         printf 'WaveEquation = %s\n' "$(ib_ape_waveeq)"
+        printf 'PPOutputFileFormat = upf\n'
         printf 'SpinMode = unpolarized\n\n'
         printf '%%XCFunctionals\n %s\n %s\n%%\n\n' "${xc%% *}" "${xc##* }"
         printf 'NuclearCharge = %s\n\n' "$z"

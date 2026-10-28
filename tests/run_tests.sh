@@ -662,6 +662,9 @@ run_subsuite "cutoff tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-nat
 section "build-command tool"
 run_subsuite "build-command tool" env PF_NATIVE_DIR="${PF_NATIVE_DIR:-$ORIG_HOME/pf-native}" bash "$HERE/test_build_command.sh"
 
+section "APE format output"
+run_subsuite "APE format output" bash "$HERE/test_ape_format.sh"
+
 section "docs search"
 run_subsuite "docs search" bash "$HERE/test_search.sh"
 

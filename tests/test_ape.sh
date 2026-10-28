@@ -64,9 +64,11 @@ deck_for() {
 printf '\n%s== deck structure%s\n' "$DIM" "$RESET"
 d=$(deck_for Si) || { echo "could not build a Si deck"; exit 1; }
 
-for key in "NuclearCharge" "CalculationMode" "WaveEquation" "%XCFunctionals" "%Orbitals" "%PPComponents"; do
+for key in "NuclearCharge" "CalculationMode" "WaveEquation" "PPOutputFileFormat" "%XCFunctionals" "%Orbitals" "%PPComponents"; do
     grep -q -- "$key" "$d" && ok_ "deck carries $key" || bad_ "deck is missing $key"
 done
+pp_fmt=$(awk -F'=' '/PPOutputFileFormat/ { gsub(/ /,"",$2); print $2 }' "$d")
+[ "$pp_fmt" = "upf" ] && ok_ "PPOutputFileFormat is upf" || bad_ "PPOutputFileFormat = $pp_fmt, expected upf"
 
 z=$(awk -F'=' '/NuclearCharge/ { gsub(/ /,"",$2); print $2 }' "$d")
 [ "$z" = "14" ] && ok_ "silicon's nuclear charge is 14" || bad_ "NuclearCharge = $z, expected 14"
