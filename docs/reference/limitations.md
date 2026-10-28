@@ -241,6 +241,14 @@ authors' own copy rather than rehosting it. See
 
 ---
 
+## Testing and CI limitations
+
+### PSlibrary round-trip test in CI
+
+The PSlibrary round-trip test requires the upstream 1.0.0 source archive on disk. It is not bundled with the repository (the archives there are engine sources, not library data). CI runs the rest of the test suite; the round-trip is verified manually before each release.
+
+---
+
 ## What is not a limitation
 
 Two things read as limitations and are not, and the difference matters
