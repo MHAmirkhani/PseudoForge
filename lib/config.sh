@@ -15,7 +15,10 @@ pf_config_defaults() {
     : "${PW_BIN:=${QE_ROOT_DIR:+$QE_ROOT_DIR/bin/}pw.x}"
     : "${SCRATCH_DIR:=${TMPDIR:-/tmp}/pseudoforge}"
     : "${OUTPUT_BASE_DIR:=$PWD/pseudoforge-output}"
-    : "${MAX_PARALLEL_JOBS:=4}"
+    local cores
+    cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    [ "$cores" -gt 8 ] && cores=8
+    : "${MAX_PARALLEL_JOBS:=$cores}"
 
     # execution wrappers -- e.g. PARA_PREFIX='mpirun -np 4'
     : "${PARA_PREFIX:=}"
@@ -97,7 +100,10 @@ pf_config_defaults() {
 
 # ---- template written on first run ----------------------------------------
 pf_config_template() {
-cat <<'RC'
+    local cores
+    cores=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+    [ "$cores" -gt 8 ] && cores=8
+    sed "s/^MAX_PARALLEL_JOBS=4\$/MAX_PARALLEL_JOBS=$cores/" <<'RC'
 # ---------------------------------------------------------------------------
 # ~/.pseudoforgerc -- configuration for PseudoForge (pseudopotential generator)
 #

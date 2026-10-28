@@ -283,6 +283,7 @@ deps_report() {
     printf '  %-16s %s\n' "bash" "${BASH_VERSION:-unknown}"
     printf '  %-16s %s\n' "config" "$PF_RC"
     printf '  %-16s %s\n' "data" "$PF_DATA"
+    printf '  %-16s %s\n' "parallel jobs" "$MAX_PARALLEL_JOBS"
 
     banner "Required tools"
     for t in $DEPS_REQUIRED; do
