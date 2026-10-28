@@ -1,0 +1,41 @@
+name: gates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  fast:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck
+        run: shellcheck -S warning lib/*.sh tools/*.sh tests/*.sh
+      - name: anchors
+        run: python3 tools/check-anchors.py
+      - name: reference tables
+        run: tools/gen_reference.sh --check
+
+  interfaces:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y shellcheck jq
+      - name: audit-interfaces
+        run: tools/audit-interfaces.sh
+      - name: audit
+        run: tools/audit.sh
+
+  tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv
+      - name: run_tests
+        run: ./tests/run_tests.sh --all
