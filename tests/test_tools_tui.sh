@@ -44,6 +44,8 @@ tui_capabilities
 grep -q "With the store alone" <<< "$MOCK_TEXT_BODY" && ok_ "tui_capabilities renders capability matrix" || bad_ "tui_capabilities failed"
 
 # Test tui_advise
+MOCK_MENU_FILE=$(mktemp)
+ui_menu()  { [ -n "${MOCK_MENU_FILE:-}" ] && printf '%s\n' "$@" > "$MOCK_MENU_FILE"; echo "${MOCK_MENU:-}"; }
 MOCK_INPUT="Fe"
 MOCK_MENU="phonons"
 MOCK_MSG_TITLE=""
@@ -51,6 +53,52 @@ MOCK_MSG_BODY=""
 tui_advise
 grep -q "Advisory: Fe (phonons)" <<< "$MOCK_MSG_TITLE" && ok_ "tui_advise sets correct title" || bad_ "tui_advise title mismatch"
 grep -q "For Fe, phonons" <<< "$MOCK_MSG_BODY" && ok_ "tui_advise outputs recommendations" || bad_ "tui_advise output missing"
+
+# Verify TUI advise menu matches calculations.tsv
+mapfile -t menu_args < "$MOCK_MENU_FILE"
+rm -f "$MOCK_MENU_FILE"
+tui_calcs=()
+for ((idx=4; idx<${#menu_args[@]}; idx+=2)); do
+    tui_calcs+=("${menu_args[idx]}")
+done
+
+file_calcs=()
+while IFS=$'\t' read -r cid clbl crest; do
+    case $cid in ''|\#*|id) continue ;; esac
+    file_calcs+=("$cid")
+done < "$PF_DATA/advice/calculations.tsv"
+
+diff_calcs=$(diff -u <(printf '%s\n' "${file_calcs[@]}") <(printf '%s\n' "${tui_calcs[@]}") || true)
+if [ -z "$diff_calcs" ]; then
+    ok_ "TUI advise menu offers exactly the calculations in calculations.tsv"
+else
+    bad_ "TUI advise menu differs from calculations.tsv" "$diff_calcs"
+fi
+
+# For every calculation id in calculations.tsv, calling advise_for on Si returns at least one recommendation
+all_si_ok=1
+for cid in "${file_calcs[@]}"; do
+    if advise_for "Si" "$cid" && [ "$ADV_OUT_COUNT" -gt 0 ]; then
+        :
+    else
+        all_si_ok=0
+        bad_ "advise_for Si $cid returned no recommendations"
+    fi
+done
+[ "$all_si_ok" -eq 1 ] && ok_ "advise_for Si returns recommendations for all calculations"
+
+# If advise_for on (scf, Fe) returns empty, TUI prints the same message the CLI prints
+cli_scf_msg=$("$ROOT/pseudoforge" advise -e Fe --calculation scf 2>&1 || true)
+MOCK_INPUT="Fe"
+MOCK_MENU="scf"
+MOCK_MSG_TITLE=""
+MOCK_MSG_BODY=""
+tui_advise
+if [ "$MOCK_MSG_BODY" = "$cli_scf_msg" ]; then
+    ok_ "TUI prints exact same message as CLI for (scf, Fe)"
+else
+    bad_ "TUI output differs from CLI for (scf, Fe)" "TUI: '$MOCK_MSG_BODY' vs CLI: '$cli_scf_msg'"
+fi
 
 # Test tui_element
 MOCK_INPUT="Fe"

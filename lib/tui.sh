@@ -469,24 +469,27 @@ tui_advise() {
         "Element symbol (e.g. Fe, Si, Cu):" 10 50 "Fe") || return 0
     [ -n "$el" ] || return 0
 
+    local items=()
+    local cid clbl crest
+    while IFS=$'\t' read -r cid clbl crest; do
+        case $cid in ''|\#*|id) continue ;; esac
+        items+=("$cid" "$clbl")
+    done < "$PF_DATA/advice/calculations.tsv"
+
     UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
     calc=$(ui_menu "Calculation Type" \
-        "Select the primary calculation you intend to run:" 18 8 \
-        scf         "Self-consistent field (ground state, energy)" \
-        bands       "Band structure and density of states" \
-        phonons     "Phonon dispersions and vibrational properties" \
-        gw          "Many-body perturbation theory (GW / BSE)" \
-        high-p      "High-pressure and extreme compression" \
-        magnetic    "Magnetic systems, spin-orbit, non-collinear" \
-        defect      "Defects, vacancies, impurities, charged cells" \
-        surface     "Surfaces, interfaces, 2D materials, slabs") || return 0
+        "Select the primary calculation you intend to run:" 20 70 "${items[@]}") || return 0
 
-    local out
-    if advise_for "$el" "$calc"; then
+    local out err_tmp
+    err_tmp=$(mktemp)
+    if advise_for "$el" "$calc" 2>"$err_tmp"; then
         out=$(advise_render_human)
     else
-        out="Could not compute advisory recommendations for $el + $calc."
+        out=$(sed -E $'s/\033\\[[0-9;]*[a-zA-Z]//g' "$err_tmp")
+        [ -n "$out" ] || out="Could not compute advisory recommendations for $el + $calc."
     fi
+    rm -f "$err_tmp"
+
     ui_msg "Advisory: $el ($calc)" "$out" 24 78
 }
 
