@@ -18,6 +18,25 @@
 
   let currentElement = 'Fe';
 
+  let nativeStoreCache = null;
+  async function getNativeStore() {
+    if (nativeStoreCache !== null) return nativeStoreCache;
+    try {
+      const r = await fetch('/api/native');
+      if (r.ok) {
+        const body = await r.json();
+        if (Array.isArray(body)) {
+          nativeStoreCache = body;
+          return nativeStoreCache;
+        }
+      }
+      nativeStoreCache = [];
+    } catch (e) {
+      nativeStoreCache = [];
+    }
+    return nativeStoreCache;
+  }
+
   async function updateCommand() {
     const wfc = parseInt(numWfc.value, 10) || 0;
     const rho = parseInt(numRho.value, 10) || 0;
@@ -116,6 +135,50 @@
       document.getElementById('val-prov').textContent = data.provenance || '-';
 
       setCutoffs(data.ecutwfc || 0, data.ecutrho || 0);
+
+      // Check native store for matching file
+      const store = await getNativeStore();
+      const provMatch = (data.provenance || '').match(/\(([^)]+)\)/);
+      const provFn = provMatch ? provMatch[1].toLowerCase() : '';
+      let matches = [];
+      if (provFn) {
+        matches = store.filter(item => (item.id || '').toLowerCase().includes(provFn));
+      }
+      if (matches.length === 0 && data.element) {
+        matches = store.filter(item =>
+          (item.element || '').toLowerCase() === (data.element || '').toLowerCase() &&
+          (item.xc || '').toLowerCase() === (data.xc || '').toLowerCase()
+        );
+      }
+
+      const btnContainer = document.getElementById('cut-download-btn-container');
+      const noteEl = document.getElementById('cut-store-note');
+      if (btnContainer) btnContainer.innerHTML = '';
+      if (noteEl) noteEl.innerHTML = '';
+
+      if (matches.length > 0) {
+        const primary = matches[0];
+        let moreFormats = '';
+        if (matches.length > 1) {
+          const opts = matches.slice(1).map(m =>
+            `<option value="/api/download/${encodeURIComponent(m.id)}">.${(m.format || '')} (${m.id})</option>`
+          ).join('');
+          moreFormats = `
+            <select class="more-formats-select" onchange="if(this.value) window.location.href=this.value;" style="padding: 0.25rem 0.4rem; font-size: 0.8rem; border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--fg);">
+              <option value="">More (${matches.length - 1})...</option>
+              ${opts}
+            </select>`;
+        }
+        if (btnContainer) {
+          btnContainer.innerHTML = `
+            <a href="/api/download/${encodeURIComponent(primary.id)}" class="btn-sm download-btn download-button" download>Download ${primary.id}</a>
+            ${moreFormats}`;
+        }
+      } else {
+        if (noteEl) {
+          noteEl.innerHTML = `<div class="not-in-store-note">Not in the store; generate it with the command below.</div>`;
+        }
+      }
     } catch (e) {
       statusEl.textContent = 'Network error: ' + e.message;
     }

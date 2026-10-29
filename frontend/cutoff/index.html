@@ -123,6 +123,28 @@
   align-items: center;
   overflow-x: auto;
 }
+.download-btn,
+.download-button {
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+}
+.download-btn:hover,
+.download-button:hover {
+  filter: brightness(1.1);
+  color: #fff;
+}
+.not-in-store-note {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 </style>
 </head>
 <body>
@@ -231,8 +253,12 @@
     <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:0.35rem;">Equivalent Command:</label>
     <div class="cmd-box">
       <code id="cut-cmd">pseudoforge generate -e Fe --ecut 90</code>
-      <button type="button" class="btn-sm" id="btn-copy-cmd">Copy</button>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <span id="cut-download-btn-container"></span>
+        <button type="button" class="btn-sm" id="btn-copy-cmd">Copy</button>
+      </div>
     </div>
+    <div id="cut-store-note"></div>
   </div>
 </div>
 

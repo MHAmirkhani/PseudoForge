@@ -82,11 +82,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (body.is_overview || body.overview) {
       renderOverview(body);
     } else {
-      renderSingle(body);
+      await renderSingle(body);
     }
   }
 
-  function renderSingle(data) {
+  let nativeStoreCache = null;
+  async function getNativeStore() {
+    if (nativeStoreCache !== null) return nativeStoreCache;
+    try {
+      const res = await API.native();
+      if (res && res.status === 200 && Array.isArray(res.body)) {
+        nativeStoreCache = res.body;
+      } else {
+        nativeStoreCache = [];
+      }
+    } catch (e) {
+      nativeStoreCache = [];
+    }
+    return nativeStoreCache;
+  }
+
+  async function renderSingle(data) {
+    const store = await getNativeStore();
+
     let html = `
       <div style="margin-bottom: 1.25rem;">
         <h2 style="margin: 0 0 0.35rem; color: var(--fg-strong);">
@@ -145,6 +163,36 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>`;
       }
 
+      // Check native store for matching pre-built file
+      const matches = store.filter(item => {
+        return (item.element || '').toLowerCase() === (data.element || '').toLowerCase() &&
+               (item.family || '').toLowerCase() === (rec.family || '').toLowerCase() &&
+               (item.xc || '').toLowerCase() === (rec.xc || '').toLowerCase() &&
+               (item.profile || '').toLowerCase() === (rec.profile || '').toLowerCase();
+      });
+
+      let downloadBtnHtml = '';
+      let storeNoteHtml = '';
+      if (matches.length > 0) {
+        const primary = matches[0];
+        let moreFormatsHtml = '';
+        if (matches.length > 1) {
+          const opts = matches.slice(1).map(m =>
+            `<option value="${API.downloadUrl(m.id)}">.${esc(m.format)} (${esc(m.id)})</option>`
+          ).join('');
+          moreFormatsHtml = `
+            <select class="more-formats-select" onchange="if(this.value) window.location.href=this.value;" style="padding: 0.35rem 0.5rem; font-size: 0.82rem; border: 1px solid var(--line); border-radius: 4px; background: var(--card); color: var(--fg);">
+              <option value="">More formats (${matches.length - 1})...</option>
+              ${opts}
+            </select>`;
+        }
+        downloadBtnHtml = `
+          <a href="${API.downloadUrl(primary.id)}" class="btn download-btn download-button" download>Download ${esc(primary.id)}</a>
+          ${moreFormatsHtml}`;
+      } else {
+        storeNoteHtml = `<div class="not-in-store-note">Not in the store; generate it with the command below.</div>`;
+      }
+
       html += `
         <div class="advise-rec-card ${isTop ? 'rank-1' : ''}">
           <div class="advise-rec-head">
@@ -162,11 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
           ${citationsHtml}
           <div class="advise-cmd-box">
             <code id="cmd-rec-${idx}">${esc(rec.cli_command)}</code>
-            <div style="display:flex;gap:0.5rem;">
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+              ${downloadBtnHtml}
               <button type="button" class="btn copy-btn" data-cmd="${esc(rec.cli_command)}">Copy</button>
               <button type="button" class="btn tune-btn" data-target="cmd-rec-${idx}" data-el="${esc(data.element)}" data-fam="${esc(rec.family)}" data-xc="${esc(rec.xc)}" data-eng="${esc(rec.engine)}">Customize</button>
             </div>
           </div>
+          ${storeNoteHtml}
         </div>`;
     });
 
