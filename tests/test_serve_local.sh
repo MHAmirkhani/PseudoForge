@@ -111,6 +111,40 @@ else
     bad_ "warn path did not fire when upfconv.x missing" "$out_warn"
 fi
 
+printf '\n%s== store resolution%s\n' "$DIM" "$RESET"
+
+STORE_TMP=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR" "$STORE_TMP"' EXIT
+
+# 8. With PF_VAR_DIR=$TMP/fake-store where $TMP/fake-store/native/index.tsv exists (3 lines): prints store: $TMP/fake-store/native
+mkdir -p "$STORE_TMP/fake-store/native"
+printf "id\tpath\tformat\n1\ta\tupf\n2\tb\tupf\n3\tc\tupf\n" > "$STORE_TMP/fake-store/native/index.tsv"
+out_env=$(PF_VAR_DIR="$STORE_TMP/fake-store" CHECK_ONLY=1 "$SCRIPT" 2>&1)
+if printf '%s' "$out_env" | grep -q "store:[[:space:]]*$STORE_TMP/fake-store/native"; then
+    ok_ "prints store: \$TMP/fake-store/native when PF_VAR_DIR is set"
+else
+    bad_ "did not print expected store path when PF_VAR_DIR set" "$out_env"
+fi
+
+# 9. With PF_VAR_DIR unset and $HOME/pf-var/native/index.tsv present (simulate with a temp HOME): picks $HOME/pf-var/native
+mkdir -p "$STORE_TMP/fake-home/pf-var/native"
+printf "id\tpath\tformat\n1\ta\tupf\n" > "$STORE_TMP/fake-home/pf-var/native/index.tsv"
+out_home=$(HOME="$STORE_TMP/fake-home" PF_VAR_DIR="" PF_NATIVE_DIR="" CHECK_ONLY=1 "$SCRIPT" 2>&1)
+if printf '%s' "$out_home" | grep -q "store:[[:space:]]*$STORE_TMP/fake-home/pf-var/native"; then
+    ok_ "picks \$HOME/pf-var/native when PF_VAR_DIR unset and present in HOME"
+else
+    bad_ "did not pick \$HOME/pf-var/native" "$out_home"
+fi
+
+# 10. With neither: falls back to the fixtures and says so
+mkdir -p "$STORE_TMP/empty-home"
+out_fix=$(HOME="$STORE_TMP/empty-home" PF_VAR_DIR="" PF_NATIVE_DIR="" CHECK_ONLY=1 "$SCRIPT" 2>&1)
+if printf '%s' "$out_fix" | grep -qE "store:.*fixtures|fixtures"; then
+    ok_ "falls back to fixtures and says so when no store present"
+else
+    bad_ "did not indicate fixture fallback when store absent" "$out_fix"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

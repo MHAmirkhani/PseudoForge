@@ -46,7 +46,54 @@ API_PORT=${API_PORT:-8099}
 # printed below works regardless; that also exposes the port to your local
 # network, which is why it is not the default.
 HOST=${HOST:-127.0.0.1}
-PF_VAR_DIR=${PF_VAR_DIR:-/tmp/pseudoforge-local}
+
+# ---------------------------------------------------------------------------
+# Store resolution: caller env, ~/.pseudoforgerc, $HOME/.pseudoforge,
+# $HOME/pf-var, $HOME/pf-native, or fallback to /tmp/pseudoforge-local-$UID
+# seeded from fixtures.
+PF_NATIVE_DIR="${PF_NATIVE_DIR:-}"
+using_fixtures=0
+
+if [ -n "${PF_VAR_DIR:-}" ]; then
+    if [ -z "$PF_NATIVE_DIR" ]; then
+        if [ -f "$PF_VAR_DIR/native/index.tsv" ]; then
+            PF_NATIVE_DIR="$PF_VAR_DIR/native"
+        elif [ -f "$PF_VAR_DIR/index.tsv" ]; then
+            PF_NATIVE_DIR="$PF_VAR_DIR"
+        else
+            PF_NATIVE_DIR="$PF_VAR_DIR/native"
+        fi
+    fi
+elif [ -f "$HOME/.pseudoforgerc" ] && bash -c '[ -f "$1/.pseudoforgerc" ] && . "$1/.pseudoforgerc" && [ -n "${PF_VAR_DIR:-}" ]' _ "$HOME" 2>/dev/null; then
+    rc_var=$(bash -c '. "$1/.pseudoforgerc"; printf "%s" "${PF_VAR_DIR:-}"' _ "$HOME" 2>/dev/null || true)
+    if [ -n "$rc_var" ]; then
+        PF_VAR_DIR="$rc_var"
+        if [ -f "$PF_VAR_DIR/native/index.tsv" ]; then
+            PF_NATIVE_DIR="$PF_VAR_DIR/native"
+        elif [ -f "$PF_VAR_DIR/index.tsv" ]; then
+            PF_NATIVE_DIR="$PF_VAR_DIR"
+        else
+            PF_NATIVE_DIR="$PF_VAR_DIR/native"
+        fi
+    fi
+fi
+
+if [ -z "${PF_VAR_DIR:-}" ]; then
+    if [ -f "$HOME/.pseudoforge/native/index.tsv" ]; then
+        PF_VAR_DIR="$HOME/.pseudoforge"
+        PF_NATIVE_DIR="$HOME/.pseudoforge/native"
+    elif [ -f "$HOME/pf-var/native/index.tsv" ]; then
+        PF_VAR_DIR="$HOME/pf-var"
+        PF_NATIVE_DIR="$HOME/pf-var/native"
+    elif [ -f "$HOME/pf-native/index.tsv" ]; then
+        PF_VAR_DIR="$HOME/pf-native"
+        PF_NATIVE_DIR="$HOME/pf-native"
+    else
+        PF_VAR_DIR="/tmp/pseudoforge-local-${UID:-$(id -u)}"
+        PF_NATIVE_DIR="$PF_VAR_DIR/native"
+        using_fixtures=1
+    fi
+fi
 
 say()  { printf '  %s\n' "$*"; }
 warn() { printf '  WARN: %s\n' "$*"; }
@@ -98,19 +145,25 @@ say "core:    $ROOT/pseudoforge"
 
 # The served tree. Created empty if absent: the site works with nothing in it,
 # and /download/ says so rather than breaking.
-mkdir -p "$PF_VAR_DIR"/{native,cache,db,converter}
-if [ ! -f "$PF_VAR_DIR/native/index.tsv" ]; then
-    "$ROOT/pseudoforge" native index "$PF_VAR_DIR/native" >/dev/null 2>&1 || true
+mkdir -p "$PF_VAR_DIR"/{cache,db,converter}
+mkdir -p "$PF_NATIVE_DIR"
+
+if [ "$using_fixtures" -eq 1 ] || [ ! -f "$PF_NATIVE_DIR/index.tsv" ]; then
+    if [ ! -f "$PF_NATIVE_DIR/index.tsv" ] || [ ! -s "$PF_NATIVE_DIR/index.tsv" ]; then
+        cp "$ROOT/tests/fixtures/upf/"*.UPF "$PF_NATIVE_DIR/" 2>/dev/null || true
+        cp "$ROOT/tests/fixtures/psp8/"*.psp8 "$PF_NATIVE_DIR/" 2>/dev/null || true
+        cp "$ROOT/tests/fixtures/gth/"*.gth "$PF_NATIVE_DIR/" 2>/dev/null || true
+        "$ROOT/pseudoforge" native index "$PF_NATIVE_DIR" >/dev/null 2>&1 || true
+    fi
 fi
-# grep -c exits 1 when the count is zero and still prints the zero, so the
-# old fallback appended a second one and the line read "(0" then "0 native
-# file(s))" on the next. Dropping that fallback was worse: under `set -e`
-# the non-zero status killed the script here, silently, before it ever
-# reached "starting". Take the number grep printed, neutralise its exit
-# status separately.
-n=$(grep -vc '^#' "$PF_VAR_DIR/native/index.tsv" 2>/dev/null) || true
+
+n=$(grep -vc '^#' "$PF_NATIVE_DIR/index.tsv" 2>/dev/null) || true
 n=${n:-0}
-say "store:   $PF_VAR_DIR ($n native file(s))"
+if [ "$using_fixtures" -eq 1 ]; then
+    say "store:   $PF_NATIVE_DIR ($n native file(s)) (seeded from fixtures)"
+else
+    say "store:   $PF_NATIVE_DIR ($n native file(s))"
+fi
 [ "$n" = 0 ] && say "         (empty is fine -- generate some and re-run 'pseudoforge native index')"
 
 if [ -d "$ROOT/site" ]; then
@@ -118,6 +171,10 @@ if [ -d "$ROOT/site" ]; then
 else
     say "docs:    not built -- /docs/ will 404"
     say "         build them with: mkdocs build --strict --site-dir site"
+fi
+
+if [ "${CHECK_ONLY:-0}" = 1 ] || [ "${1:-}" = "--check" ]; then
+    exit 0
 fi
 
 # --- converter: browser conversion needs upfconv.x -------------------
@@ -154,11 +211,11 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 ( cd "$ROOT/server" && \
-  PF_BIN="$ROOT/pseudoforge" \
-  PF_VAR_DIR="$PF_VAR_DIR" \
-  PF_NATIVE_DIR="$PF_VAR_DIR/native" \
-  PF_CACHE_DIR="$PF_VAR_DIR/cache" \
-  PF_RATE_LIMIT=1000 \
+  export PF_BIN="$ROOT/pseudoforge" && \
+  export PF_VAR_DIR="$PF_VAR_DIR" && \
+  export PF_NATIVE_DIR="$PF_NATIVE_DIR" && \
+  export PF_CACHE_DIR="$PF_VAR_DIR/cache" && \
+  export PF_RATE_LIMIT=1000 && \
   "$UVICORN" app:app --host "$HOST" --port "$API_PORT" --log-level warning \
 ) & API_PID=$!
 
