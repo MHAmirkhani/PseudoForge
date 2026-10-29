@@ -58,6 +58,21 @@ declare -ga ADV_OVERVIEW_FAM=()
 declare -ga ADV_OVERVIEW_XC=()
 declare -ga ADV_OVERVIEW_RATIONALE=()
 
+_advise_find_native_dir() {
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+        printf '%s\n' "$PF_NATIVE_DIR"
+        return 0
+    fi
+    local cand
+    for cand in "${PF_NATIVE_DIR:-}" "/var/lib/pseudoforge/native" "$HOME/pf-native" "$HOME/pf-var/native" "${ORIG_HOME:-$HOME}/pf-native" "${ORIG_HOME:-$HOME}/pf-var/native" "${PF_VAR_DIR:-}/native" "/tmp/pseudoforge-local-$UID/native" "/tmp/pseudoforge-local/native"; do
+        if [ -n "$cand" ] && [ -f "$cand/index.tsv" ]; then
+            printf '%s\n' "$cand"
+            return 0
+        fi
+    done
+    printf '%s\n' "${PF_NATIVE_DIR:-/var/lib/pseudoforge/native}"
+}
+
 pf_advice_load() {
     [ ${#ADV_CALC_ORDER[@]} -gt 0 ] && return 0
     local f_calc=$PF_DATA/advice/calculations.tsv

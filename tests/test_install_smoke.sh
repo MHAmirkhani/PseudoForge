@@ -72,15 +72,15 @@ fi
 check_rc=0
 "$HOME/.local/bin/pseudoforge" doctor --check >/dev/null 2>&1 || check_rc=$?
 missing=no
-for t in gfortran gcc make; do
+for t in gfortran gcc make unzip; do
     command -v "$t" >/dev/null 2>&1 || missing=yes
 done
 if [ "$check_rc" -eq 0 ] && [ "$missing" = no ]; then
-    ok_ "doctor --check exits 0 (host has gfortran, gcc, make)"
+    ok_ "doctor --check exits 0 (host has required build tools)"
 elif [ "$check_rc" -eq 1 ] && [ "$missing" = yes ]; then
-    ok_ "doctor --check exits 1 (host missing a required compiler)"
+    ok_ "doctor --check exits 1 (host missing a required build tool)"
 else
-    bad_ "doctor --check exited $check_rc on a host with missing_compiler=$missing"
+    bad_ "doctor --check exited $check_rc on a host with missing_tools=$missing"
 fi
 
 # 6. doctor (no flag) exits 0

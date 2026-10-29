@@ -303,6 +303,9 @@ options:
                            main-group | metalloid
       --functional XC      override the calculation's default functional
       --accuracy LEVEL     speed | balanced | stringent (default: balanced)
+      --prompt             prompt to run or download the recommendation
+      --no-prompt          suppress interactive prompt (default in non-TTY)
+  -o, --output DIR         output directory for generated or downloaded files
       --json               emit JSON rather than human text
   -q, --quiet              command only, no banner or reasoning
 EOF
@@ -1914,7 +1917,8 @@ cmd_native() {
 # ---------------------------------------------------------------------------
 cmd_advise() {
     case "${1:-}" in -h|--help) cli_help_for advise; return 0 ;; esac
-    local el="" calc="" code="" mat="" xc="" acc="" as_json=0 quiet=0
+    local el="" calc="" code="" mat="" xc="" acc="" as_json=0 quiet=0 out_dir=""
+    local prompt_mode="auto"
     while [ $# -gt 0 ]; do
         case $1 in
             -h|--help)
@@ -1941,6 +1945,13 @@ cmd_advise() {
                 as_json=1; shift ;;
             -q|--quiet)
                 quiet=1; shift ;;
+            --prompt)
+                prompt_mode="yes"; shift ;;
+            --no-prompt)
+                prompt_mode="no"; shift ;;
+            -o|--output)
+                [ $# -ge 2 ] || die "missing argument for $1"
+                out_dir=$2; shift 2 ;;
             *)
                 if [ -z "$el" ] && [[ "$1" != -* ]]; then
                     el=$1; shift
@@ -1958,6 +1969,65 @@ cmd_advise() {
         advise_render_json
     else
         advise_render_human "$quiet"
+    fi
+
+    local do_prompt=0
+    if [ "$prompt_mode" = "yes" ]; then
+        do_prompt=1
+    elif [ "$prompt_mode" = "auto" ]; then
+        if [ -t 1 ] && [ -t 0 ] && [ "$as_json" -eq 0 ] && [ "$quiet" -eq 0 ]; then
+            do_prompt=1
+        fi
+    fi
+
+    if [ "$do_prompt" -eq 1 ] && [ "$as_json" -eq 0 ] && [ "${ADV_OUT_COUNT:-0}" -gt 0 ]; then
+        local target_dir="${out_dir:-./$(lower "$el")-run}"
+        local store_id=""
+        local ndir
+        ndir=$(_advise_find_native_dir)
+        local top_prof="${ADV_OUT_PROFILE[0]}"
+        local top_fam="${ADV_OUT_FAMILY[0]}"
+        local top_xc="${ADV_OUT_XC[0]}"
+
+        if [ -f "$ndir/index.tsv" ]; then
+            store_id=$(awk -F'\t' -v e="$(lower "$el")" -v p="$(lower "$top_prof")" -v f="$(lower "$top_fam")" -v x="$(lower "$top_xc")" '
+                tolower($2) == e && tolower($8) == p && tolower($4) == f && tolower($3) == x { print $1; exit }
+            ' "$ndir/index.tsv")
+        fi
+
+        local pf_bin
+        if [ -n "${PF_ROOT:-}" ] && [ -x "$PF_ROOT/pseudoforge" ]; then
+            pf_bin="$PF_ROOT/pseudoforge"
+        elif [ -x "$0" ]; then
+            pf_bin="$0"
+        else
+            pf_bin="pseudoforge"
+        fi
+
+        local reply=""
+        if [ -n "$store_id" ]; then
+            printf '\nDownload %s into %s? [y/N] ' "$store_id" "$target_dir"
+            read -r reply || reply=""
+            case $reply in
+                [Yy]*)
+                    "$pf_bin" generate -e "$el" -p "$top_prof" -t "$top_fam" -x "$top_xc" --source online -o "$target_dir"
+                    ;;
+            esac
+        else
+            printf '\nGenerate it now with the command above? [y/N] '
+            read -r reply || reply=""
+            case $reply in
+                [Yy]*)
+                    local gen_cmd="${ADV_OUT_CLI[0]}"
+                    gen_cmd=$(printf '%s' "$gen_cmd" | sed -E 's/[[:space:]]+-o[[:space:]]+[^[:space:]]+//g')
+                    gen_cmd="$gen_cmd -o $target_dir"
+                    if [[ "$gen_cmd" == "pseudoforge "* ]]; then
+                        gen_cmd="\"$pf_bin\" ${gen_cmd#pseudoforge }"
+                    fi
+                    eval "$gen_cmd"
+                    ;;
+            esac
+        fi
     fi
 }
 

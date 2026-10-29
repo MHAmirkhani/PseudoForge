@@ -44,10 +44,23 @@ tui_capabilities
 grep -q "With the store alone" <<< "$MOCK_TEXT_BODY" && ok_ "tui_capabilities renders capability matrix" || bad_ "tui_capabilities failed"
 
 # Test tui_advise
-MOCK_MENU_FILE=$(mktemp)
-ui_menu()  { [ -n "${MOCK_MENU_FILE:-}" ] && printf '%s\n' "$@" > "$MOCK_MENU_FILE"; echo "${MOCK_MENU:-}"; }
+MOCK_MENU_DIR=$(mktemp -d)
+ui_menu() {
+    local cnt=0
+    [ -f "$MOCK_MENU_DIR/count" ] && cnt=$(cat "$MOCK_MENU_DIR/count")
+    cnt=$((cnt + 1))
+    echo "$cnt" > "$MOCK_MENU_DIR/count"
+    printf '%s\n' "$@" > "$MOCK_MENU_DIR/call_$cnt"
+    if [ -f "$MOCK_MENU_DIR/ret_$cnt" ]; then
+        cat "$MOCK_MENU_DIR/ret_$cnt"
+    else
+        echo "${MOCK_MENU:-}"
+    fi
+}
+
+echo "phonons" > "$MOCK_MENU_DIR/ret_1"
+echo "done"    > "$MOCK_MENU_DIR/ret_2"
 MOCK_INPUT="Fe"
-MOCK_MENU="phonons"
 MOCK_MSG_TITLE=""
 MOCK_MSG_BODY=""
 tui_advise
@@ -55,8 +68,7 @@ grep -q "Advisory: Fe (phonons)" <<< "$MOCK_MSG_TITLE" && ok_ "tui_advise sets c
 grep -q "For Fe, phonons" <<< "$MOCK_MSG_BODY" && ok_ "tui_advise outputs recommendations" || bad_ "tui_advise output missing"
 
 # Verify TUI advise menu matches calculations.tsv
-mapfile -t menu_args < "$MOCK_MENU_FILE"
-rm -f "$MOCK_MENU_FILE"
+mapfile -t menu_args < "$MOCK_MENU_DIR/call_1"
 tui_calcs=()
 for ((idx=4; idx<${#menu_args[@]}; idx+=2)); do
     tui_calcs+=("${menu_args[idx]}")
@@ -75,6 +87,20 @@ else
     bad_ "TUI advise menu differs from calculations.tsv" "$diff_calcs"
 fi
 
+# Verify TUI advise follow-up menu offers the four options
+mapfile -t follow_args < "$MOCK_MENU_DIR/call_2"
+follow_opts=()
+for ((idx=4; idx<${#follow_args[@]}; idx+=2)); do
+    follow_opts+=("${follow_args[idx]}")
+done
+expected_follow=("run" "recipe" "copy" "done")
+diff_follow=$(diff -u <(printf '%s\n' "${expected_follow[@]}") <(printf '%s\n' "${follow_opts[@]}") || true)
+if [ -z "$diff_follow" ]; then
+    ok_ "TUI advise follow-up menu offers the four options (run, recipe, copy, done)"
+else
+    bad_ "TUI advise follow-up menu options mismatch" "$diff_follow"
+fi
+
 # For every calculation id in calculations.tsv, calling advise_for on Si returns at least one recommendation
 all_si_ok=1
 for cid in "${file_calcs[@]}"; do
@@ -89,8 +115,10 @@ done
 
 # If advise_for on (scf, Fe) returns empty, TUI prints the same message the CLI prints
 cli_scf_msg=$("$ROOT/pseudoforge" advise -e Fe --calculation scf 2>&1 || true)
+rm -rf "${MOCK_MENU_DIR:?}"/*
+echo "scf"  > "$MOCK_MENU_DIR/ret_1"
+echo "done" > "$MOCK_MENU_DIR/ret_2"
 MOCK_INPUT="Fe"
-MOCK_MENU="scf"
 MOCK_MSG_TITLE=""
 MOCK_MSG_BODY=""
 tui_advise
@@ -99,6 +127,7 @@ if [ "$MOCK_MSG_BODY" = "$cli_scf_msg" ]; then
 else
     bad_ "TUI output differs from CLI for (scf, Fe)" "TUI: '$MOCK_MSG_BODY' vs CLI: '$cli_scf_msg'"
 fi
+rm -rf "$MOCK_MENU_DIR"
 
 # Test tui_element
 MOCK_INPUT="Fe"

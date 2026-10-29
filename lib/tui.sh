@@ -482,8 +482,10 @@ tui_advise() {
 
     local out err_tmp
     err_tmp=$(mktemp)
+    local ok_advise=0
     if advise_for "$el" "$calc" 2>"$err_tmp"; then
         out=$(advise_render_human)
+        ok_advise=1
     else
         out=$(sed -E $'s/\033\\[[0-9;]*[a-zA-Z]//g' "$err_tmp")
         [ -n "$out" ] || out="Could not compute advisory recommendations for $el + $calc."
@@ -491,6 +493,57 @@ tui_advise() {
     rm -f "$err_tmp"
 
     ui_msg "Advisory: $el ($calc)" "$out" 24 78
+
+    if [ "$ok_advise" -eq 1 ] && [ "${ADV_OUT_COUNT:-0}" -gt 0 ]; then
+        local top_cmd="${ADV_OUT_CLI[0]}"
+        UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+        local choice
+        choice=$(ui_menu "Recommendation Action" \
+            "What would you like to do with the top recommendation?" 16 65 \
+            run "Run the recommended command now" \
+            recipe "Save it as a recipe" \
+            copy "Show the command to copy" \
+            "done" "Done") || return 0
+
+        case $choice in
+            run)
+                local -a rargs=()
+                read -r -a rargs <<< "${top_cmd#pseudoforge generate}"
+                spec_init
+                CLI_ELEMENTS=""
+                cli_parse "${rargs[@]}"
+                clear
+                cmd_generate
+                ui_pause
+                ;;
+            recipe)
+                local -a rargs=()
+                read -r -a rargs <<< "${top_cmd#pseudoforge generate}"
+                spec_init
+                CLI_ELEMENTS=""
+                cli_parse "${rargs[@]}"
+                local rname
+                rname=$(ui_input "Save Recipe" "Name for this recipe:" 10 50 "${el,,}-${calc:-recipe}") || return 0
+                [ -n "$rname" ] || return 0
+                if ! rcp_name_ok "$rname"; then
+                    ui_msg "Save failed" "Recipe names become file names.\n\nUse letters, digits, dot, dash and underscore." 10 60
+                    return 0
+                fi
+                local rf
+                rf=$(rcp_save "$rname" "Recommended for $el ($calc)")
+                local rc=$?
+                [ "$rc" -eq 0 ] \
+                    && ui_msg "Saved" "$rf\n\nReload it with:\n  pseudoforge generate --recipe $rname" 11 70 \
+                    || ui_msg "Save failed" "Could not write the recipe." 8 60
+                ;;
+            copy)
+                ui_msg "Recommended Command" "$top_cmd\n\nSelect it with the mouse, or copy from above." 12 76
+                ;;
+            done)
+                return 0
+                ;;
+        esac
+    fi
 }
 
 tui_compare() {

@@ -419,5 +419,29 @@ for r in data.get("recommendations", []):
     print(r.get("cli_command", ""))
 ')
 
+# Follow-up interactive prompt tests
+out_noprompt=$("$ROOT/pseudoforge" advise -e Si --calculation band-gap --no-prompt 2>&1)
+if printf '%s' "$out_noprompt" | grep -q '\[y/N\]'; then
+    bad_ "advise --no-prompt output contains prompt"
+else
+    ok_ "advise --no-prompt prints only recommendations without prompt"
+fi
+
+out_prompt_eof=$("$ROOT/pseudoforge" advise -e Si --calculation band-gap --prompt </dev/null 2>&1 || true)
+if printf '%s' "$out_prompt_eof" | grep -q '\[y/N\]'; then
+    ok_ "advise --prompt </dev/null attempts prompt and exits"
+else
+    bad_ "advise --prompt </dev/null did not attempt prompt" "$out_prompt_eof"
+fi
+
+TMP_ADV_RUN="$TMP_DIR/test-advise-run"
+rm -rf "$TMP_ADV_RUN"
+printf 'y\n' | "$ROOT/pseudoforge" advise -e Si --calculation band-gap --prompt -o "$TMP_ADV_RUN" >/dev/null 2>&1 || true
+if [ -d "$TMP_ADV_RUN/pseudos" ] && [ -n "$(ls -A "$TMP_ADV_RUN/pseudos" 2>/dev/null)" ]; then
+    ok_ "advise --prompt with 'y' generates/downloads expected files into pseudos/"
+else
+    bad_ "advise --prompt with 'y' did not produce files in $TMP_ADV_RUN/pseudos"
+fi
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]
