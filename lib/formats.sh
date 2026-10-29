@@ -50,6 +50,7 @@ fmt_for_engine() {
     for id in "${FMT_ORDER[@]}"; do
         fmt_engine_can "$eng" "$id" && printf '%s\n' "$id"
     done
+    return 0
 }
 
 # Which engines can write this format?  Used to make a refusal useful.

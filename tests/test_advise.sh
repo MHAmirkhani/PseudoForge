@@ -388,5 +388,36 @@ for r in data.get("recommendations", []):
     [ "$cmd_count" -gt 0 ] && ok_ "smoke: $el $calc generated $cmd_count recommendations" || bad_ "smoke: $el $calc generated 0 recommendations"
 done
 
+# Engine format resolution tests
+fmt_ape=$(fmt_for_engine ape | head -1)
+[ "$fmt_ape" = "upf" ] && ok_ "APE engine format resolves to upf" || bad_ "APE engine format is not upf"
+
+json_ge=$("$ROOT/pseudoforge" advise -e Ge --calculation xas --json 2>&1)
+adpack_rec=$(printf '%s' "$json_ge" | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+for r in data.get("recommendations", []):
+    if r.get("engine") == "adpack":
+        print(r.get("format", ""))
+        sys.exit(0)
+')
+[ "$adpack_rec" = "openmx" ] && ok_ "ADPACK recommendation format is openmx, not upf" || bad_ "ADPACK format is '$adpack_rec', expected openmx"
+
+while IFS= read -r rcmd; do
+    [ -n "$rcmd" ] || continue
+    read -r -a rargs <<< "${rcmd#pseudoforge }"
+    out_spec=$(cd "$TMP_DIR" && "$ROOT/pseudoforge" "${rargs[@]}" --dry-run 2>&1 || true)
+    if printf '%s' "$out_spec" | grep -qi "not supported by engine"; then
+        bad_ "cli_command triggered 'not supported by engine': $rcmd" "$out_spec"
+    else
+        ok_ "cli_command accepted without engine support refusal: $rcmd"
+    fi
+done < <(printf '%s' "$json_ge" | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+for r in data.get("recommendations", []):
+    print(r.get("cli_command", ""))
+')
+
 printf '\n%d passed, %d failed, %d skipped\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

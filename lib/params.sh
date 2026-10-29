@@ -270,6 +270,9 @@ params_find() {
             f=$(find "$root/bin/Elements" -path "*/TM/${z}-${el}*.ini" -type f 2>/dev/null | head -1)
             [ -n "$f" ] || f=$(find "$root/bin/Elements" -name "${z}-${el}*.ini" -type f 2>/dev/null | head -1)
             ;;
+        adpack)
+            f=$(ls "$d/${el}_VPS.inp" 2>/dev/null | head -1)
+            ;;
         *)
             f=$(ls "$d/$el".* 2>/dev/null | head -1)
             ;;

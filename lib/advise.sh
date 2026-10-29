@@ -389,9 +389,17 @@ advise_for() {
 
         # Format resolution
         local fmt=$format_target
+        local fmt_caveat=""
+        if fmt_for_engine "$c_eng" | grep -qw "$format_target"; then
+            fmt=$format_target
+        else
+            fmt=$(fmt_for_engine "$c_eng" | head -1)
+            fmt_caveat="Recommended format $fmt because $c_eng does not write $format_target."
+        fi
         if [ -n "$code" ]; then
             if fmt_for_engine "$c_eng" | grep -qw "$preferred_fmt"; then
                 fmt=$preferred_fmt
+                fmt_caveat=""
             fi
         fi
         ADV_OUT_FORMAT+=("$fmt")
@@ -408,6 +416,13 @@ advise_for() {
         local caveats=""
         if ! eng_available "$c_eng"; then
             caveats="Requires $c_eng, which is not installed. Install with: ./install.sh --bootstrap or pseudoforge engines build $c_eng"
+        fi
+        if [ -n "$fmt_caveat" ]; then
+            if [ -n "$caveats" ]; then
+                caveats="$caveats\n$fmt_caveat"
+            else
+                caveats="$fmt_caveat"
+            fi
         fi
         if [ -n "$code" ] && [ "$fmt" != "$preferred_fmt" ]; then
             local c_fmt_warn="Format $preferred_fmt is not written by $c_eng; add --format $fmt"
@@ -441,7 +456,15 @@ advise_for() {
         ADV_OUT_ENG_DOI+=("$(md_doi "$c_eng")")
 
         # CLI command
-        local cmd="pseudoforge generate -e $el -t $c_fam -p $c_prof -x $c_xc -r $rel -o ./${el,,}-run"
+        local eng_def="upf"
+        if ! fmt_for_engine "$c_eng" | grep -qw "upf"; then
+            eng_def=$(fmt_for_engine "$c_eng" | head -1)
+        fi
+        local fmt_flag=""
+        if [ "$fmt" != "$eng_def" ]; then
+            fmt_flag="--format $fmt "
+        fi
+        local cmd="pseudoforge generate -e $el -t $c_fam -p $c_prof -x $c_xc -r $rel ${fmt_flag}-o ./${el,,}-run"
         ADV_OUT_CLI+=("$cmd")
 
         rank=$((rank + 1))
@@ -684,7 +707,7 @@ advise_render_json() {
         printf '      "caveats": ['
         if [ -n "${ADV_OUT_CAVEATS[i]}" ]; then
             local first_c=1 c_line
-            while IFS= read -r c_line; do
+            while IFS= read -r c_line || [ -n "$c_line" ]; do
                 [ -z "$c_line" ] && continue
                 if [ "$first_c" -eq 1 ]; then
                     printf '"%s"' "$(_adv_json_esc "$c_line")"
@@ -692,7 +715,7 @@ advise_render_json() {
                 else
                     printf ', "%s"' "$(_adv_json_esc "$c_line")"
                 fi
-            done < <(printf '%b' "${ADV_OUT_CAVEATS[i]}")
+            done < <(printf '%b\n' "${ADV_OUT_CAVEATS[i]}")
         fi
         printf '],\n'
 

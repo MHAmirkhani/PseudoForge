@@ -38,7 +38,7 @@ element.
 
 | Profile | Engine | Families | Functionals | Elements |
 |---|---|---|---|---|
-| ADPACK / OpenMX (Ozaki) | adpack | NC | pz pbe | NC:0 |
+| ADPACK / OpenMX (Ozaki) | adpack | NC | pz pbe | NC:29 |
 | AtomPAW (Holzwarth) | atompaw | PAW | pbe pbesol pw r2scan | PAW:any |
 | GTH (Goedecker-Teter-Hutter, CP2K) | gth | NC | pz pbe pbesol blyp bp olyp hcth120 hcth407 | NC:101 |
 | Dacapo / CAMPOS | uspp | US | pz pbe | US:0 |
@@ -96,29 +96,29 @@ element.
 | Element | Profiles |
 |---|---|
 | H (Hydrogen) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| He (Helium) | `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `sg15` |
+| He (Helium) | `adpack` `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `sg15` |
 | Li (Lithium) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Be (Beryllium) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Be (Beryllium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `sg15` |
 | B (Boron) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | C (Carbon) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | N (Nitrogen) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | O (Oxygen) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| F (Fluorine) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Ne (Neon) | `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
-| Na (Sodium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Mg (Magnesium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `psl-tot` `sg15` |
+| F (Fluorine) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Ne (Neon) | `adpack` `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| Na (Sodium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Mg (Magnesium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `psl-tot` `sg15` |
 | Al (Aluminium) | `cp2k-gth` `gbrv` `gipaw` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
 | Si (Silicon) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| P (Phosphorus) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| S (Sulfur) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Cl (Chlorine) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Ar (Argon) | `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| K (Potassium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
-| Ca (Calcium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
-| Sc (Scandium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Ti (Titanium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
-| V (Vanadium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `psl-tot` `sg15` |
-| Cr (Chromium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| P (Phosphorus) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| S (Sulfur) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Cl (Chlorine) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Ar (Argon) | `adpack` `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| K (Potassium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| Ca (Calcium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| Sc (Scandium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Ti (Titanium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| V (Vanadium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `psl-tot` `sg15` |
+| Cr (Chromium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Mn (Manganese) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Fe (Iron) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
 | Co (Cobalt) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `psl-tot` `sg15` |
@@ -126,27 +126,27 @@ element.
 | Cu (Copper) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
 | Zn (Zinc) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
 | Ga (Gallium) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Ge (Germanium) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Ge (Germanium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
 | As (Arsenic) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Se (Selenium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
-| Br (Bromine) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Kr (Krypton) | `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
+| Se (Selenium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Br (Bromine) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Kr (Krypton) | `adpack` `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Rb (Rubidium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Sr (Strontium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Y (Yttrium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Zr (Zirconium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Nb (Niobium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Zr (Zirconium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Nb (Niobium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Mo (Molybdenum) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Tc (Technetium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Ru (Ruthenium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Rh (Rhodium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Pd (Palladium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Ag (Silver) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Ag (Silver) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
 | Cd (Cadmium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
 | In (Indium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Sn (Tin) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Sn (Tin) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Sb (Antimony) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-alt` `psl-high` `psl-low` `psl-tot` `sg15` |
-| Te (Tellurium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Te (Tellurium) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
 | I (Iodine) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `sg15` |
 | Xe (Xenon) | `cp2k-gth` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-tot` `sg15` |
 | Cs (Caesium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `psl-tot` `sg15` |
@@ -172,11 +172,11 @@ element.
 | Re (Rhenium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `psl-tot` `sg15` |
 | Os (Osmium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-high` `psl-low` `psl-tot` `sg15` |
 | Ir (Iridium) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Pt (Platinum) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Au (Gold) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
-| Hg (Mercury) | `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
+| Pt (Platinum) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Au (Gold) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-alt` `psl-high` `psl-low` `sg15` |
+| Hg (Mercury) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudodojo` `pseudoforge-auto` `psl-031` `psl-high` `psl-low` `sg15` |
 | Tl (Thallium) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
-| Pb (Lead) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
+| Pb (Lead) | `adpack` `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Bi (Bismuth) | `cp2k-gth` `gbrv` `hgh` `pseudoforge-auto` `psl-031` `psl-high` `sg15` |
 | Po (Polonium) | `cp2k-gth` `hgh` `pseudoforge-auto` `psl-high` `psl-tot` |
 | At (Astatine) | `cp2k-gth` `hgh` `pseudoforge-auto` `psl-high` `psl-tot` |
