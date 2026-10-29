@@ -59,13 +59,28 @@ else
     bad_ "symlink failed to print version" "$ver_out"
 fi
 
-# 5. doctor --check exits 1 in the empty HOME
+# 5. doctor --check reflects the host's tool state, not the HOME.
+#
+# On a host with gfortran, gcc, make, BLAS, and LAPACK installed,
+# --check exits 0 even with an empty HOME -- and that is the correct
+# behavior: --check reports whether this machine can build engines,
+# and it can. The original test asserted exit 1 unconditionally,
+# which passed only on CI and failed on any developer machine with
+# compilers installed.
+#
+# Assert the observed exit matches the host's actual state.
 check_rc=0
 "$HOME/.local/bin/pseudoforge" doctor --check >/dev/null 2>&1 || check_rc=$?
-if [ "$check_rc" -eq 1 ]; then
-    ok_ "doctor --check exits 1 in empty HOME"
+missing=no
+for t in gfortran gcc make; do
+    command -v "$t" >/dev/null 2>&1 || missing=yes
+done
+if [ "$check_rc" -eq 0 ] && [ "$missing" = no ]; then
+    ok_ "doctor --check exits 0 (host has gfortran, gcc, make)"
+elif [ "$check_rc" -eq 1 ] && [ "$missing" = yes ]; then
+    ok_ "doctor --check exits 1 (host missing a required compiler)"
 else
-    bad_ "doctor --check did not exit 1 (got $check_rc)"
+    bad_ "doctor --check exited $check_rc on a host with missing_compiler=$missing"
 fi
 
 # 6. doctor (no flag) exits 0
@@ -86,9 +101,24 @@ else
 fi
 
 # 8. with PF_AUTO_INSTALL_LD1=no, `pseudoforge generate -e Si -p psl-high` fails with the "ld1.x is required" message, not a generic error
+#
+# Isolate from the caller's QE install. Three sources can leak:
+#
+#   * LD1_BIN / PW_BIN / QE_ROOT_DIR in the environment or config
+#   * ld1.x on PATH (deps_resolve_qe falls back to `command -v`)
+#   * PF_QE_SEARCH_DIRS defaulting to /opt/espresso/*
+#
+# All three must be closed. A developer with
+# LD1_BIN=/opt/espresso/7.6/ld1.x (or ld1.x on PATH) would have the
+# real engine inherited, and the "ld1.x is required" assertion would
+# never fire -- instead the real ld1.x would run for up to fifteen
+# minutes. The env unset plus a minimal PATH makes the test
+# deterministic regardless of the machine.
+unset LD1_BIN PW_BIN UPFCONV_BIN QE_ROOT_DIR
 export PF_AUTO_INSTALL_LD1=no
 export PF_QE_SEARCH_DIRS="$TEST_TMP/nonexistent/*"
-gen_out=$("$HOME/.local/bin/pseudoforge" generate -e Si -p psl-high 2>&1 || true)
+gen_out=$(PATH=/usr/local/bin:/usr/bin:/bin \
+    "$HOME/.local/bin/pseudoforge" generate -e Si -p psl-high 2>&1 || true)
 if printf '%s\n' "$gen_out" | grep -qi "ld1.x is required and not installed"; then
     ok_ "generate psl-high with PF_AUTO_INSTALL_LD1=no fails with 'ld1.x is required'"
 else
