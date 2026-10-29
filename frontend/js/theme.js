@@ -14,7 +14,8 @@
 'use strict';
 
 (function () {
-  var KEY = 'pf-theme';
+  var KEY = 'theme';
+  var ALT_KEY = 'pf-theme';
   var DEFAULT = 'light';
 
   function current() {
@@ -40,7 +41,9 @@
 
   function init() {
     var saved = null;
-    try { saved = localStorage.getItem(KEY); } catch (e) { /* disabled */ }
+    try {
+      saved = localStorage.getItem('theme') || localStorage.getItem(ALT_KEY);
+    } catch (e) { /* disabled */ }
     apply(saved === 'dark' || saved === 'light' ? saved : DEFAULT, false);
 
     var btn = document.getElementById('theme-toggle');
@@ -49,7 +52,10 @@
       btn.addEventListener('click', function () {
         var next = current() === 'dark' ? 'light' : 'dark';
         apply(next, true);
-        try { localStorage.setItem(KEY, next); } catch (e) { /* ignore */ }
+        try {
+          localStorage.setItem('theme', next);
+          localStorage.setItem(ALT_KEY, next);
+        } catch (e) { /* ignore */ }
       });
     }
   }

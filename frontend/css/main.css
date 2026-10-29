@@ -2,7 +2,9 @@
    The site is four static pages and a JSON API; a build step would be more
    machinery than the thing it builds. */
 
-:root {
+:root,
+[data-theme="light"],
+:root[data-theme="light"] {
   --bg: #fbfbfd;
   --fg: #16161d;
   --muted: #5a5a6a;
@@ -16,19 +18,18 @@
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #131318;
-    --fg: #e8e8ef;
-    --muted: #a0a0b0;
-    --line: #2a2a35;
-    --card: #1b1b22;
-    --accent: #8b9bff;
-    --accent-fg: #10101a;
-    --ok: #5fd39b;
-    --warn: #e6b455;
-    --err: #ff8a80;
-  }
+[data-theme="dark"],
+:root[data-theme="dark"] {
+  --bg: #131318;
+  --fg: #e8e8ef;
+  --muted: #a0a0b0;
+  --line: #2a2a35;
+  --card: #1b1b22;
+  --accent: #8b9bff;
+  --accent-fg: #10101a;
+  --ok: #5fd39b;
+  --warn: #e6b455;
+  --err: #ff8a80;
 }
 
 * { box-sizing: border-box; }
@@ -545,12 +546,14 @@ dl.prov dd { margin: 0; }
  * the small step down to #fdfdfe and #334155 removes that without giving up
  * legibility.
  * ------------------------------------------------------------------------- */
-:root {
+:root,
+[data-theme="light"],
+:root[data-theme="light"] {
   /* Shared tokens -- do not change per theme. */
   --accent:       #4051b5;
   --accent-hover: #303fa1;
 
-  /* Light theme is the :root default.  The dark block below overrides. */
+  /* Light theme */
   --page-bg:      #f4f5f7;
   --panel-bg:     #fdfdfe;
   --panel-border: #cbd5e1;
@@ -564,7 +567,8 @@ dl.prov dd { margin: 0; }
   --hover-bg:     rgba(15, 23, 42, 0.04);
 }
 
-[data-theme="dark"] {
+[data-theme="dark"],
+:root[data-theme="dark"] {
   --page-bg:      #14171c;
   --panel-bg:     #1a1d24;
   --panel-border: rgba(255, 255, 255, 0.08);
