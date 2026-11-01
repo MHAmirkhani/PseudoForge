@@ -461,7 +461,7 @@ against the output of the upstream `.job` files. It is what backs the
 Cite it as:
 
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
-> validator*, version 1.3.4 (2026). <https://amirkhani.me>
+> validator*, version 1.3.5 (2026). <https://amirkhani.me>
 
 The archived version is on Zenodo:
 

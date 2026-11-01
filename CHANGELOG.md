@@ -1,5 +1,32 @@
 # Changelog
 
+## Version 1.3.5 — the advisory system and the tools
+
+Six tools are introduced across PseudoForge, with every tool reachable from the CLI, TUI, and REST API where the operation makes sense: `advise` (physics-grounded pseudopotential recommendations for twelve standard electronic-structure calculations), `provenance` (complete build records and SHA-256 signatures for native store files), `element` (inventory of available profiles, formats, and relativistic variants for any element), `coverage` (per-profile element availability matrices), `recent` (most recently indexed native potentials), and `capabilities` (summary of local generator engines, conversion paths, and online mirrors). The TUI gains a dedicated `tools` menu consolidating these capabilities, and the interactive generation wizard now begins with an "advise or skip" step to guide users toward an optimal configuration before assembly.
+
+Three additional capabilities expand the toolset: `compare` extends the existing CLI comparison utility across the API, TUI, and Web interfaces to inspect structural differences, projectors, and cutoffs between two pseudopotentials; `cutoff` provides kinetic-energy cutoff recommendations (`ecutwfc` and `ecutrho`) drawn directly from verified SSSP v1.3.0 tables (efficiency and precision) and PseudoDojo ONCVPSP parameters without guesswork; and `build-command` translates physics specifications into exact, reproducible CLI generation commands by reusing `spec_cmdline`.
+
+The web interface has been expanded with ten new dedicated pages: `/advise/`, `/provenance/`, `/elements/`, `/elements/<sym>/`, `/coverage/`, `/recent/`, `/capabilities/`, `/compare/`, `/cutoff/`, `/playground/`, and `/search/`. When a recommendation matches a pre-built pseudopotential in the native store, the advice page provides a direct "Download" button alongside multi-format options, with a fallback notice when generation is required. Similarly, the CLI and TUI now offer interactive follow-up actions to download the file directly, run the recommended generation command immediately, or save the configuration as a reusable recipe.
+
+Under the hood, infrastructure and runtime behavior have received key refinements: `PF_VAR_DIR` now defaults to `$HOME/.pseudoforge` unless `/var/lib/pseudoforge` exists, allowing local developer setups to discover stores transparently; `serve-local.sh` checks and mounts the user's real store before falling back to mock fixtures; APE pseudopotential generation explicitly defaults to `upf` format; `MAX_PARALLEL_JOBS` dynamically defaults to `min(nproc, 8)`; the PSlibrary round-trip test results are cached to eliminate redundant runs unless `--force` is specified; the light and dark theme toggle persists across pages via unified `localStorage` tokens and inline boot hooks; the interface audit's local-channel projector test is pinned to `--lloc 2` to correctly test override handling on templates with runtime-chosen local channels; and a GitHub Actions CI workflow now validates the full suite of six gates on every push to main.
+
+## Version 1.3.4 — README install corrections
+
+Version 1.3.3 shipped with the pre-1.3.3 README install section: a
+`git clone <your-repo>` placeholder, Quantum ESPRESSO listed as
+required to generate pseudopotentials of any kind, and `adpack`
+described as external-install-only. All three were true of an earlier
+version; none was true of 1.3.3.
+
+This release ships the corrected README on the tag, so a reader who
+arrives via Zenodo or the GitHub release page gets an install command
+that runs, a dependency table that distinguishes "required" from
+"needed for the eight buildable engines" from "needed for ld1", and a
+profiles table that no longer calls `adpack` external.
+
+No code change. The version bump and the two README/CHANGELOG
+commits were the entire content of the release.
+
 ## Version 1.3.3 — installation system, first DOI
 
 ### What this release adds
