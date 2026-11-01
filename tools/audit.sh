@@ -359,9 +359,14 @@ run_expect_fail "generate oncvpsp --projector 3P:0.5 (refused on non-ld1)" \
     "$PSM" generate -e Si -t nc -x pbe -p sg15 --engine oncvpsp -o "$SCRATCH/pj-oncv" --projector 3P:0.5 -q
 run "generate ld1 --projector 3P:0.5 (accepted on non-local channel)" \
     "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/pj-ok" --projector 3P:0.5 --no-test -q
-run_expect_fail "generate ld1 --projector 3D:0.5 (refused on local channel)" \
+# --projector on the local channel is refused, but only when the local
+# channel is actually fixed.  psl-high/nc/Si ships lloc=-1, meaning "ld1
+# picks the local channel at runtime" -- there is no fixed channel to
+# conflict with, so a 3D projector is not refused.  Fix the channel with
+# --lloc 2 first, then the conflict fires.
+run_expect_fail "generate ld1 --projector 3D:0.5 with --lloc 2 (refused on local channel)" \
     "local channel" \
-    "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/pj-bad" --projector 3D:0.5 -q
+    "$PSM" generate -e Si -t nc -x pbe -p psl-high -o "$SCRATCH/pj-bad" --lloc 2 --projector 3D:0.5 -q
 # --upf 1 is refused: QE 7.x's ld1.x no longer writes UPF v1.
 run_expect_fail "generate ld1 --upf 1 (refused)" \
     "UPF v1 is not supported" \
