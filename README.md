@@ -1,6 +1,7 @@
 # PseudoForge
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23641884.svg)](https://doi.org/10.5281/zenodo.23641884)
+[![Live](https://img.shields.io/badge/live-pseudo.amirkhani.me-blue)](https://pseudo.amirkhani.me)
 
 A multi-engine pseudopotential generator, validator and reporting tool,
 written entirely in Bash. The command-line tool drives nine atomic codes
@@ -12,6 +13,10 @@ beyond coreutils and (optionally) `whiptail`.
 ```
 pseudoforge generate -e Fe,Ni,Co -t paw -x pbe --cutoff-scan
 ```
+
+A live instance runs at <https://pseudo.amirkhani.me> — the frontend,
+the docs site, the pre-built library (1,688 UPF files across
+`pbe`/`pbesol`/`pw` × `nc`/`paw`/`us`), and the REST API.
 
 ---
 
