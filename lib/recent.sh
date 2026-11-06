@@ -125,6 +125,10 @@ recent_render_human() {
 
 recent_render_json() {
     local total=${#RECENT_OUT_FILENAME[@]}
+    if [ "$total" -eq 0 ]; then
+        printf '[]\n'
+        return 0
+    fi
     printf '[\n'
     local i
     for (( i=0; i<total; i++ )); do

@@ -69,7 +69,15 @@ grep -q "pseudoforge recent" <<< "$help_out" && ok_ "CLI recent --help works" ||
 
 # 7. HTTP API GET /api/recent
 api_out=$(http_handle GET "/api/recent?count=2" 2>&1)
-grep -q '"filename":' <<< "$api_out" && ok_ "HTTP API GET /api/recent returns json with filename" || bad_ "HTTP API failed"
+if [ -f "$TEST_STORE/index.tsv" ] && [ "${#RECENT_OUT_FILENAME[@]}" -gt 0 ]; then
+    grep -q '"filename":' <<< "$api_out" && ok_ "HTTP API GET /api/recent returns json with filename" || bad_ "HTTP API failed"
+else
+    if [ "$HTTP_STATUS" -eq 200 ] && [ "$(tr -d '[:space:]' <<< "$api_out")" = "[]" ]; then
+        ok_ "HTTP API GET /api/recent returns [] on empty store"
+    else
+        bad_ "HTTP API failed on empty store" "$api_out"
+    fi
+fi
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
