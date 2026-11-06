@@ -374,18 +374,26 @@ ib_oncv_find_deck() {
     # 0. the library's own inputs, fetched by params.sh.  These are the real
     #    thing -- SG15's .dat decks, PseudoDojo's .in files -- so a run using
     #    them is a reproduction, not an approximation.
-    if f=$(params_find "${SPEC[profile]}" "$el" 2>/dev/null) && [ -n "$f" ]; then
-        printf 'library	%s
-' "$f"; return 0
+    if [ "${SPEC[profile]:-}" != "pseudoforge-auto" ]; then
+        if f=$(params_find "${SPEC[profile]}" "$el" 2>/dev/null) && [ -n "$f" ]; then
+            printf 'library\t%s\n' "$f"; return 0
+        fi
     fi
-    # 1. a library deck fetched or supplied by the user
-    for d in "${PARAMS_DIR:-}" "$PF_DATA/params/${SPEC[profile]}" "$PF_DATA/params/oncvpsp"; do
+    # 1. for pseudoforge-auto or as library fallback, check curated ONCVPSP decks (sg15, pseudodojo)
+    local lib
+    for lib in sg15 pseudodojo; do
+        if f=$(params_find "$lib" "$el" 2>/dev/null) && [ -n "$f" ]; then
+            printf 'library\t%s\n' "$f"; return 0
+        fi
+    done
+    # 2. a library deck fetched or supplied by the user
+    for d in "${PARAMS_DIR:-}" "$PF_DATA/params/${SPEC[profile]:-}" "$PF_DATA/params/oncvpsp"; do
         [ -n "$d" ] && [ -d "$d" ] || continue
         for f in "$d/$el.dat" "$d/$el.in" "$d/$(printf '%02d' "$z")_$el.dat"; do
             [ -f "$f" ] && { printf 'library\t%s\n' "$f"; return 0; }
         done
     done
-    # 2. ONCVPSP's own regression decks
+    # 3. ONCVPSP's own regression decks
     local root=${ONCVPSP_SRC_DIR:-$(eng_builddir)/oncvpsp}
     for d in "$root" "$root"/*/; do
         [ -d "$d/tests/data" ] || continue
@@ -549,13 +557,6 @@ ib_oncv_synthesise() {
     [ "$lmax" -lt 2 ] && lmax=$((lmax + 1))
     [ "$lmax" -gt 3 ] && lmax=3
 
-    local xcname
-    if ! xcname=$(ib_opium_xc); then
-        error "$el: OPIUM has no $(upper "$(xc_generator "${SPEC[xc]}")") functional."
-        error "  It offers pzlda, pwlda, pw91gga, pbegga, wcgga, pbesol and hf."
-        error "  Use --engine oncvpsp or --engine ld1 for this functional."
-        return 1
-    fi
 
     rc=$(ib_rc_from_radius "$el")
     rcloc=$rc
@@ -675,7 +676,9 @@ ib_build_uspp() {
     # Vanderbilt's own deck for this element, if the tree is present.
     cand=""
     # the library's own Work/ tree first (GBRV ships one), then the engine's
-    if cand=$(params_find "${SPEC[profile]}" "$el" 2>/dev/null) && [ -n "$cand" ]; then
+    if [ "${SPEC[profile]:-}" = "pseudoforge-auto" ]; then
+        cand=$(params_find "gbrv" "$el" 2>/dev/null) && cand=${cand%/}
+    elif cand=$(params_find "${SPEC[profile]}" "$el" 2>/dev/null) && [ -n "$cand" ]; then
         cand=${cand%/}
     fi
     # The glob has quoted and unquoted fragments side by side because the
@@ -1411,13 +1414,16 @@ ib_opium_retarget() {
     fi
     rel=$(ib_opium_rel)
     awk -v xc="$xc" -v rel="$rel" '
-        /^\[XC\]/         { print; skip = 1; print xc;  next }
-        /^\[Relativity\]/ { print; skip = 1; print rel; seen_rel = 1; next }
-        /^\[/             { skip = 0 }
-        skip && NF        { next }
-        skip && !NF       { skip = 0 }
+        tolower($0) ~ /^\[xc\]/         { print "[XC]"; print xc; skip = 1; seen_xc = 1; next }
+        tolower($0) ~ /^\[relativity\]/ { print "[Relativity]"; print rel; skip = 1; seen_rel = 1; next }
+        /^\[/                           { skip = 0 }
+        skip && NF                      { next }
+        skip && !NF                     { skip = 0 }
         { print }
-        END { if (!seen_rel) { printf "\n[Relativity]\n%s\n", rel } }
+        END {
+            if (!seen_xc)  { printf "\n[XC]\n%s\n", xc }
+            if (!seen_rel) { printf "\n[Relativity]\n%s\n", rel }
+        }
     ' "$src" > "$dst"
     # Hartree-Fock segfaults in this build; never carry it over silently
     if grep -qiE '^[[:space:]]*hf[[:space:]]*$' "$dst"; then

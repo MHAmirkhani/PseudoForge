@@ -53,6 +53,29 @@ fmt_for_engine() {
     return 0
 }
 
+# Can the engine write this format under this relativity?
+# Some engines (e.g. OPIUM) restrict certain writers to scalar/nonrel,
+# or to full-relativity only (Teter).
+fmt_engine_supports_rel() {
+    local eng=$1 id=$2 rel=${3:-}
+    fmt_engine_can "$eng" "$id" || return 1
+    if [ "$eng" = opium ] && [ -n "$rel" ]; then
+        case $(rel_canon "$rel") in
+            full)
+                case $id in
+                    upf|teter) return 0 ;;
+                    *) return 1 ;;
+                esac ;;
+            *)
+                case $id in
+                    teter) return 1 ;;
+                    *) return 0 ;;
+                esac ;;
+        esac
+    fi
+    return 0
+}
+
 # Which engines can write this format?  Used to make a refusal useful.
 fmt_engines_for() {
     pf_formats_load

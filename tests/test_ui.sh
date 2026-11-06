@@ -61,8 +61,8 @@ short=$(printf '%s\n' "$layers" | awk -F'|' 'length($3) < 25 { n++ } END { print
 
 # The order is the order a pseudopotential is decided, not alphabetical.
 first=$(printf '%s\n' "$layers" | head -1 | cut -d'|' -f1)
-[ "$first" = profile ] \
-    && ok_ "the flow starts with the library profile, not a menu of everything" \
+[ "$first" = family ] \
+    && ok_ "the flow starts with the formulation, not a menu of everything" \
     || bad_ "the flow starts with '$first'"
 
 printf '\n%s== the review screen shows the real command%s\n' "$DIM" "$RESET"
@@ -212,6 +212,36 @@ esac
 case $wiz in
     *"-r full"*)   ok_ "relativity change is reflected" ;;
     *) bad_ "relativity not reflected: $wiz" ;;
+esac
+
+printf '\n%s== dynamic filtering for physics-first flow%s\n' "$DIM" "$RESET"
+fams=$(type_available_fams paw | tr '\n' ' ')
+case " $fams " in
+    *" LDA "*|*" GGA "*) ok_ "paw supports LDA and GGA" ;;
+    *) bad_ "paw missing LDA/GGA: $fams" ;;
+esac
+case " $fams " in
+    *" metaGGA "*|*" hybrid "*|*" vdW "*) bad_ "paw exposes unsupported families: $fams" ;;
+    *) ok_ "paw hides metaGGA, hybrid, vdW" ;;
+esac
+
+xcs=$(type_available_xcs paw GGA | tr '\n' ' ')
+case " $xcs " in
+    *" pbe "*) ok_ "paw GGA offers pbe" ;;
+    *) bad_ "paw GGA missing pbe: $xcs" ;;
+esac
+
+rels=$(type_available_rel paw | tr '\n' ' ')
+case " $rels " in
+    *" scalar "*|*" full "*) ok_ "paw offers scalar and full relativity" ;;
+    *) bad_ "paw missing scalar/full: $rels" ;;
+esac
+
+SPEC[family]=paw; SPEC[xc]=pbe; SPEC[rel]=scalar; SPEC[profile]=pseudoforge-auto
+paw_els=$(ui_available_elements | tr '\n' ' ')
+case " $paw_els " in
+    *" Fe "*|*" Si "*) ok_ "paw available elements includes Fe and Si" ;;
+    *) bad_ "paw available elements missing Fe/Si: $paw_els" ;;
 esac
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \

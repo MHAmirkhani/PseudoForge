@@ -122,6 +122,32 @@ for name in sorted(INCLUDE_FIX):
         p.write_text(text)
         touched.append(name + " (include)")
 
+# 7. Add missing XC functional strings in do_qeupf.c (pwlda, pw91gga, wcgga)
+qeupf = sout / "do_qeupf.c"
+if qeupf.is_file():
+    text = qeupf.read_text()
+    if 'param->ixc == 4' not in text:
+        old_xc = (
+            '  if (param->ixc == 0) {\n'
+            '    fprintf(fp,"SLA  PZ   NOGX NOGC    PZ   Exchange-Correlation functional\\n");\n'
+            '  } else if (param->ixc == 2) {'
+        )
+        new_xc = (
+            '  if (param->ixc == 0) {\n'
+            '    fprintf(fp,"SLA  PZ   NOGX NOGC    PZ   Exchange-Correlation functional\\n");\n'
+            '  } else if (param->ixc == 1) {\n'
+            '    fprintf(fp,"SLA  PW   NOGX NOGC    PW   Exchange-Correlation functional\\n");\n'
+            '  } else if (param->ixc == 2) {\n'
+            '    fprintf(fp,"SLA  PW   PBE  PBE     PBE  Exchange-Correlation functional\\n");\n'
+            '  } else if (param->ixc == 3) {\n'
+            '    fprintf(fp,"SLA  PW   GGX  GGC     PW91 Exchange-Correlation functional\\n");\n'
+            '  } else if (param->ixc == 4) {\n'
+            '    fprintf(fp,"SLA  PW   WCX  PBC     WC   Exchange-Correlation functional\\n");'
+        )
+        if old_xc in text:
+            qeupf.write_text(text.replace(old_xc, new_xc, 1))
+            touched.append("do_qeupf.c (xc strings)")
+
 if touched:
     print("opium-patch: applied to " + ", ".join(touched))
 else:

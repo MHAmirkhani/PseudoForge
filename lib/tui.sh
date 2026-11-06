@@ -43,16 +43,16 @@ TUI_ADVANCED=${TUI_ADVANCED:-0}
 # ---------------------------------------------------------------------------
 tui_layers() {
     cat <<'LAYERS'
-profile|Library|Whose published parameters to reproduce, or PseudoForge's own construction.|tui_layer_profile
 family|Formulation|NC, ultrasoft or PAW. Decides the cost and which codes can read the result.|tui_layer_family
 xc|Functional|The exchange-correlation approximation. Use the one you will run with.|tui_layer_xc
 rel|Relativity|Non-relativistic, scalar, or full with spin-orbit. Matters for heavy elements.|tui_layer_rel
 elements|Elements|Which elements to build. Filtered by what the settings above can actually make.|tui_layer_elements
+profile|Library|Whose published parameters to reproduce, or PseudoForge's own construction.|tui_layer_profile
 source|Source|Download a published file, or build one on this machine.|tui_layer_source
 engine|Engine|Which atomic code runs. Several can make the same family, and they differ.|tui_layer_engine
 format|Output format|What the result is written as. Not every engine writes every format.|tui_layer_format
 validation|Validation|Transferability and cut-off checks after generation.|tui_layer_validation
-advanced|Advanced|Cut-off radii, local channel, core hole, NLCC, auto-fix. Defaults are sensible.|tui_layer_advanced
+advanced|Advanced|Fine parameters: rcut scale, extra projectors, core holes, auto-fix.|tui_layer_advanced
 LAYERS
 }
 
@@ -224,6 +224,7 @@ tui_wizard() {
             1) dir=back; [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;;
             2) return 1 ;;          # quit
             3) [ "$dir" = back ] && [ "$i" -gt 0 ] && i=$((i - 1)) || i=$((i + 1)) ;; # auto-skipped layer
+            4) dir=back; [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;; # fallback to previous step
         esac
     done
 
@@ -353,10 +354,17 @@ tui_layer_source()     { tui_simple_layer source     ui_pick_source ; }
 # when the user actively cancelled; that is the one case the layer
 # forwards.
 tui_layer_engine() {
-    ui_ensure_engine
-    local rc=$?
-    [ "$rc" -eq 1 ] && return 1
     tui_simple_layer engine ui_pick_engine
+    local rc=$?
+    case $rc in
+        0|3)
+            ui_ensure_engine
+            local enc=$?
+            [ "$enc" -eq 1 ] && return 1
+            return "$rc"
+            ;;
+        *) return "$rc" ;;
+    esac
 }
 tui_layer_format()     { tui_simple_layer format     ui_pick_format ; }
 tui_layer_validation() { tui_simple_layer validation ui_validation_settings ; }

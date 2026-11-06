@@ -154,7 +154,7 @@ report_txt() {
         printf '================================================================\n\n'
         printf ' project      : %s\n' "$PROJECT_DIR"
         printf ' generated    : %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')"
-        printf ' profile      : %s (%s)\n' "${PROF_LABEL[${SPEC[profile]}]}" "$(prof_badge "${SPEC[profile]}")"
+        printf ' profile      : %s (%s)\n' "${PROF_LABEL[${SPEC[profile]}]:-${SPEC[profile]}}" "$(prof_badge "${SPEC[profile]}")"
         printf ' family       : %s\n' "$(upper "${SPEC[family]}")"
         printf ' functional   : %s\n' "$(xc_explain "${SPEC[xc]}")"
         printf ' relativity   : %s\n' "$(rel_label "${SPEC[rel]}")"
@@ -168,7 +168,7 @@ report_txt() {
 
         printf ' %-4s %-34s %-9s %-11s %-10s %-12s %s\n' ELEM PSEUDOPOTENTIAL STATUS PARAMS TRANSFER ECUT/RHO NOTE
         printf ' %s\n' "$(printf '%.0s-' $(seq 1 100))"
-        awk -F'\t' '!/^#/ && NF { print }' "$PROJECT_STATE" | while IFS=$'\t' read -r el fam prof xc rel var upf st att sec msg; do
+        awk -F'\t' '!/^#/ && NF { OFS="\x1f"; print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' "$PROJECT_STATE" | while IFS=$'\x1f' read -r el fam prof xc rel var upf st att sec msg; do
             local tv cw cr
             tv=$(report_transfer "$el" 5); cw=$(report_cutoff "$el" 2); cr=$(report_cutoff "$el" 3)
             printf ' %-4s %-34s %-9s %-11s %-10s %-12s %s\n' \
@@ -228,8 +228,8 @@ report_csv() {
     local out=$PROJECT_DIR/reports/summary.csv
     {
         printf 'element,Z,pseudopotential,family,profile,functional,functional_status,relativity,variant,status,attempts,seconds,transferability,max_dE_Ry,ecutwfc,ecutrho,message\n'
-        awk -F'\t' '!/^#/ && NF { print }' "$PROJECT_STATE" |
-        while IFS=$'\t' read -r el fam prof xc rel var upf st att sec msg; do
+        awk -F'\t' '!/^#/ && NF { OFS="\x1f"; print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' "$PROJECT_STATE" |
+        while IFS=$'\x1f' read -r el fam prof xc rel var upf st att sec msg; do
             printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
                 "$(csv_escape "$el")" "${EL_Z[$el]:-}" "$(csv_escape "$upf")" \
                 "$(csv_escape "$fam")" "$(csv_escape "$prof")" \
@@ -269,8 +269,8 @@ report_json() {
         printf '  "summary": { "ok": %d, "ok_with_warnings": %d, "failed": %d, "skipped": %d, "total": %d },\n' \
                "$o" "$w" "$f" "$s" "$n"
         printf '  "elements": [\n'
-        awk -F'\t' '!/^#/ && NF { print }' "$PROJECT_STATE" |
-        while IFS=$'\t' read -r el fam prof xc rel var upf st att sec msg; do
+        awk -F'\t' '!/^#/ && NF { OFS="\x1f"; print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' "$PROJECT_STATE" |
+        while IFS=$'\x1f' read -r el fam prof xc rel var upf st att sec msg; do
             [ "$first" = 1 ] || printf ',\n'
             first=0
             printf '    { "element": "%s", "Z": %s, "pseudopotential": "%s", "status": "%s", "attempts": %s, "seconds": %s, "transferability": "%s", "max_dE_Ry": "%s", "ecutwfc": "%s", "ecutrho": "%s", "message": "%s" }' \
@@ -368,7 +368,7 @@ HTMLHEAD
 
         printf '<h2>Settings</h2>\n<dl class="meta">\n'
         printf '<dt>Profile</dt><dd>%s <span class="pill skip">%s</span></dd>\n' \
-               "$(html_escape "${PROF_LABEL[${SPEC[profile]}]}")" "$(prof_badge "${SPEC[profile]}")"
+               "$(html_escape "${PROF_LABEL[${SPEC[profile]}]:-${SPEC[profile]}}")" "$(prof_badge "${SPEC[profile]}")"
         printf '<dt>Family</dt><dd>%s</dd>\n' "$(upper "${SPEC[family]}")"
         printf '<dt>Functional</dt><dd>%s</dd>\n' "$(html_escape "$(xc_explain "${SPEC[xc]}")")"
         printf '<dt>Relativity</dt><dd>%s</dd>\n' "$(html_escape "$(rel_label "${SPEC[rel]}")")"
@@ -393,8 +393,8 @@ HTMLHEAD
         printf '<h2>Elements</h2>\n<div class="scroll"><table>\n'
         printf '<thead><tr><th>Z</th><th>Element</th><th>Pseudopotential</th><th>Status</th>'
         printf '<th>Transferability</th><th>max |dE| (Ry)</th><th>ecutwfc</th><th>ecutrho</th><th>Time</th><th>Notes</th></tr></thead>\n<tbody>\n'
-        awk -F'\t' '!/^#/ && NF { print }' "$PROJECT_STATE" |
-        while IFS=$'\t' read -r el fam prof xc rel var upf st att sec msg; do
+        awk -F'\t' '!/^#/ && NF { OFS="\x1f"; print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11 }' "$PROJECT_STATE" |
+        while IFS=$'\x1f' read -r el fam prof xc rel var upf st att sec msg; do
             local cls tv tde cw cr tcls
             case $st in
                 ok)      cls=ok ;;

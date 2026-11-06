@@ -505,8 +505,8 @@ wizard_main() {
     wiz_step_rel      || { info "cancelled"; return 1; }
     wiz_step_profile  || { info "cancelled"; return 1; }
     wiz_step_source   || { info "cancelled"; return 1; }
-    wiz_step_engine   || { info "cancelled"; return 1; }
     wiz_step_elements || { info "cancelled"; return 1; }
+    wiz_step_engine   || { info "cancelled"; return 1; }
 
     # A heavy element with a scalar-relativistic pseudopotential is a common and
     # quiet mistake, so say something rather than let it pass.

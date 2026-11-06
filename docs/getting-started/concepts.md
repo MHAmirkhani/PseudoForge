@@ -15,14 +15,7 @@ The interactive wizard (`pseudoforge wizard`) walks a shorter six-step path
 with elements gathered along the way) focusing on the primary decisions and
 defaulting the remaining layers (`format`, `validation`, `advanced`).
 
-### 1. Library profile
-
-Whose published parameters to reproduce — PSlibrary, SG15, GBRV, PseudoDojo,
-or PseudoForge's own construction (`pseudoforge-auto`). This determines the
-core–valence partition (which electrons are frozen into the core and which are
-valence or semicore) and default radii. See [Profiles](../reference/profiles.md).
-
-### 2. Formulation
+### 1. Formulation
 
 **Norm-conserving (NC)**
 : The pseudo wavefunction carries the same charge inside the cutoff radius as
@@ -41,7 +34,7 @@ valence or semicore) and default radii. See [Profiles](../reference/profiles.md)
   most modern solid-state work. Needed for NMR, EFG and core-level
   spectroscopy.
 
-### 3. Exchange-correlation functional
+### 2. Exchange-correlation functional
 
 LDA, GGA, meta-GGA, hybrid. **The pseudopotential must be generated with the
 same functional you will use in the solid**, because it encodes how the core
@@ -55,7 +48,7 @@ because most atomic codes have no meta-GGA path. PseudoForge says so in the
 report when that is what happened. See [Choose a
 functional](../how-to/choose-a-functional.md).
 
-### 4. Relativity
+### 3. Relativity
 
 `nonrel`, `scalar`, or `full`.
 
@@ -65,11 +58,18 @@ right default for essentially everything above the first row. **Full**
 need for spin-orbit coupling — heavy elements, topological materials, magnetic
 anisotropy. It costs more and produces twice the projectors.
 
-### 5. Elements
+### 4. Elements
 
-Which elements to build. Filtered by what the profile, formulation, functional, and
+Which elements to build. Filtered by what the formulation, functional, and
 relativity chosen above can actually make. Elements can be specified by symbol,
 atomic number Z, range, chemical group, or exclusion.
+
+### 5. Library profile
+
+Whose published parameters to reproduce — PSlibrary, SG15, GBRV, PseudoDojo,
+or PseudoForge's own construction (`pseudoforge-auto`). This determines the
+core–valence partition (which electrons are frozen into the core and which are
+valence or semicore) and default radii. See [Profiles](../reference/profiles.md).
 
 ### 6. Source
 

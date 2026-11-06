@@ -157,7 +157,7 @@ autofix_strategy() {
         scf:1)
             echo "damp the SCF mixing|beta=0.1" ;;
         scf:2)
-            echo "damp the mixing further and loosen the threshold|beta=0.05 tr2=1.0d-13" ;;
+            echo "damp the mixing further and loosen the threshold|beta=0.05 tr2=1.0d-10" ;;
         grid:1)
             echo "extend the radial grid|rmax=120.0" ;;
         grid:2)

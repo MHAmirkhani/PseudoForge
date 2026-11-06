@@ -749,11 +749,14 @@ exec_upf_normalise() { upf_normalise "$@"; }
 
 # Format keyword -> the extension OPIUM writes.
 exec_opium_formats() {
-    local want=${OPIUM_FORMATS:-${SPEC[formats]:-upf}} f rel
+    local want="upf ${OPIUM_FORMATS:-${SPEC[formats]:-upf}}" f rel seen_upf=0
     rel=$(rel_canon "${SPEC[rel]:-}")
     for f in $want; do
         case $f in
-            upf)     printf 'upf upf\n' ;;
+            upf|xml)
+                [ "$seen_upf" = 1 ] && continue
+                seen_upf=1
+                printf 'upf upf\n' ;;
             teter)
                 # Teter is the one OPIUM writer that is fully-relativistic
                 # only: it prints "Currently the Teter format can only be
@@ -825,6 +828,22 @@ exec_opium() {
         EXEC_MESSAGE=$(exec_opium_message "$wd/$prefix.log" "$log")
         [ -n "$EXEC_MESSAGE" ] || EXEC_MESSAGE="opium exited $rc without writing a pseudopotential"
         return 1
+    fi
+
+    # OPIUM's UPF writer lacks strings for pwlda, pw91gga and wcgga, falling back
+    # to writing "SLA PZ NOGX NOGC" into the header even though the solve used
+    # the requested functional. Correct the header line to match the physics solved.
+    local xc_line=""
+    case ${SPEC[xc]} in
+        wc)     xc_line="SLA  PW   WCX  PBC     WC   Exchange-Correlation functional" ;;
+        pw91)   xc_line="SLA  PW   GGX  GGC     PW91 Exchange-Correlation functional" ;;
+        pw)     xc_line="SLA  PW   NOGX NOGC    PW   Exchange-Correlation functional" ;;
+        pbe)    xc_line="SLA  PW   PBE  PBE     PBE  Exchange-Correlation functional" ;;
+        pbesol) xc_line="SLA  PW   PSX  PSC     PBESOL Exchange-Correlation functional" ;;
+        pz)     xc_line="SLA  PZ   NOGX NOGC    PZ   Exchange-Correlation functional" ;;
+    esac
+    if [ -n "$xc_line" ] && [ -s "$upf" ]; then
+        sed -i "s/.*Exchange-Correlation functional\$/$xc_line/" "$upf"
     fi
 
     # Ghost states make a norm-conserving pseudopotential unusable whatever the

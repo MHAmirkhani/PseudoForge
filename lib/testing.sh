@@ -159,6 +159,17 @@ pw_write_input() {
         return 0
     fi
 
+    local is_full=0 so_lines=""
+    if [ "$(rel_canon "${SPEC[rel]:-}")" = full ]; then
+        is_full=1
+    elif [ -f "$PROJECT_DIR/pseudos/$upf" ] && grep -qiE 'has_so="[Tt]|relativistic="full"' "$PROJECT_DIR/pseudos/$upf"; then
+        is_full=1
+    fi
+    if [ "$is_full" = 1 ]; then
+        so_lines="  noncolin     = .true.
+  lspinorb     = .true."
+    fi
+
     cat > "$out" <<PWEOF
 &CONTROL
   calculation  = 'scf'
@@ -180,7 +191,8 @@ pw_write_input() {
   occupations  = 'smearing'
   smearing     = 'marzari-vanderbilt'
   degauss      = 0.02
-/
+${so_lines:+${so_lines}
+}/
 &ELECTRONS
   conv_thr     = 1.0d-10
   mixing_beta  = 0.3
@@ -213,6 +225,21 @@ cutoff_scan_one() {
     [ -n "$upf" ] && [ -f "$PROJECT_DIR/pseudos/$upf" ] || return 1
 
     deps_have_pw || { warn "pw.x not available; skipping cutoff scan"; return 1; }
+
+    # pw.x only reads Quantum ESPRESSO UPF format. If column 7 is non-UPF,
+    # check if a UPF was generated alongside it, otherwise skip cleanly.
+    case $(lower "${upf##*.}") in
+        upf) ;;
+        *)
+            local candidate
+            candidate=$(ls "$PROJECT_DIR/pseudos/$el".*.UPF "$PROJECT_DIR/pseudos/$el".*.upf 2>/dev/null | head -1)
+            if [ -n "$candidate" ] && [ -s "$candidate" ]; then
+                upf=$(basename "$candidate")
+            else
+                info "$el: pw.x cutoff scan requires UPF format; skipped for $(lower "${upf##*.}")"
+                return 0
+            fi ;;
+    esac
 
     fam=${SPEC[family]}
     case $fam in nc) dual=${DUAL_NC:-4} ;; us) dual=${DUAL_US:-8} ;; *) dual=${DUAL_PAW:-8} ;; esac

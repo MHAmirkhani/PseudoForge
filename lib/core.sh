@@ -92,7 +92,8 @@ now() { date +%s; }
 
 # Human-readable duration from a number of seconds.
 human_time() {
-    local s=$1
+    local s=${1:-0}
+    case $s in ''|*[!0-9]*) printf '0s\n'; return 0 ;; esac
     if   [ "$s" -lt 60 ];   then printf '%ds\n' "$s"
     elif [ "$s" -lt 3600 ]; then printf '%dm%02ds\n' $((s/60)) $((s%60))
     else                         printf '%dh%02dm\n' $((s/3600)) $(((s%3600)/60))

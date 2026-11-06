@@ -737,7 +737,7 @@ cmd_generate() {
     project_write_manifest "${elements[*]}"
 
     banner "PseudoForge $PSEUDOFORGE_VERSION"
-    info "profile    ${PROF_LABEL[${SPEC[profile]}]}  [$(prof_badge "${SPEC[profile]}")]"
+    info "profile    ${PROF_LABEL[${SPEC[profile]}]:-${SPEC[profile]}}  [$(prof_badge "${SPEC[profile]}")]"
     info "family     $(upper "${SPEC[family]}")   functional $(xc_qe_string "${SPEC[xc]}")   $(rel_label "${SPEC[rel]}")"
     info "elements   ${#elements[@]}: ${elements[*]}"
     info "project    $PROJECT_DIR"

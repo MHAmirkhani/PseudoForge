@@ -217,10 +217,98 @@ eng_provenance() {
 # Every engine id, sorted.  The registry is the list; anything that prints
 # engines -- the help text, the docs, the wizard -- reads it from here so a
 # tenth engine cannot be added and left out of one of them.
-eng_list()            { pf_engines_load; printf '%s
-' "${!ENG_LABEL[@]}" | sort; }
+eng_list()            { pf_engines_load; printf '%s\n' "${!ENG_LABEL[@]}" | sort; }
 eng_exists()          { pf_engines_load; [ -n "${ENG_LABEL[$1]:-}" ]; }
 eng_supports_family() { pf_engines_load; in_list "$2" ${ENG_FAMILIES[$1]:-}; }
+
+# eng_default_profile <engine> [family]
+eng_default_profile() {
+    local eng=$1 fam=${2:-nc}
+    case $eng in
+        ld1)      [ "$fam" = paw ] && printf 'psl-high\n' || printf 'psl-high\n' ;;
+        oncvpsp)  printf 'sg15\n' ;;
+        uspp)     printf 'gbrv\n' ;;
+        fhi98pp)  printf 'fhi\n' ;;
+        opium)    printf 'opium\n' ;;
+        gth)      printf 'cp2k-gth\n' ;;
+        atompaw)  printf 'atompaw\n' ;;
+        ape)      printf 'pseudoforge-auto\n' ;;
+        adpack)   printf 'adpack\n' ;;
+        *)        printf 'pseudoforge-auto\n' ;;
+    esac
+}
+
+# eng_compatible <engine> <family> [xc] [rel] [profile]
+eng_compatible() {
+    pf_engines_load
+    local eng=$1 fam=${2:-} xc=${3:-} rel=${4:-} prof=${5:-}
+    [ -n "$fam" ] && ! eng_supports_family "$eng" "$fam" && return 1
+    eng_available "$eng" || return 1
+
+    if [ -n "$prof" ] && [ "$prof" != "pseudoforge-auto" ]; then
+        case $prof in
+            psl-*|marburg)  [ "$eng" = ld1 ]     || return 1 ;;
+            sg15|pseudodojo|scan-tm) [ "$eng" = oncvpsp ] || [ "$eng" = opium ] || return 1 ;;
+            gbrv|vanderbilt) [ "$eng" = uspp ]   || return 1 ;;
+            fhi)            [ "$eng" = fhi98pp ] || return 1 ;;
+            cp2k-gth|hgh)   [ "$eng" = gth ]     || return 1 ;;
+            atompaw)        [ "$eng" = atompaw ] || return 1 ;;
+            adpack)         [ "$eng" = adpack ]  || return 1 ;;
+        esac
+    fi
+
+    if [ -n "$rel" ]; then
+        case $(rel_canon "$rel") in
+            full)
+                case $eng in
+                    fhi98pp|gth|atompaw|uspp) return 1 ;;
+                esac ;;
+            nonrel)
+                case $eng in
+                    adpack) return 1 ;;
+                esac ;;
+            scalar)
+                case $eng in
+                    adpack) return 1 ;;
+                esac ;;
+        esac
+    fi
+
+    if [ -n "$xc" ]; then
+        case $eng in
+            adpack)
+                case $xc in
+                    pz|pbe) ;;
+                    *) return 1 ;;
+                esac ;;
+            oncvpsp)
+                case $xc in
+                    scan|r2scan|tpss|m06l|b3lyp|pbe0|hse06) return 1 ;;
+                esac ;;
+            gth)
+                case $xc in
+                    pade|pbe|pbesol|blyp|bp|olyp|hcth120|hcth407) ;;
+                    *) return 1 ;;
+                esac ;;
+            opium)
+                case $xc in
+                    pz|pw|pw91|pbe|wc|pbesol) ;;
+                    *) return 1 ;;
+                esac ;;
+            uspp)
+                case $xc in
+                    pz|pw|pbe|revpbe) ;;
+                    *) return 1 ;;
+                esac ;;
+            fhi98pp)
+                case $xc in
+                    pz|pbe) ;;
+                    *) return 1 ;;
+                esac ;;
+        esac
+    fi
+    return 0
+}
 
 # Where PseudoForge keeps engines it built itself.
 eng_prefix()   { printf '%s\n' "${ENGINE_DIR:-$HOME/.pseudoforge/engines}"; }

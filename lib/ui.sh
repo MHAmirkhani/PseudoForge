@@ -233,9 +233,13 @@ ui_unquote() { printf '%s\n' "$1" | tr -d '"'; }
 # valence, an unusual functional.
 # ---------------------------------------------------------------------------
 ui_pick_source() {
-    local prof=${SPEC[profile]} eng build_line choice
-    eng=$(eng_for_profile "$prof" "${SPEC[family]}")
-    SPEC[engine]=$eng
+    if [ "${TUI_ADVANCED:-0}" != 1 ]; then
+        SPEC[source]=${SPEC[source]:-local}
+        return 3
+    fi
+
+    local prof=${SPEC[profile]:-pseudoforge-auto} eng build_line choice
+    eng=$(eng_for_profile "$prof" "${SPEC[family]:-nc}")
 
     if ! prof_is_generatable "$prof"; then
         build_line="Build here -- with ${ENG_LABEL[$eng]}, but with PseudoForge's own parameters"
@@ -246,14 +250,14 @@ ui_pick_source() {
     fi
 
     choice=$(ui_menu "Where the files come from" \
-"\nHow should PseudoForge obtain ${PROF_LABEL[$prof]}?\n\nA published file has usually been tested far more thoroughly than\nanything generated on the spot.  Build locally when you need a\nsetting nobody publishes.\n" 16 2 \
+"\nHow should PseudoForge obtain ${PROF_LABEL[$prof]:-$prof}?\n\nA published file has usually been tested far more thoroughly than\nanything generated on the spot.  Build locally when you need a\nsetting nobody publishes.\n" 16 2 \
         online "Download   -- mirror first, then the library's own site" \
         local  "$build_line") || return 1
     SPEC[source]=$choice
 
     if [ "$choice" = local ] && ! prof_is_generatable "$prof"; then
         ui_msg "About provenance" \
-"\n${PROF_LABEL[$prof]} is produced by ${PROF_GENERATOR[$prof]}.\n\nWhat makes it that library is its published table of cut-off radii\nand projectors -- not the code that consumed them, and PseudoForge does\nnot have that table.\n\n${ENG_LABEL[$eng]} will run, but the result is a pseudoforge\npseudopotential and is labelled that way in the file and in every\nreport.  For a real reproduction, supply the library's own input\nfiles with  --params <dir>.\n" 20 76
+"\n${PROF_LABEL[$prof]:-$prof} is produced by ${PROF_GENERATOR[$prof]:-unknown}.\n\nWhat makes it that library is its published table of cut-off radii\nand projectors -- not the code that consumed them, and PseudoForge does\nnot have that table.\n\n${ENG_LABEL[$eng]} will run, but the result is a pseudoforge\npseudopotential and is labelled that way in the file and in every\nreport.  For a real reproduction, supply the library's own input\nfiles with  --params <dir>.\n" 20 76
         ui_yesno "Continue?" "\nGenerate with PseudoForge's own parameters anyway?" 10 70 || return 1
     fi
     return 0
@@ -389,12 +393,129 @@ prof_available_xcs() {
     printf '%s\n' "${xcs[@]}"
 }
 
-ui_pick_family() {
-    local prof=${SPEC[profile]:-psl-high}
-    local -a fams=()
-    mapfile -t fams < <(prof_available_families "$prof")
+# ---------------------------------------------------------------------------
+# Dynamic availability helpers for formulation types
+# ---------------------------------------------------------------------------
 
-    [ ${#fams[@]} -gt 0 ] || fams=(nc)
+type_available_profiles() {
+    local type=${1:-${SPEC[family]:-nc}} id
+    pf_profiles_load
+    for id in $(prof_list_sorted "$type"); do
+        [ "$id" != "pseudoforge-auto" ] || continue
+        case ${PROF_PROVENANCE[$id]:-} in external) continue ;; esac
+        [ "$(prof_star "$id")" != " *" ] || continue
+        prof_supports_family "$id" "$type" || continue
+        if ! prof_is_generatable "$id" && ! prof_has_params "$id"; then
+            continue
+        fi
+        prof_can_generate "$id" "$type" || continue
+        printf '%s\n' "$id"
+    done
+}
+
+type_available_xcs() {
+    local type=${1:-${SPEC[family]:-nc}}
+    local req_fam=${2:-}
+    local -A seen=()
+    local prof x
+
+    pf_profiles_load
+    pf_xc_load
+
+    if [ -n "${SPEC[profile]:-}" ] && [ "${SPEC[profile]}" != "pseudoforge-auto" ]; then
+        local -a avail_list=()
+        mapfile -t avail_list < <(prof_available_xcs "${SPEC[profile]}" "$type")
+        for x in "${avail_list[@]}"; do
+            seen[$x]=1
+        done
+    else
+        for prof in $(type_available_profiles "$type"); do
+            while read -r x; do
+                [ -n "$x" ] || continue
+                xc_exists "$x" || continue
+                seen[$x]=1
+            done < <(prof_available_xcs "$prof" "$type")
+        done
+    fi
+
+    if [ ${#seen[@]} -eq 0 ]; then
+        seen[pbe]=1
+    fi
+
+    for x in "${XC_ORDER[@]}"; do
+        if [ "${seen[$x]:-}" = 1 ]; then
+            if [ -z "$req_fam" ] || [ "${XC_FAMILY[$x]:-}" = "$req_fam" ]; then
+                printf '%s\n' "$x"
+            fi
+        fi
+    done
+}
+
+type_available_fams() {
+    local type=${1:-${SPEC[family]:-nc}}
+    local -a fam_order=(LDA GGA metaGGA hybrid vdW)
+    local -A fam_has=()
+    local x f
+
+    while read -r x; do
+        [ -n "$x" ] || continue
+        f=${XC_FAMILY[$x]:-}
+        [ -n "$f" ] && fam_has[$f]=1
+    done < <(type_available_xcs "$type")
+
+    for f in "${fam_order[@]}"; do
+        if [ "${fam_has[$f]:-}" = 1 ]; then
+            printf '%s\n' "$f"
+        fi
+    done
+}
+
+type_available_rel() {
+    local type=${1:-${SPEC[family]:-nc}}
+    local xc=${2:-${SPEC[xc]:-pbe}}
+    local -A seen=()
+    local prof r have
+
+    pf_profiles_load
+
+    if [ -n "${SPEC[profile]:-}" ] && [ "${SPEC[profile]}" != "pseudoforge-auto" ]; then
+        have=${PROF_REL[${SPEC[profile]}]:-scalar full}
+        for r in scalar full nonrel; do
+            in_list "$r" $have && seen[$r]=1
+        done
+    else
+        for prof in $(type_available_profiles "$type"); do
+            prof_supports_xc "$prof" "$xc" 2>/dev/null || continue
+            have=${PROF_REL[$prof]:-}
+            for r in scalar full nonrel; do
+                if in_list "$r" $have; then
+                    seen[$r]=1
+                fi
+            done
+        done
+    fi
+
+    if [ ${#seen[@]} -eq 0 ]; then
+        seen[scalar]=1
+    fi
+
+    for r in scalar full nonrel; do
+        if [ "${seen[$r]:-}" = 1 ]; then
+            printf '%s\n' "$r"
+        fi
+    done
+}
+
+ui_pick_family() {
+    local prof=${SPEC[profile]:-}
+    local -a fams=()
+    if [ -n "$prof" ] && [ "$prof" != "pseudoforge-auto" ]; then
+        mapfile -t fams < <(prof_available_families "$prof")
+    else
+        fams=(paw us nc)
+    fi
+
+    [ ${#fams[@]} -gt 0 ] || fams=(paw us nc)
 
     # Auto-skip if only one type exists
     if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#fams[@]} -eq 1 ]; then
@@ -413,37 +534,32 @@ ui_pick_family() {
 
     local c
     c=$(ui_menu "Pseudopotential type" \
-"\nWhich construction should the engine use for ${PROF_LABEL[$prof]:-$prof}?\n" 19 6 "${items[@]}") || return 1
+"\nWhat kind of pseudopotential do you need?\n" 19 6 "${items[@]}") || return 1
     SPEC[family]=$c
+    if [ "${TUI_ADVANCED:-0}" != 1 ]; then
+        SPEC[profile]=pseudoforge-auto
+    fi
     return 0
 }
 
 ui_pick_xc() {
-    local prof=${SPEC[profile]:-psl-high}
-    local fam=${SPEC[family]:-paw}
-    local -a avail_xcs=()
-    mapfile -t avail_xcs < <(prof_available_xcs "$prof" "$fam")
+    local type=${SPEC[family]:-paw}
+    local -a avail_fams=()
+    mapfile -t avail_fams < <(type_available_fams "$type")
 
-    [ ${#avail_xcs[@]} -gt 0 ] || avail_xcs=(pbe)
-
-    # Auto-skip if only one XC exists
-    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#avail_xcs[@]} -eq 1 ]; then
-        SPEC[xc]=${avail_xcs[0]}
-        return 3
+    # Fallback if no families found:
+    if [ ${#avail_fams[@]} -eq 0 ]; then
+        ui_msg "No functionals" \
+"\nNo exchange-correlation functionals are available for $(upper "$type").\n" 10 60
+        return 4
     fi
 
-    # Filter functional families to only those present in avail_xcs
-    local -a fam_order=(LDA GGA metaGGA hybrid vdW)
-    local f id items=() avail_fams=()
-    for f in "${fam_order[@]}"; do
-        local has_f=0
-        for id in "${avail_xcs[@]}"; do
-            if [ "${XC_FAMILY[$id]:-}" = "$f" ]; then
-                has_f=1; break
-            fi
-        done
-        if [ "$has_f" -eq 1 ]; then
-            avail_fams+=("$f")
+    local chosen_fam
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#avail_fams[@]} -eq 1 ]; then
+        chosen_fam=${avail_fams[0]}
+    else
+        local items=() f
+        for f in "${avail_fams[@]}"; do
             case $f in
                 LDA)     items+=(LDA     "Local density approximation") ;;
                 GGA)     items+=(GGA     "Generalised gradient approximation (recommended)") ;;
@@ -451,42 +567,42 @@ ui_pick_xc() {
                 hybrid)  items+=(hybrid  "Hybrid   -- generated with its semilocal parent") ;;
                 vdW)     items+=(vdW     "van der Waals -- generated with its exchange parent") ;;
             esac
-        fi
-    done
-
-    local chosen_fam
-    if [ ${#avail_fams[@]} -eq 1 ]; then
-        chosen_fam=${avail_fams[0]}
-    else
-        chosen_fam=$(ui_menu "Functional family" "\nChoose the family, then the functional.\n" 18 6 "${items[@]}") || return 1
-    fi
-
-    # Populate specific XC menu ONLY with available functionals in that family
-    local xc_items=() c
-    for id in "${avail_xcs[@]}"; do
-        [ "${XC_FAMILY[$id]:-}" = "$chosen_fam" ] || continue
-        if xc_is_native "$id"; then
-            xc_items+=("$id" "${XC_LABEL[$id]} [dft=${XC_QE[$id]}]")
-        else
-            xc_items+=("$id" "${XC_LABEL[$id]} -> generated with $(xc_qe_string "$id")")
-        fi
-    done
-
-    if [ ${#xc_items[@]} -eq 0 ]; then
-        for id in $(xc_list_family "$chosen_fam"); do
-            xc_items+=("$id" "${XC_LABEL[$id]}")
         done
+        UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+        chosen_fam=$(ui_menu "Functional family" "\nChoose the family, then the functional.\n" 18 6 "${items[@]}") || return $?
     fi
 
-    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#xc_items[@]} -eq 2 ]; then
-        c=${xc_items[0]}
-    else
-        c=$(ui_menu "Functional ($chosen_fam)" \
-"\nld1.x can only solve the atom with LDA or GGA. For the other families pseudoforge
-generates with the accepted semilocal parent and records that in the UPF and
-in the report -- which is what every public library does too.\n" 22 10 "${xc_items[@]}") || return 1
+    # Populate specific XC menu ONLY with available functionals in that family for this type
+    local -a fam_xcs=()
+    mapfile -t fam_xcs < <(type_available_xcs "$type" "$chosen_fam")
+
+    if [ ${#fam_xcs[@]} -eq 0 ]; then
+        ui_msg "No functionals" \
+"\nNo functionals found for family $chosen_fam in $(upper "$type").\n" 10 60
+        return 4
     fi
-    SPEC[xc]=$c
+
+    local c
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#fam_xcs[@]} -eq 1 ]; then
+        c=${fam_xcs[0]}
+        SPEC[xc]=$c
+        if [ ${#avail_fams[@]} -eq 1 ]; then
+            return 3
+        fi
+    else
+        local xc_items=() id
+        for id in "${fam_xcs[@]}"; do
+            if xc_is_native "$id"; then
+                xc_items+=("$id" "${XC_LABEL[$id]} [dft=${XC_QE[$id]}]")
+            else
+                xc_items+=("$id" "${XC_LABEL[$id]} -> generated with $(xc_qe_string "$id")")
+            fi
+        done
+        UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+        c=$(ui_menu "Functional ($chosen_fam)" \
+"\nAvailable functionals for $(upper "$type") in $chosen_fam:\n" 22 10 "${xc_items[@]}") || return $?
+        SPEC[xc]=$c
+    fi
 
     if [ "$(xc_generator "$c")" != "$c" ]; then
         ui_msg "Functional provenance" \
@@ -500,22 +616,22 @@ pseudopotential was not generated self-consistently with ${XC_QE[$c]}." 15 74
 }
 
 ui_pick_rel() {
-    local prof=${SPEC[profile]:-psl-high}
-    local rel_avail=${PROF_REL[$prof]:-scalar full}
-    local -a rels=() r
-    for r in scalar full nonrel; do
-        if in_list "$r" $rel_avail; then
-            rels+=("$r")
-        fi
-    done
-    [ ${#rels[@]} -gt 0 ] || rels=(scalar full)
+    local type=${SPEC[family]:-nc} xc=${SPEC[xc]:-pbe}
+    local -a rels=()
+    mapfile -t rels < <(type_available_rel "$type" "$xc")
+
+    if [ ${#rels[@]} -eq 0 ]; then
+        ui_msg "No relativity mode" \
+"\nNo relativity mode is available for $(upper "$type") with $(upper "$(xc_qe_string "$xc")").\n" 10 60
+        return 4
+    fi
 
     if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#rels[@]} -eq 1 ]; then
         SPEC[rel]=${rels[0]}
         return 3
     fi
 
-    local items=()
+    local items=() r
     for r in "${rels[@]}"; do
         case $r in
             scalar) items+=(scalar "Scalar-relativistic  -- no spin-orbit (rel=1)") ;;
@@ -525,9 +641,10 @@ ui_pick_rel() {
     done
 
     local c
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
     c=$(ui_menu "Relativity" \
 "\nFull-relativistic (spin-orbit) treatment is normally required from about
-Z = 37 upwards, and essential for 5d elements and actinides.\n" 17 5 "${items[@]}") || return 1
+Z = 37 upwards, and essential for 5d elements and actinides.\n" 17 5 "${items[@]}") || return $?
     SPEC[rel]=$c
     return 0
 }
@@ -558,8 +675,15 @@ ui_profiles_about() {
 
 # ---------------------------------------------------------------------------
 # ui_pick_profile -- filters out external curated datasets from generation.
+# In physics-first mode, profile is optional/advanced.
 # ---------------------------------------------------------------------------
 ui_pick_profile() {
+    # When advanced options are hidden (default), auto-select pseudoforge-auto and skip.
+    if [ "${TUI_ADVANCED:-0}" != 1 ]; then
+        SPEC[profile]=${SPEC[profile]:-pseudoforge-auto}
+        return 3
+    fi
+
     local id items=() c
     for id in $(prof_list_sorted); do
         case ${PROF_PROVENANCE[$id]:-} in
@@ -567,12 +691,23 @@ ui_pick_profile() {
         esac
         prof_can_generate_any "$id" || continue
         [ "$(prof_star "$id")" != " *" ] || continue
+        if [ -n "${SPEC[family]:-}" ]; then
+            prof_supports_family "$id" "${SPEC[family]}" || continue
+        fi
+        if [ "$id" != "pseudoforge-auto" ]; then
+            if [ -n "${SPEC[xc]:-}" ] && ! prof_supports_xc "$id" "${SPEC[xc]}"; then
+                continue
+            fi
+            if [ -n "${SPEC[rel]:-}" ] && ! prof_supports_rel "$id" "${SPEC[rel]}"; then
+                continue
+            fi
+        fi
         items+=("$id" "${PROF_LABEL[$id]}")
     done
 
     if [ ${#items[@]} -eq 0 ]; then
-        ui_msg "No profiles" "No generatable profiles found on this installation." 8 60
-        return 1
+        SPEC[profile]=pseudoforge-auto
+        return 3
     fi
 
     if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#items[@]} -eq 2 ]; then
@@ -598,47 +733,61 @@ Transferability testing will be forced on for this profile." 14 74
 }
 
 # ---------------------------------------------------------------------------
-# ui_pick_engine -- only asked when the choice is real.
-#
-# Several engines can produce a norm-conserving pseudopotential, and they do not
-# produce the same one: ONCVPSP optimises for a plane-wave cutoff, fhi98PP
-# follows Hamann or Troullier-Martins, OPIUM fits its own basis and writes nine
-# formats.  Where more than one qualifies, that is the user's decision, not a
-# default buried in a table.
+# ui_pick_engine -- dynamic engine selection based on physical requirements.
 # ---------------------------------------------------------------------------
 ui_pick_engine() {
-    local prof=${SPEC[profile]} fam=${SPEC[family]} eng items=() n=0 c preferred
+    local prof=${SPEC[profile]:-} fam=${SPEC[family]:-nc} xc=${SPEC[xc]:-pbe} rel=${SPEC[rel]:-scalar}
+    local eng items=() menu_items=() n=0 c
+
     [ "${SPEC[source]:-local}" = local ] || return 3
 
-    preferred=$(eng_for_profile "$prof" "$fam")
-
     for eng in "${ENG_ORDER[@]}"; do
-        eng_supports_family "$eng" "$fam" || continue
-        eng_available "$eng" || continue
-        # A library's own decks only run on the engine that wrote them.
-        case $prof in
-            psl-*|marburg)  [ "$eng" = ld1 ]     || continue ;;
-            sg15|pseudodojo|scan-tm) [ "$eng" = oncvpsp ] || [ "$eng" = opium ] || continue ;;
-            gbrv|vanderbilt) [ "$eng" = uspp ]   || continue ;;
-        esac
-        if [ "$eng" = "$preferred" ]; then
-            items+=("$eng" "$(printf '%-26s %s' "${ENG_LABEL[$eng]}" 'recommended for this library')")
-        else
-            items+=("$eng" "$(printf '%-26s %s' "${ENG_LABEL[$eng]}" "writes $(fmt_for_engine "$eng" | tr '\n' ' ')")")
-        fi
+        eng_compatible "$eng" "$fam" "$xc" "$rel" "$prof" || continue
+        items+=("$eng")
+        menu_items+=("$eng" "$(printf '%-26s %s' "${ENG_LABEL[$eng]}" "writes $(fmt_for_engine "$eng" | tr '\n' ' ')")")
         n=$((n + 1))
     done
 
-    if [ "$n" -le 1 ]; then
-        SPEC[engine]=$preferred
+    # Fallback: no engine supports this combination
+    if [ "$n" -eq 0 ]; then
+        ui_msg "No capable engine" \
+"\nNo installed engine can produce $(upper "$fam") with $(upper "$(xc_qe_string "$xc")"), $(rel_label "$rel").\n\nPlease change the formulation, functional, or relativity.\n" 12 72
+        return 4
+    fi
+
+    # Auto-skip if only one engine is capable
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ "$n" -eq 1 ]; then
+        SPEC[engine]=${items[0]}
+        if [ -z "${SPEC[profile]:-}" ] || [ "${SPEC[profile]}" = "pseudoforge-auto" ]; then
+            local def_prof
+            def_prof=$(eng_default_profile "${items[0]}" "$fam")
+            if [ -n "$def_prof" ] && [ "$def_prof" != "pseudoforge-auto" ]; then
+                if prof_supports_xc "$def_prof" "$xc" && prof_supports_rel "$def_prof" "$rel"; then
+                    SPEC[profile]=$def_prof
+                else
+                    SPEC[profile]=pseudoforge-auto
+                fi
+            fi
+        fi
         return 3
     fi
 
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
     c=$(ui_menu "Engine" \
-"\nMore than one atomic code can produce $(upper "$fam") here, and they do not
-produce the same pseudopotential.  The recommended one is the code the
-library's own parameters were written for.\n" 18 6 "${items[@]}") || return $?
+"\nSelect the atomic code to generate $(upper "$fam") with $(upper "$(xc_qe_string "$xc")").\n" 19 6 "${menu_items[@]}") || return $?
+
     SPEC[engine]=$c
+    if [ -z "${SPEC[profile]:-}" ] || [ "${SPEC[profile]}" = "pseudoforge-auto" ]; then
+        local def_prof
+        def_prof=$(eng_default_profile "$c" "$fam")
+        if [ -n "$def_prof" ] && [ "$def_prof" != "pseudoforge-auto" ]; then
+            if prof_supports_xc "$def_prof" "$xc" && prof_supports_rel "$def_prof" "$rel"; then
+                SPEC[profile]=$def_prof
+            else
+                SPEC[profile]=pseudoforge-auto
+            fi
+        fi
+    fi
     return 0
 }
 
@@ -674,8 +823,14 @@ ui_pick_elements() {
     avail=$(ui_available_elements)
     n=$(printf '%s\n' "$avail" | grep -c . || true)
 
+    if [ "$n" -eq 0 ]; then
+        ui_msg "No available elements" \
+"\nNo elements can be produced for $(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}").\n\nPlease change your settings.\n" 12 70
+        return 4
+    fi
+
     local subtitle
-    if [ -n "${SPEC[profile]:-}" ]; then
+    if [ -n "${SPEC[profile]:-}" ] && [ "${SPEC[profile]}" != "pseudoforge-auto" ]; then
         subtitle="\n${PROF_LABEL[${SPEC[profile]}]:-${SPEC[profile]}}, $(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}")
 covers $n element(s).\n\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n"
     else
@@ -694,9 +849,9 @@ can be made for $n element(s).\n\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n"
             finish    "Continue" ) || return 1
 
         case $c in
-            table)     ui_elements_by_period ;;
+            table)     ui_elements_by_period "$avail" ;;
             supported) CLI_ELEMENTS=$(printf '%s' "$avail" | tr '\n' ' ') ;;
-            preset)    ui_elements_preset ;;
+            preset)    ui_elements_preset "$avail" ;;
             type)      CLI_ELEMENTS=$(ui_input "Element selection" \
 "Symbols, names or atomic numbers, comma or space separated.
 
@@ -713,24 +868,24 @@ can be made for $n element(s).\n\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n"
                     ui_msg "Nothing selected" "Choose at least one element." 9 60
                     continue
                 fi
-                local -a chosen unmakeable
+                local -a chosen=() unmakeable=() makeable=()
                 # shellcheck disable=SC2086
                 mapfile -t chosen < <(el_expand ${CLI_ELEMENTS})
-                mapfile -t unmakeable < <(
-                    for e in "${chosen[@]}"; do
-                        printf '%s\n' "$avail" | grep -qx "$e" || printf '%s\n' "$e"
-                    done)
+                for e in "${chosen[@]}"; do
+                    if printf '%s\n' "$avail" | grep -qx "$e"; then
+                        makeable+=("$e")
+                    else
+                        unmakeable+=("$e")
+                    fi
+                done
                 if [ ${#unmakeable[@]} -gt 0 ]; then
                     ui_yesno "Some elements cannot be made" \
 "No library can produce these with $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}"):
 
-  ${unmakeable[*]}
+  ${unmakeable[*]:-}
 
 They will be reported as skipped.  Drop them and continue with the rest?" 16 74 \
-                        && CLI_ELEMENTS=$(
-                            for e in "${chosen[@]}"; do
-                                printf '%s\n' "$avail" | grep -qx "$e" && printf '%s ' "$e"
-                            done)
+                        && CLI_ELEMENTS="${makeable[*]:-}"
                 fi
                 [ -n "$(trim "${CLI_ELEMENTS:-}")" ] || { ui_msg "Nothing left" "Every element was dropped." 9 60; continue; }
                 return 0 ;;
@@ -741,17 +896,19 @@ They will be reported as skipped.  Drop them and continue with the rest?" 16 74 
 # Elements that at least one library can produce under the current settings.
 ui_available_elements() {
     local el prof=${SPEC[profile]:-}
-    if [ -n "$prof" ]; then
+    local fam=${SPEC[family]:-nc} xc=${SPEC[xc]:-pbe} rel=${SPEC[rel]:-scalar}
+    if [ -n "$prof" ] && [ "$prof" != "pseudoforge-auto" ]; then
         for el in "${EL_ORDER[@]}"; do
-            if prof_covers_element "$prof" "$el" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
+            if prof_covers_element "$prof" "$el" "$fam" "$xc" "$rel"; then
                 printf '%s\n' "$el"
             fi
         done
     else
+        local -a profs=()
+        mapfile -t profs < <(type_available_profiles "$fam")
         for el in "${EL_ORDER[@]}"; do
-            for prof in $(prof_list_for_family "${SPEC[family]}"); do
-                prof_can_generate "$prof" "${SPEC[family]}" || continue
-                if prof_covers_element "$prof" "$el" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
+            for prof in "${profs[@]}"; do
+                if prof_covers_element "$prof" "$el" "$fam" "$xc" "$rel"; then
                     printf '%s\n' "$el"; break
                 fi
             done
@@ -781,6 +938,9 @@ ui_review_elements() {
 }
 
 ui_elements_by_period() {
+    local avail=${1:-}
+    [ -n "$avail" ] || avail=$(ui_available_elements)
+
     # `chosen` is a string built up over the menu loop below; `items` is the
     # array the menu is fed from.  ShellCheck reads the two declarations on
     # adjacent lines as one variable used both ways.  It is not.
@@ -796,18 +956,13 @@ ui_elements_by_period() {
         6 "Period 6  Cs .. Rn  (incl. lanthanides)" \
         7 "Period 7  Fr .. Lr  (incl. actinides)" ) || return
 
-    local prof=${SPEC[profile]:-}
-    local set; set=$(prof_psl_set "${SPEC[profile]:-}" "${SPEC[family]:-}")
     for s in "${EL_ORDER[@]}"; do
         [ "${EL_PERIOD[$s]}" = "$period" ] || continue
-        if [ -n "$prof" ] && ! prof_covers_element "$prof" "$s" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
-            continue
-        fi
-        local mark=""
-        if [ -n "$set" ] && ! psl_recipes "$set" "$s" | grep -q .; then mark=" (no recipe)"; fi
+        printf '%s\n' "$avail" | grep -qx "$s" || continue
+
         local on=off
         case " $CLI_ELEMENTS " in *" $s "*) on=on ;; esac
-        items+=("$s" "$(printf 'Z=%-3s %s%s' "${EL_Z[$s]}" "${EL_NAME[$s]}" "$mark")" "$on")
+        items+=("$s" "$(printf 'Z=%-3s %s' "${EL_Z[$s]}" "${EL_NAME[$s]}")" "$on")
     done
     if [ ${#items[@]} -eq 0 ]; then
         ui_msg "Period $period" "No available elements in Period $period for these settings." 8 60
@@ -826,6 +981,9 @@ ui_elements_by_period() {
 }
 
 ui_elements_preset() {
+    local avail=${1:-}
+    [ -n "$avail" ] || avail=$(ui_available_elements)
+
     local c
     c=$(ui_menu "Presets" "\nAdd a group to the selection.\n" 20 10 \
         transition-metals "All d-block transition metals" \
@@ -838,7 +996,17 @@ ui_elements_preset() {
         period:4          "K .. Kr" \
         1-18              "H .. Ar" \
         all               "Every element in the table" ) || return
-    CLI_ELEMENTS="$CLI_ELEMENTS $c"
+
+    local -a expanded=()
+    # shellcheck disable=SC2086
+    mapfile -t expanded < <(el_expand "$c")
+    local e valid_preset=""
+    for e in "${expanded[@]}"; do
+        if printf '%s\n' "$avail" | grep -qx "$e"; then
+            valid_preset="$valid_preset $e"
+        fi
+    done
+    CLI_ELEMENTS="$CLI_ELEMENTS$valid_preset"
 }
 
 
@@ -1040,10 +1208,15 @@ ui_review_and_run() {
           "$OUTPUT_BASE_DIR/$(project_default_name)") || return
     CLI_OUTPUT=$dir
 
+    local prof=${SPEC[profile]:-pseudoforge-auto}
+    local eng=${SPEC[engine]:-ld1}
+    local prof_lbl=${PROF_LABEL[$prof]:-$prof}
+    local eng_lbl=${ENG_LABEL[$eng]:-$eng}
+
     tmp=$(mktemp)
     {
         printf 'ABOUT TO GENERATE\n=================\n\n'
-        printf '  profile      %s  [%s]\n' "${PROF_LABEL[${SPEC[profile]}]}" "$(prof_badge "${SPEC[profile]}")"
+        printf '  profile      %s  [%s]\n' "$prof_lbl" "$(prof_badge "$prof")"
         printf '  family       %s\n' "$(upper "${SPEC[family]}")"
         printf '  functional   %s\n' "$(xc_explain "${SPEC[xc]}")"
         printf '  relativity   %s\n' "$(rel_label "${SPEC[rel]}")"
@@ -1051,7 +1224,7 @@ ui_review_and_run() {
         printf '  source       %s\n' \
             "$([ "${SPEC[source]:-local}" = online ] \
                 && echo 'download (official source, then mirror)' \
-                || echo "build here with ${ENG_LABEL[${SPEC[engine]:-ld1}]}")"
+                || echo "build here with $eng_lbl")"
         printf '  elements     %s\n' "$n"
         printf '  parallel     %s job(s)\n' "$MAX_PARALLEL_JOBS"
         printf '  tests        %s\n' "$([ "${RUN_LD1_TESTS:-1}" = 1 ] && echo "transferability" || echo none)"
@@ -1082,6 +1255,7 @@ This runs ${ENG_LABEL[${SPEC[engine]:-ld1}]} and can take a while." || return 1
     fi
 
     clear
+    pf_sink_use cli
     cmd_generate
     ui_pause
 }
@@ -1101,6 +1275,7 @@ Uses your configured defaults:
     CLI_ELEMENTS=$el
     CLI_OUTPUT=$OUTPUT_BASE_DIR/$(project_default_name)
     clear
+    pf_sink_use cli
     cmd_generate
     ui_pause
 }
@@ -1339,11 +1514,12 @@ ui_pick_format() {
     # Load in *this* shell: fmt_for_engine below runs in a process substitution,
     # and anything it populates there is lost when that subshell exits.
     pf_formats_load
-    local eng=${SPEC[engine]:-ld1} id items=() n=0 c
+    local eng=${SPEC[engine]:-ld1} rel=${SPEC[rel]:-} id items=() n=0 c
     [ "${SPEC[source]:-local}" = local ] || return 3
 
     while read -r id; do
         [ -n "$id" ] || continue
+        fmt_engine_supports_rel "$eng" "$id" "$rel" || continue
         items+=("$id" "$(printf '%-9s %s' "$id" "${FMT_LABEL[$id]:-$id}")")
         n=$((n + 1))
     done < <(fmt_for_engine "$eng")
@@ -1355,7 +1531,11 @@ ui_pick_format() {
     # downstream.  Setting what the engine actually writes is what the
     # user would have picked from a single-item menu.
     if [ "$n" -le 1 ]; then
-        SPEC[formats]=$(fmt_for_engine "$eng")
+        local single_fmt
+        single_fmt=$(fmt_for_engine "$eng" | while read -r id; do
+            fmt_engine_supports_rel "$eng" "$id" "$rel" && { printf '%s\n' "$id"; break; }
+        done)
+        SPEC[formats]=${single_fmt:-upf}
         return 3
     fi
 
@@ -1367,6 +1547,7 @@ more than one costs nothing extra.\n" 20 10 "${items[@]}") || return $?
     if [ "$c" = more ]; then
         local sel=() on
         for id in $(fmt_for_engine "$eng"); do
+            fmt_engine_supports_rel "$eng" "$id" "$rel" || continue
             on=off; [ "$id" = upf ] && on=on
             sel+=("$id" "${FMT_LABEL[$id]:-$id}" "$on")
         done

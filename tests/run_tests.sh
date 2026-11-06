@@ -447,9 +447,9 @@ PATH="$HERE/mock:$PATH"
 #   advanced                -- toggle advanced ON, so ui_advanced runs at
 #                              the advanced layer and its menu appears
 #   guided                  -- enter the wizard
-#   psl-high                -- library
 #   paw / GGA / pbe / scalar -- family, functional, relativity
 #   type / Si / finish      -- elements
+#   psl-high                -- library
 #   local                   -- source: build locally (the default test path)
 #   upf                     -- format picker (ui_pick_format)
 #   back                    -- validation layer: nothing to change
@@ -460,7 +460,7 @@ PATH="$HERE/mock:$PATH"
 #   %s                      -- output directory input box
 #   yes                     -- "Start?" confirmation
 #   quit                    -- leave the main menu after the run
-printf 'advanced\nguided\npsl-high\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\nlocal\nupf\nback\nCANCEL\nrun\n%s\nyes\nquit\n' \
+printf 'advanced\nguided\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\npsl-high\nlocal\nupf\nback\nCANCEL\nrun\n%s\nyes\nquit\n' \
        "$TMP/tui" > "$MOCK_WT_ANSWERS"
 MOCK_DE=0.0004 bash "$HERE/drive_tui.sh" "$ROOT" >"$TMP/tui.out" 2>&1
 
