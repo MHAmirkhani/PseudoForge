@@ -440,6 +440,18 @@ prof_covers_element() {
 
     prof_compatible "$prof" "$fam" "$xc" "$rel" || return 1
 
+    # Check physical data/<profile>/ directory if it exists
+    if [ -d "$PF_DATA/$prof" ]; then
+        local p
+        for p in "$PF_DATA/$prof/$fam/$xc/$rel/$el".* \
+                 "$PF_DATA/$prof/$fam/$xc/$el".* \
+                 "$PF_DATA/$prof/$fam/$el".* \
+                 "$PF_DATA/$prof/elements"/*"_$el" \
+                 "$PF_DATA/$prof/$el".*; do
+            [ -e "$p" ] && return 0
+        done
+    fi
+
     case $prof in
         # PseudoForge's own construction is available wherever it can find
         # something to adapt from, which prof_auto_source decides.

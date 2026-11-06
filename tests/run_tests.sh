@@ -447,9 +447,9 @@ PATH="$HERE/mock:$PATH"
 #   advanced                -- toggle advanced ON, so ui_advanced runs at
 #                              the advanced layer and its menu appears
 #   guided                  -- enter the wizard
+#   psl-high                -- library
 #   paw / GGA / pbe / scalar -- family, functional, relativity
 #   type / Si / finish      -- elements
-#   psl-high                -- library
 #   local                   -- source: build locally (the default test path)
 #   upf                     -- format picker (ui_pick_format)
 #   back                    -- validation layer: nothing to change
@@ -460,7 +460,7 @@ PATH="$HERE/mock:$PATH"
 #   %s                      -- output directory input box
 #   yes                     -- "Start?" confirmation
 #   quit                    -- leave the main menu after the run
-printf 'advanced\nguided\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\npsl-high\nlocal\nupf\nback\nCANCEL\nrun\n%s\nyes\nquit\n' \
+printf 'advanced\nguided\npsl-high\npaw\nGGA\npbe\nscalar\ntype\nSi\nfinish\nlocal\nupf\nback\nCANCEL\nrun\n%s\nyes\nquit\n' \
        "$TMP/tui" > "$MOCK_WT_ANSWERS"
 MOCK_DE=0.0004 bash "$HERE/drive_tui.sh" "$ROOT" >"$TMP/tui.out" 2>&1
 
@@ -470,9 +470,9 @@ dlg() { awk -F'\t' -v t="$1" '$2 == t { print $3; exit }' "$MOCK_WT_LOG"; }
 assert_match "main menu offers guided" "guided" \
     bash -c "awk -F'\t' '\$2 ~ /^PseudoForge/ { print \$3; exit }' '$MOCK_WT_LOG'"
 assert_eq "type menu lists all three families" "paw us nc" "$(dlg 'Pseudopotential type')"
-assert_eq "functional families listed" "LDA GGA metaGGA hybrid vdW" "$(dlg 'Functional family')"
+assert_eq "functional families listed" "LDA GGA" "$(dlg 'Functional family')"
 assert_match "GGA functionals listed" "pbesol" printf '%s' "$(dlg 'Functional (GGA)')"
-assert_eq "relativity options" "scalar full nonrel" "$(dlg 'Relativity')"
+assert_eq "relativity options" "scalar full" "$(dlg 'Relativity')"
 assert_match "profile menu lists psl-high" "psl-high" printf '%s' "$(dlg 'Library')"
 
 # The library list is filtered by the family, functional and relativity already

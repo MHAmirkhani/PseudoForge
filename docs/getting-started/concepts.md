@@ -10,12 +10,19 @@ one constrains the ones after it. PseudoForge's full terminal user interface
 (`pseudoforge tui`, or bare `pseudoforge`) walks them in this sequence, and the
 command-line flags map onto them one for one.
 
-The guided wizard (`pseudoforge wizard`) is a linear subset of these ten layers:
-a six-step flow (`family` -> `xc` -> `rel` -> `profile` -> `source` -> `engine`,
+The interactive wizard (`pseudoforge wizard`) walks a shorter six-step path
+(`family` -> `xc` -> `rel` -> `profile` -> `source` -> `engine`,
 with elements gathered along the way) focusing on the primary decisions and
 defaulting the remaining layers (`format`, `validation`, `advanced`).
 
-### 1. Formulation
+### 1. Library profile
+
+Whose published parameters to reproduce — PSlibrary, SG15, GBRV, PseudoDojo,
+or PseudoForge's own construction (`pseudoforge-auto`). This determines the
+core–valence partition (which electrons are frozen into the core and which are
+valence or semicore) and default radii. See [Profiles](../reference/profiles.md).
+
+### 2. Formulation
 
 **Norm-conserving (NC)**
 : The pseudo wavefunction carries the same charge inside the cutoff radius as
@@ -34,7 +41,7 @@ defaulting the remaining layers (`format`, `validation`, `advanced`).
   most modern solid-state work. Needed for NMR, EFG and core-level
   spectroscopy.
 
-### 2. Exchange-correlation functional
+### 3. Exchange-correlation functional
 
 LDA, GGA, meta-GGA, hybrid. **The pseudopotential must be generated with the
 same functional you will use in the solid**, because it encodes how the core
@@ -48,7 +55,7 @@ because most atomic codes have no meta-GGA path. PseudoForge says so in the
 report when that is what happened. See [Choose a
 functional](../how-to/choose-a-functional.md).
 
-### 3. Relativity
+### 4. Relativity
 
 `nonrel`, `scalar`, or `full`.
 
@@ -58,18 +65,11 @@ right default for essentially everything above the first row. **Full**
 need for spin-orbit coupling — heavy elements, topological materials, magnetic
 anisotropy. It costs more and produces twice the projectors.
 
-### 4. Elements
+### 5. Elements
 
-Which elements to build. Filtered by what the formulation, functional, and
+Which elements to build. Filtered by what the profile, formulation, functional, and
 relativity chosen above can actually make. Elements can be specified by symbol,
 atomic number Z, range, chemical group, or exclusion.
-
-### 5. Library profile
-
-Whose published parameters to reproduce — PSlibrary, SG15, GBRV, PseudoDojo,
-or PseudoForge's own construction (`pseudoforge-auto`). This determines the
-core–valence partition (which electrons are frozen into the core and which are
-valence or semicore) and default radii. See [Profiles](../reference/profiles.md).
 
 ### 6. Source
 

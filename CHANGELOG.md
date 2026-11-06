@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 1.3.6 — dynamic wizard filtering and UX polish
+
+The TUI generation wizard now dynamically filters all subsequent choices based on the user's prior selections, preventing the selection of physically impossible or unmakeable parameter combinations:
+
+- **Generatable library profiles**: Curated external datasets (such as `*NNIN/C`, `*Original QE`, `*SSSP`, `*scan-tm`, `*dacapo`, `*vlab`, `*wentzcovitch`, `*gipaw`) are excluded from the generation profile menu. They remain accessible through browse (`ui_browse_profiles`), validate, and import workflows.
+- **Dynamic pseudopotential formulation**: The pseudopotential type menu (`paw`, `us`, `nc`) queries physical subdirectories in `data/<profile>/`, PSlibrary recipe sets, and profile declarations. It only displays formulations supported by the selected profile, and auto-skips with `return 3` when only a single option exists (e.g., automatically choosing NC for `sg15`).
+- **Dynamic functional families and functionals**: Available exchange-correlation functionals are filtered to match the selected profile and type. The functional family menu only lists families actually present for that profile (e.g., restricting `psl-high` to `LDA` and `GGA`, while omitting `metaGGA`, `hybrid`, and `vdW`). If only one functional exists, it is automatically selected and skipped.
+- **Dynamic element coverage**: Element listings and periodic table period selection dynamically check coverage via `prof_covers_element`. Elements without published recipes or parameters for the selected profile (e.g., Og in `psl-high`) are excluded from the interactive checklist.
+- **Bidirectional auto-skip navigation**: The wizard loop in `lib/tui.sh` tracks traversal direction (`dir=fwd` / `dir=back`), allowing seamless backward navigation across auto-skipped steps.
+
 ## Version 1.3.5 — the advisory system and the tools
 
 Six tools are introduced across PseudoForge, with every tool reachable from the CLI, TUI, and REST API where the operation makes sense: `advise` (physics-grounded pseudopotential recommendations for twelve standard electronic-structure calculations), `provenance` (complete build records and SHA-256 signatures for native store files), `element` (inventory of available profiles, formats, and relativistic variants for any element), `coverage` (per-profile element availability matrices), `recent` (most recently indexed native potentials), and `capabilities` (summary of local generator engines, conversion paths, and online mirrors). The TUI gains a dedicated `tools` menu consolidating these capabilities, and the interactive generation wizard now begins with an "advise or skip" step to guide users toward an optimal configuration before assembly.

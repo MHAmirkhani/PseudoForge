@@ -61,8 +61,8 @@ short=$(printf '%s\n' "$layers" | awk -F'|' 'length($3) < 25 { n++ } END { print
 
 # The order is the order a pseudopotential is decided, not alphabetical.
 first=$(printf '%s\n' "$layers" | head -1 | cut -d'|' -f1)
-[ "$first" = family ] \
-    && ok_ "the flow starts with the formulation, not a menu of everything" \
+[ "$first" = profile ] \
+    && ok_ "the flow starts with the library profile, not a menu of everything" \
     || bad_ "the flow starts with '$first'"
 
 printf '\n%s== the review screen shows the real command%s\n' "$DIM" "$RESET"

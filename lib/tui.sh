@@ -43,11 +43,11 @@ TUI_ADVANCED=${TUI_ADVANCED:-0}
 # ---------------------------------------------------------------------------
 tui_layers() {
     cat <<'LAYERS'
+profile|Library|Whose published parameters to reproduce, or PseudoForge's own construction.|tui_layer_profile
 family|Formulation|NC, ultrasoft or PAW. Decides the cost and which codes can read the result.|tui_layer_family
 xc|Functional|The exchange-correlation approximation. Use the one you will run with.|tui_layer_xc
 rel|Relativity|Non-relativistic, scalar, or full with spin-orbit. Matters for heavy elements.|tui_layer_rel
 elements|Elements|Which elements to build. Filtered by what the settings above can actually make.|tui_layer_elements
-profile|Library|Whose published parameters to reproduce, or PseudoForge's own construction.|tui_layer_profile
 source|Source|Download a published file, or build one on this machine.|tui_layer_source
 engine|Engine|Which atomic code runs. Several can make the same family, and they differ.|tui_layer_engine
 format|Output format|What the result is written as. Not every engine writes every format.|tui_layer_format
@@ -207,11 +207,12 @@ tui_wizard() {
         keys+=("$key"); titles+=("$title"); notes+=("$note"); handlers+=("$handler")
     done < <(tui_layers)
 
-    local n=${#keys[@]} i=0 rc
+    local n=${#keys[@]} i=0 rc dir=fwd
     while [ "$i" -lt "$n" ]; do
         # The advanced layer is skipped unless the user asked for it.
         if [ "${keys[$i]}" = advanced ] && [ "$TUI_ADVANCED" != 1 ]; then
-            i=$((i + 1)); continue
+            [ "$dir" = back ] && [ "$i" -gt 0 ] && i=$((i - 1)) || i=$((i + 1))
+            continue
         fi
 
         TUI_STEP=$((i + 1)); TUI_STEPS=$n
@@ -219,10 +220,10 @@ tui_wizard() {
         "${handlers[$i]}"
         rc=$?
         case $rc in
-            0) i=$((i + 1)) ;;
-            1) [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;;
+            0) dir=fwd; i=$((i + 1)) ;;
+            1) dir=back; [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;;
             2) return 1 ;;          # quit
-            3) i=$((i + 1)) ;;      # nothing to ask here
+            3) [ "$dir" = back ] && [ "$i" -gt 0 ] && i=$((i - 1)) || i=$((i + 1)) ;; # auto-skipped layer
         esac
     done
 

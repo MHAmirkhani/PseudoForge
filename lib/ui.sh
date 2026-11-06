@@ -312,43 +312,182 @@ ui_ensure_engine() {
 }
 
 
+# ---------------------------------------------------------------------------
+# Dynamic selection helpers for profiles, families, functionals and relativity
+# ---------------------------------------------------------------------------
+
+# Available pseudopotential types (paw, us, nc) for a profile
+prof_available_families() {
+    local prof=${1:-${SPEC[profile]:-psl-high}}
+    local -a fams=()
+    local fam
+
+    # 1. Physical subdirectories in data/<profile>/
+    if [ -d "$PF_DATA/$prof" ]; then
+        for fam in paw us nc; do
+            if [ -d "$PF_DATA/$prof/$fam" ]; then
+                fams+=("$fam")
+            fi
+        done
+    fi
+
+    # 2. Check PSlibrary recipe sets
+    if [ ${#fams[@]} -eq 0 ]; then
+        for fam in paw us nc; do
+            local s; s=$(prof_psl_set "$prof" "$fam")
+            if [ -n "$s" ] && [ -d "$PF_DATA/psl/$s" ]; then
+                fams+=("$fam")
+            fi
+        done
+    fi
+
+    # 3. Check profile declared families
+    if [ ${#fams[@]} -eq 0 ]; then
+        for fam in paw us nc; do
+            if prof_supports_family "$prof" "$fam"; then
+                fams+=("$fam")
+            fi
+        done
+    fi
+
+    printf '%s\n' "${fams[@]}"
+}
+
+# Available exchange-correlation functionals for a profile and family
+prof_available_xcs() {
+    local prof=${1:-${SPEC[profile]:-psl-high}}
+    local fam=${2:-${SPEC[family]:-}}
+    local -a xcs=()
+    local x
+
+    # 1. Scan physical directory data/<profile>/<type>/
+    if [ -d "$PF_DATA/$prof/$fam" ]; then
+        for x in "$PF_DATA/$prof/$fam"/*; do
+            [ -d "$x" ] || continue
+            local name; name=$(basename "$x")
+            xc_exists "$name" && xcs+=("$name")
+        done
+    fi
+
+    # 2. Check profile declared xc_available
+    if [ ${#xcs[@]} -eq 0 ]; then
+        local have=${PROF_XC[$prof]:-}
+        if [ -n "$have" ] && [ "$have" != "varies" ]; then
+            for x in $have; do
+                xc_exists "$x" && xcs+=("$x")
+            done
+        fi
+    fi
+
+    # 3. Fallback
+    if [ ${#xcs[@]} -eq 0 ]; then
+        for x in pbe pbesol pw pz; do
+            xc_exists "$x" && xcs+=("$x")
+        done
+    fi
+
+    printf '%s\n' "${xcs[@]}"
+}
+
 ui_pick_family() {
+    local prof=${SPEC[profile]:-psl-high}
+    local -a fams=()
+    mapfile -t fams < <(prof_available_families "$prof")
+
+    [ ${#fams[@]} -gt 0 ] || fams=(nc)
+
+    # Auto-skip if only one type exists
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#fams[@]} -eq 1 ]; then
+        SPEC[family]=${fams[0]}
+        return 3
+    fi
+
+    local items=() fam
+    for fam in "${fams[@]}"; do
+        case $fam in
+            paw) items+=(paw "PAW    Projector-augmented wave (Kresse-Joubert)  -- most accurate") ;;
+            us)  items+=(us  "US     Ultrasoft (RRKJ / Vanderbilt)              -- softest, fastest") ;;
+            nc)  items+=(nc  "NC     Norm-conserving, separable (Kleinman-Bylander)") ;;
+        esac
+    done
+
     local c
     c=$(ui_menu "Pseudopotential type" \
-"\nWhich construction should ld1.x use?\n" 19 6 \
-        paw "PAW    Projector-augmented wave (Kresse-Joubert)  -- most accurate" \
-        us  "US     Ultrasoft (RRKJ / Vanderbilt)              -- softest, fastest" \
-        nc  "NC     Norm-conserving, separable (Kleinman-Bylander)" ) || return 1
+"\nWhich construction should the engine use for ${PROF_LABEL[$prof]:-$prof}?\n" 19 6 "${items[@]}") || return 1
     SPEC[family]=$c
     return 0
 }
 
 ui_pick_xc() {
-    local fam id c items=()
-    fam=$(ui_menu "Functional family" "\nChoose the family, then the functional.\n" 18 6 \
-        LDA     "Local density approximation" \
-        GGA     "Generalised gradient approximation (recommended)" \
-        metaGGA "Meta-GGA -- generated with its semilocal parent" \
-        hybrid  "Hybrid   -- generated with its semilocal parent" \
-        vdW     "van der Waals -- generated with its exchange parent" ) || return 1
+    local prof=${SPEC[profile]:-psl-high}
+    local fam=${SPEC[family]:-paw}
+    local -a avail_xcs=()
+    mapfile -t avail_xcs < <(prof_available_xcs "$prof" "$fam")
 
-    for id in $(xc_list_family "$fam"); do
-        if xc_is_native "$id"; then
-            items+=("$id" "${XC_LABEL[$id]} [dft=${XC_QE[$id]}]")
-        else
-            items+=("$id" "${XC_LABEL[$id]} -> generated with $(xc_qe_string "$id")")
+    [ ${#avail_xcs[@]} -gt 0 ] || avail_xcs=(pbe)
+
+    # Auto-skip if only one XC exists
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#avail_xcs[@]} -eq 1 ]; then
+        SPEC[xc]=${avail_xcs[0]}
+        return 3
+    fi
+
+    # Filter functional families to only those present in avail_xcs
+    local -a fam_order=(LDA GGA metaGGA hybrid vdW)
+    local f id items=() avail_fams=()
+    for f in "${fam_order[@]}"; do
+        local has_f=0
+        for id in "${avail_xcs[@]}"; do
+            if [ "${XC_FAMILY[$id]:-}" = "$f" ]; then
+                has_f=1; break
+            fi
+        done
+        if [ "$has_f" -eq 1 ]; then
+            avail_fams+=("$f")
+            case $f in
+                LDA)     items+=(LDA     "Local density approximation") ;;
+                GGA)     items+=(GGA     "Generalised gradient approximation (recommended)") ;;
+                metaGGA) items+=(metaGGA "Meta-GGA -- generated with its semilocal parent") ;;
+                hybrid)  items+=(hybrid  "Hybrid   -- generated with its semilocal parent") ;;
+                vdW)     items+=(vdW     "van der Waals -- generated with its exchange parent") ;;
+            esac
         fi
     done
-    c=$(ui_menu "Functional ($fam)" \
+
+    local chosen_fam
+    if [ ${#avail_fams[@]} -eq 1 ]; then
+        chosen_fam=${avail_fams[0]}
+    else
+        chosen_fam=$(ui_menu "Functional family" "\nChoose the family, then the functional.\n" 18 6 "${items[@]}") || return 1
+    fi
+
+    # Populate specific XC menu ONLY with available functionals in that family
+    local xc_items=() c
+    for id in "${avail_xcs[@]}"; do
+        [ "${XC_FAMILY[$id]:-}" = "$chosen_fam" ] || continue
+        if xc_is_native "$id"; then
+            xc_items+=("$id" "${XC_LABEL[$id]} [dft=${XC_QE[$id]}]")
+        else
+            xc_items+=("$id" "${XC_LABEL[$id]} -> generated with $(xc_qe_string "$id")")
+        fi
+    done
+
+    if [ ${#xc_items[@]} -eq 0 ]; then
+        for id in $(xc_list_family "$chosen_fam"); do
+            xc_items+=("$id" "${XC_LABEL[$id]}")
+        done
+    fi
+
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#xc_items[@]} -eq 2 ]; then
+        c=${xc_items[0]}
+    else
+        c=$(ui_menu "Functional ($chosen_fam)" \
 "\nld1.x can only solve the atom with LDA or GGA. For the other families pseudoforge
 generates with the accepted semilocal parent and records that in the UPF and
-in the report -- which is what every public library does too.\n" 22 10 "${items[@]}") || return 1
+in the report -- which is what every public library does too.\n" 22 10 "${xc_items[@]}") || return 1
+    fi
     SPEC[xc]=$c
 
-    # Ask whether something other than the requested functional will
-    # actually be used, not merely whether the registry calls it a proxy:
-    # AtomPAW generates meta-GGA for real, and telling that user their
-    # dataset is not self-consistent would be false.
     if [ "$(xc_generator "$c")" != "$c" ]; then
         ui_msg "Functional provenance" \
 "$(xc_explain "$c")
@@ -361,13 +500,34 @@ pseudopotential was not generated self-consistently with ${XC_QE[$c]}." 15 74
 }
 
 ui_pick_rel() {
+    local prof=${SPEC[profile]:-psl-high}
+    local rel_avail=${PROF_REL[$prof]:-scalar full}
+    local -a rels=() r
+    for r in scalar full nonrel; do
+        if in_list "$r" $rel_avail; then
+            rels+=("$r")
+        fi
+    done
+    [ ${#rels[@]} -gt 0 ] || rels=(scalar full)
+
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#rels[@]} -eq 1 ]; then
+        SPEC[rel]=${rels[0]}
+        return 3
+    fi
+
+    local items=()
+    for r in "${rels[@]}"; do
+        case $r in
+            scalar) items+=(scalar "Scalar-relativistic  -- no spin-orbit (rel=1)") ;;
+            full)   items+=(full   "Full-relativistic    -- with spin-orbit (rel=2)") ;;
+            nonrel) items+=(nonrel "Non-relativistic     -- light elements only (rel=0)") ;;
+        esac
+    done
+
     local c
     c=$(ui_menu "Relativity" \
 "\nFull-relativistic (spin-orbit) treatment is normally required from about
-Z = 37 upwards, and essential for 5d elements and actinides.\n" 17 5 \
-        scalar "Scalar-relativistic  -- no spin-orbit (rel=1)" \
-        full   "Full-relativistic    -- with spin-orbit (rel=2)" \
-        nonrel "Non-relativistic     -- light elements only (rel=0)" ) || return 1
+Z = 37 upwards, and essential for 5d elements and actinides.\n" 17 5 "${items[@]}") || return 1
     SPEC[rel]=$c
     return 0
 }
@@ -397,87 +557,35 @@ ui_profiles_about() {
 
 
 # ---------------------------------------------------------------------------
-# ui_pick_profile -- now element-aware.
-#
-# The elements are chosen before this screen, which is what makes an honest
-# filter possible: "PseudoDojo" is not a yes/no answer, it is "covers 12 of your
-# 14 elements", and a library that covers none of them should not be offered at
-# all.  Choosing the library first, as the wizard used to, meant the mismatch
-# could only surface at generation time.
+# ui_pick_profile -- filters out external curated datasets from generation.
 # ---------------------------------------------------------------------------
 ui_pick_profile() {
-    local id items=() hidden=() partial=() c n total
-    local -a els=()
-    # shellcheck disable=SC2086
-    mapfile -t els < <(el_expand ${CLI_ELEMENTS:-Si})
-    total=${#els[@]}
-
-    while IFS=$'\t' read -r id n _; do
-        [ -n "$id" ] || continue
-        if [ "$n" -eq "$total" ]; then
-            items+=("$id" "$(printf '%-30s all %s' "${PROF_LABEL[$id]}" "$total")")
-        elif [ "$n" -gt 0 ]; then
-            items+=("$id" "$(printf '%-30s %s of %s' "${PROF_LABEL[$id]}" "$n" "$total")")
-            partial+=("${PROF_LABEL[$id]} covers $n of $total")
-        else
-            hidden+=("${PROF_LABEL[$id]} -- none of your elements")
-        fi
-    done < <(prof_rank_for_elements "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}" "${els[@]}")
-
-    # Libraries filtered out by the settings themselves, not by coverage
-    for id in $(prof_list_for_family "${SPEC[family]}"); do
-        prof_can_generate "$id" "${SPEC[family]}" || continue
-        prof_compatible "$id" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}" && continue
-        hidden+=("${PROF_LABEL[$id]} -- $(prof_incompatible_reason "$id" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}")")
+    local id items=() c
+    for id in $(prof_list_sorted); do
+        case ${PROF_PROVENANCE[$id]:-} in
+            external) continue ;;
+        esac
+        prof_can_generate_any "$id" || continue
+        [ "$(prof_star "$id")" != " *" ] || continue
+        items+=("$id" "${PROF_LABEL[$id]}")
     done
 
     if [ ${#items[@]} -eq 0 ]; then
-        local msg
-        msg="Nothing can generate $(upper "${SPEC[family]}") with $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}"),\nfor the elements you chose.\n\n"
-        for id in "${hidden[@]}"; do msg="$msg  - $id\n"; done
-        msg="$msg\nGo back and change the functional, the type, or the elements."
-        ui_msg "Nothing matches" "$msg" 20 78
+        ui_msg "No profiles" "No generatable profiles found on this installation." 8 60
         return 1
     fi
 
-    items+=("about" "Libraries that cannot be generated, and why")
-    [ ${#hidden[@]} -gt 0 ] && \
-        items+=("hidden" "$(printf '%s hidden by these settings' "${#hidden[@]}")")
-
-    c=$(ui_menu "Library" \
-"\n$total element(s), $(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")").
-The number is how many of your elements each library actually covers.\n" 20 9 "${items[@]}") || return $?
-
-    case $c in
-        hidden)
-            local tmp; tmp=$(mktemp)
-            { printf 'Not offered for this run\n========================\n\n'
-              for id in "${hidden[@]}"; do printf '  %s\n' "$id"; done
-              printf '\nChange the functional, the type or the elements to see these.\n'
-            } > "$tmp"
-            ui_text "Hidden libraries" "$tmp" 24 84; rm -f "$tmp"
-            ui_pick_profile; return $? ;;
-        about)
-            ui_profiles_about; ui_pick_profile; return $? ;;
-    esac
-
-    SPEC[profile]=$c
-
-    # A partial match is usable, but the user has to agree to it knowingly.
-    local -a missing=()
-    mapfile -t missing < <(prof_missing_elements "$c" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}" "${els[@]}")
-    if [ ${#missing[@]} -gt 0 ]; then
-        ui_yesno "Partial coverage" \
-"${PROF_LABEL[$c]} has no published parameters for:
-
-  ${missing[*]}
-
-Those would be built with PseudoForge's own parameters instead, which is a
-different pseudopotential and is labelled 'PSEUDOFORGE' in the report.
-
-Continue anyway?" 17 76 || { ui_pick_profile; return $?; }
+    if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ ${#items[@]} -eq 2 ]; then
+        SPEC[profile]=${items[0]}
+        ui_show_attribution "${items[0]}"
+        return 3
     fi
 
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Exit
+    c=$(ui_menu "Library" \
+"\nSelect which library to reproduce on this machine.\nExternal curated datasets are excluded from generation.\n" 22 14 "${items[@]}") || return $?
+
+    SPEC[profile]=$c
     ui_show_attribution "$c"
     if [ "$c" = pseudoforge-auto ]; then
         ui_msg "Derived profile" \
@@ -562,20 +670,22 @@ ui_why_not() {
 ui_pick_elements() {
     local c avail n
 
-    # The library has not been chosen yet -- that comes next, and choosing it
-    # first is what made the old flow offer libraries that could not make the
-    # elements asked for.  What can be answered here is the broader question:
-    # which elements *any* library can make with the functional and relativity
-    # already selected.
+    # Filter elements by what the chosen profile, family, functional and relativity can make.
     avail=$(ui_available_elements)
     n=$(printf '%s\n' "$avail" | grep -c . || true)
 
+    local subtitle
+    if [ -n "${SPEC[profile]:-}" ]; then
+        subtitle="\n${PROF_LABEL[${SPEC[profile]}]:-${SPEC[profile]}}, $(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}")
+covers $n element(s).\n\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n"
+    else
+        subtitle="\n$(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}")
+can be made for $n element(s).\n\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n"
+    fi
+
     while : ; do
         UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
-        c=$(ui_menu "Elements" \
-"\n$(upper "${SPEC[family]}"), $(upper "$(xc_qe_string "${SPEC[xc]}")"), $(rel_label "${SPEC[rel]}")
-can be made for $n element(s).  Which library covers which is decided next.
-\nCurrent selection: ${CLI_ELEMENTS:-<none>}\n" 21 9 \
+        c=$(ui_menu "Elements" "$subtitle" 21 9 \
             table     "Pick from the periodic table (by period)" \
             supported "Everything these settings support ($n elements)" \
             preset    "A preset group (transition metals, lanthanides, ...)" \
@@ -630,15 +740,23 @@ They will be reported as skipped.  Drop them and continue with the rest?" 16 74 
 
 # Elements that at least one library can produce under the current settings.
 ui_available_elements() {
-    local el prof
-    for el in "${EL_ORDER[@]}"; do
-        for prof in $(prof_list_for_family "${SPEC[family]}"); do
-            prof_can_generate "$prof" "${SPEC[family]}" || continue
+    local el prof=${SPEC[profile]:-}
+    if [ -n "$prof" ]; then
+        for el in "${EL_ORDER[@]}"; do
             if prof_covers_element "$prof" "$el" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
-                printf '%s\n' "$el"; break
+                printf '%s\n' "$el"
             fi
         done
-    done
+    else
+        for el in "${EL_ORDER[@]}"; do
+            for prof in $(prof_list_for_family "${SPEC[family]}"); do
+                prof_can_generate "$prof" "${SPEC[family]}" || continue
+                if prof_covers_element "$prof" "$el" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
+                    printf '%s\n' "$el"; break
+                fi
+            done
+        done
+    fi
 }
 
 # Show the current selection against what is actually makeable.
@@ -678,15 +796,23 @@ ui_elements_by_period() {
         6 "Period 6  Cs .. Rn  (incl. lanthanides)" \
         7 "Period 7  Fr .. Lr  (incl. actinides)" ) || return
 
-    local set; set=$(prof_psl_set "${SPEC[profile]}" "${SPEC[family]}")
+    local prof=${SPEC[profile]:-}
+    local set; set=$(prof_psl_set "${SPEC[profile]:-}" "${SPEC[family]:-}")
     for s in "${EL_ORDER[@]}"; do
         [ "${EL_PERIOD[$s]}" = "$period" ] || continue
+        if [ -n "$prof" ] && ! prof_covers_element "$prof" "$s" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}"; then
+            continue
+        fi
         local mark=""
         if [ -n "$set" ] && ! psl_recipes "$set" "$s" | grep -q .; then mark=" (no recipe)"; fi
         local on=off
         case " $CLI_ELEMENTS " in *" $s "*) on=on ;; esac
         items+=("$s" "$(printf 'Z=%-3s %s%s' "${EL_Z[$s]}" "${EL_NAME[$s]}" "$mark")" "$on")
     done
+    if [ ${#items[@]} -eq 0 ]; then
+        ui_msg "Period $period" "No available elements in Period $period for these settings." 8 60
+        return
+    fi
     sel=$(ui_checklist "Period $period" "\nSpace selects, Enter confirms.\n" 22 12 "${items[@]}") || return
     sel=$(ui_unquote "$sel")
 
