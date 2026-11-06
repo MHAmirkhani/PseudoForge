@@ -37,6 +37,25 @@ ui_menu()  { echo "${MOCK_MENU:-}"; }
 ui_msg()   { MOCK_MSG_TITLE="$1"; MOCK_MSG_BODY="$2"; return 0; }
 ui_text()  { MOCK_TEXT_TITLE="$1"; MOCK_TEXT_BODY=$(cat "$2"); return 0; }
 
+# Test tui_tools dispatch
+invoked=""
+tui_advise() { invoked="advise"; return 0; }
+MOCK_MENU="advise"
+# Run once and break loop
+ui_menu() {
+    if [ -z "$invoked" ]; then
+        echo "advise"
+    else
+        return 1
+    fi
+}
+tui_tools || true
+[ "$invoked" = "advise" ] && ok_ "tui_tools dispatches advise" || bad_ "tui_tools dispatch failed"
+
+# Re-source tui.sh to restore real tui_advise for subsequent tests
+# shellcheck disable=SC1091
+. "$PF_LIB/tui.sh"
+
 # Test tui_capabilities
 MOCK_TEXT_TITLE=""
 MOCK_TEXT_BODY=""
@@ -149,21 +168,6 @@ MOCK_TEXT_TITLE=""
 MOCK_TEXT_BODY=""
 tui_recent
 grep -q "Recent Files" <<< "$MOCK_TEXT_TITLE" && ok_ "tui_recent sets correct title" || bad_ "tui_recent title mismatch"
-
-# Test tui_tools dispatch
-invoked=""
-tui_advise() { invoked="advise"; return 0; }
-MOCK_MENU="advise"
-# Run once and break loop
-ui_menu() {
-    if [ -z "$invoked" ]; then
-        echo "advise"
-    else
-        return 1
-    fi
-}
-tui_tools || true
-[ "$invoked" = "advise" ] && ok_ "tui_tools dispatches advise" || bad_ "tui_tools dispatch failed"
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \

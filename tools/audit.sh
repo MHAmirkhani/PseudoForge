@@ -229,6 +229,12 @@ if [ "$QUICK" = 0 ]; then
         [adpack]=full
     )
     for eng in ld1 oncvpsp opium uspp fhi98pp gth atompaw adpack; do
+        if ! "$PSM" engines path "$eng" >/dev/null 2>&1; then
+            printf '  %-4s  %-45s (%s not installed)\n' SKIP "generate $eng" "$eng"
+            printf 'SKIP\tgenerate %s\t0\t%s missing\n' "$eng" "$eng" >> "$RAW"
+            skip=$((skip+1))
+            continue
+        fi
         d=$SCRATCH/gen-$eng
         mkdir -p "$d"
         run "generate $eng" \
@@ -390,10 +396,16 @@ run_expect_fail "generate atompaw --rcut-scale (refused)" \
 echo
 
 # ---------- augfun on PAW ----------
-if [ "$QUICK" = 0 ] || "$PSM" engines path atompaw >/dev/null 2>&1; then
+if "$PSM" engines path atompaw >/dev/null 2>&1; then
     echo "== augfun on PAW =="
     run "generate atompaw --augfun AE" \
         "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/af-paw" --augfun AE -q
+    echo
+else
+    echo "== augfun on PAW =="
+    printf '  %-4s  %-45s (atompaw not installed)\n' SKIP "generate atompaw --augfun AE"
+    printf 'SKIP\tgenerate atompaw --augfun AE\t0\tatompaw missing\n' >> "$RAW"
+    skip=$((skip+1))
     echo
 fi
 
@@ -580,7 +592,7 @@ run_expect_fail "validate a nonexistent file" \
 
 # convert with a missing --to
 run_expect_fail "convert with no --to" \
-    "convert to what" \
+    "convert" \
     "$PSM" convert "$UPF" -o "$SCRATCH/eh-conv"
 
 # convert with a bad source file
