@@ -42,15 +42,21 @@ for arg in "$@"; do
 done
 [ -n "$SRC" ] || SRC=$(cd "$HERE/.." && pwd)/pslibrary.1.0.0
 
+roundtrip_hash() (
+    cd "$1" || exit 1
+    find . -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' -print0 \
+        | LC_ALL=C sort -z | xargs -0 -r sha256sum | sha256sum | cut -d' ' -f1
+)
+
 if [ "$TEST_CACHE" -eq 1 ]; then
     printf '== PSlibrary roundtrip cache self-test\n'
     c_tmp=$(mktemp -d)
     trap 'rm -rf "$c_tmp"' EXIT
-    mkdir -p "$c_tmp/data"
-    echo "test" > "$c_tmp/data/file1.txt"
-    c_cache="$c_tmp/data/.roundtrip.cache"
+    mkdir -p "$c_tmp/test data"
+    echo "test" > "$c_tmp/test data/input deck.txt"
+    c_cache="$c_tmp/test data/.roundtrip.cache"
 
-    c_hash=$(find "$c_tmp/data" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+    c_hash=$(roundtrip_hash "$c_tmp/test data") || exit 1
 
     # 1. First run: no cache, test runs and writes cache
     [ ! -f "$c_cache" ] || { echo "FAIL: cache exists before first run"; exit 1; }
@@ -71,8 +77,8 @@ if [ "$TEST_CACHE" -eq 1 ]; then
     fi
 
     # 4. Modifying data invalidates cache
-    echo "modified" >> "$c_tmp/data/file1.txt"
-    new_hash=$(find "$c_tmp/data" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+    echo "modified" >> "$c_tmp/test data/input deck.txt"
+    new_hash=$(roundtrip_hash "$c_tmp/test data") || exit 1
     if [ "$(cat "$c_cache")" != "$new_hash" ]; then
         echo "  PASS  data change causes cache mismatch (does not skip)"
     else
@@ -84,10 +90,9 @@ if [ "$TEST_CACHE" -eq 1 ]; then
 fi
 
 CACHE=$DB/.roundtrip.cache
-HASH=$(find "$DB" -type f -not -name '.roundtrip.cache' -not -path '*/.git/*' \
-    | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+HASH=$(roundtrip_hash "$DB") || { echo "Cannot hash the PSlibrary recipe database" >&2; exit 1; }
 
-if [ "$FORCE" -ne 1 ] && [ -f "$CACHE" ] && [ "$(cat "$CACHE" 2>/dev/null)" = "$HASH" ]; then
+if [ "$FORCE" -ne 1 ] && [ -z "${PSL_RT_CHECKS:-}" ] && [ -f "$CACHE" ] && [ "$(cat "$CACHE" 2>/dev/null)" = "$HASH" ]; then
     echo "PSlibrary round-trip: unchanged since last verify ($HASH)"
     echo "SKIP: cached result is still valid"
     exit 0
@@ -222,7 +227,9 @@ check test-pbe-full   "$TEST_JOBS" "$TEST_SETS" "$DB/tests" rel-pbe PBE 2 fr yes
 echo
 if [ "$fail" -eq 0 ]; then
     echo "  all round-trip checks passed"
-    echo "$HASH" > "$CACHE"
+    if [ -z "${PSL_RT_CHECKS:-}" ]; then
+        echo "$HASH" > "$CACHE"
+    fi
 else
     echo "  round-trip verification FAILED"
 fi
