@@ -17,9 +17,7 @@ permissions:
   contents: read
 
 env:
-  # The main-branch retry runs the corrected workflow against the same
-  # immutable tag. Later retries can be started from the Actions UI.
-  PF_TEST_REF: ${{ (inputs.release_tag && format('refs/tags/{0}', inputs.release_tag)) || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies' && 'refs/tags/v1.3.7') || (github.ref_type == 'tag' && github.ref) || github.sha }}
+  PF_TEST_REF: ${{ (inputs.release_tag && format('refs/tags/{0}', inputs.release_tag)) || github.sha }}
 
 jobs:
   fast:
@@ -57,7 +55,7 @@ jobs:
         with:
           ref: ${{ env.PF_TEST_REF }}
       - name: install deps
-        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv gfortran liblapack-dev libblas-dev unzip
+        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv gfortran liblapack-dev libblas-dev unzip nginx
       - name: run_tests
         run: |
           set +e
@@ -79,7 +77,7 @@ jobs:
           exit "$result"
 
   publish:
-    if: github.ref_type == 'tag' || inputs.release_tag != '' || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies')
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     needs: [fast, interfaces, tests]
     runs-on: ubuntu-22.04
     permissions:
@@ -91,11 +89,11 @@ jobs:
       - name: Publish verified release
         env:
           GH_TOKEN: ${{ github.token }}
+          PF_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
-          PF_TAG=${PF_TEST_REF#refs/tags/}
           version=${PF_TAG#v}
           [[ "$PF_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          git fetch --no-tags origin "$PF_TEST_REF"
+          git fetch --no-tags origin "refs/tags/$PF_TAG"
           [[ "$(git rev-parse HEAD)" == "$(git rev-parse 'FETCH_HEAD^{commit}')" ]]
           [[ "$(./pseudoforge version | head -n 1)" == "PseudoForge $version --"* ]]
           awk -v version="$version" '
