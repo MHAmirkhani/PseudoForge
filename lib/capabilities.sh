@@ -11,13 +11,13 @@
 declare -gA CAP_COUNT=()
 
 _cap_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -d "$PF_NATIVE_DIR" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi
     local cand
-    for cand in "${PF_NATIVE_DIR:-}" "/var/lib/pseudoforge/native" "$HOME/pf-native" "$HOME/pf-var/native" "/tmp/pseudoforge-local/native"; do
-        if [ -n "$cand" ] && [ -d "$cand" ]; then
+    for cand in "/var/lib/pseudoforge/native" "$HOME/pf-native" "$HOME/pf-var/native" "/tmp/pseudoforge-local/native"; do
+        if [ -f "$cand/index.tsv" ]; then
             printf '%s\n' "$cand"
             return 0
         fi
@@ -30,11 +30,9 @@ capabilities_for() {
     store_dir=$(_cap_find_native_dir)
     idx="$store_dir/index.tsv"
 
-    local n_files=146
+    local n_files=0
     if [ -f "$idx" ]; then
-        local actual
-        actual=$(awk -F'\t' '!/^#/ && $1 !~ /_rejected_/ { c++ } END { print c+0 }' "$idx")
-        [ "$actual" -gt 0 ] 2>/dev/null && n_files=$actual
+        n_files=$(awk -F'\t' '$1 != "" && $1 !~ /^#/ && $1 !~ /_rejected_/ && $10 !~ /(^|\/)\.?rejected\// && $10 != "" { c++ } END { print c+0 }' "$idx") || return 1
     fi
     CAP_COUNT[files]=$n_files
     CAP_COUNT[engines]=9
@@ -42,12 +40,13 @@ capabilities_for() {
 }
 
 capabilities_render_human() {
-    local n_files=${CAP_COUNT[files]:-146}
+    local n_files=${CAP_COUNT[files]:-0} browse="✅"
     local n_engines=${CAP_COUNT[engines]:-9}
+    [ "$n_files" -gt 0 ] || browse="❌"
 
     cat <<EOF
 With the store alone (this website):
-  ✅ Browse and download existing files ($n_files available)
+  $browse Browse and download existing files ($n_files available)
   ✅ Validate a pseudopotential you already have
   ✅ Convert between formats (upfconv.x)
   ✅ Read provenance and citations
@@ -76,15 +75,16 @@ EOF
 }
 
 capabilities_render_json() {
-    local n_files=${CAP_COUNT[files]:-146}
+    local n_files=${CAP_COUNT[files]:-0} browse=true
     local n_engines=${CAP_COUNT[engines]:-9}
+    [ "$n_files" -gt 0 ] || browse=false
 
     cat <<EOF
 {
   "store_alone": {
     "title": "With the store alone (this website)",
     "items": [
-      { "supported": true, "text": "Browse and download existing files ($n_files available)" },
+      { "supported": $browse, "text": "Browse and download existing files ($n_files available)" },
       { "supported": true, "text": "Validate a pseudopotential you already have" },
       { "supported": true, "text": "Convert between formats (upfconv.x)" },
       { "supported": true, "text": "Read provenance and citations" },

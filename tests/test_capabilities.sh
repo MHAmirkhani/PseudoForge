@@ -58,6 +58,23 @@ grep -q "pseudoforge capabilities" <<< "$help_out" && ok_ "CLI capabilities --he
 api_out=$(http_handle GET "/api/capabilities" 2>&1)
 grep -q '"store_alone":' <<< "$api_out" && ok_ "HTTP API GET /api/capabilities returns json" || bad_ "HTTP API failed"
 
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/pf-native" "$tmp/empty"
+printf 'Si.UPF\tSi\tpbe\tnc\tscalar\tld1\tupf\tpsl-high\tplain\tSi.UPF\n' > "$tmp/pf-native/index.tsv"
+printf '# Empty index\n' > "$tmp/empty/index.tsv"
+for selected in empty missing; do
+    store_out=$(HOME="$tmp" PF_NATIVE_DIR="$tmp/$selected" "$ROOT/pseudoforge" capabilities --json)
+    if grep -Fq '"supported": false, "text": "Browse and download existing files (0 available)"' <<< "$store_out"; then
+        ok_ "an explicitly $selected store reports zero without falling back to a home index"
+    else
+        bad_ "an explicitly $selected store advertised downloads" "$store_out"
+    fi
+done
+store_out=$(PF_NATIVE_DIR="$tmp/pf-native" "$ROOT/pseudoforge" capabilities --json)
+grep -Fq '"supported": true, "text": "Browse and download existing files (1 available)"' <<< "$store_out" \
+    && ok_ "a populated index advertises its count" || bad_ "a populated index did not advertise its count" "$store_out"
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \
