@@ -6,15 +6,28 @@ on:
     tags: [ "v*" ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing version tag to revalidate and publish
+        required: true
+        type: string
 
 permissions:
   contents: read
+
+env:
+  # The main-branch retry runs the corrected workflow against the same
+  # immutable tag. Later retries can be started from the Actions UI.
+  PF_TEST_REF: ${{ (inputs.release_tag && format('refs/tags/{0}', inputs.release_tag)) || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies' && 'refs/tags/v1.3.7') || github.ref }}
 
 jobs:
   fast:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PF_TEST_REF }}
       - name: install deps
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck
@@ -28,6 +41,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PF_TEST_REF }}
       - name: install deps
         run: sudo apt-get update && sudo apt-get install -y shellcheck jq
       - name: audit-interfaces
@@ -39,8 +54,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PF_TEST_REF }}
       - name: install deps
-        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv
+        run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv gfortran liblapack-dev libblas-dev unzip
       - name: run_tests
         run: |
           set +e
@@ -62,20 +79,24 @@ jobs:
           exit "$result"
 
   publish:
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || inputs.release_tag != '' || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies')
     needs: [fast, interfaces, tests]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PF_TEST_REF }}
       - name: Publish verified release
         env:
           GH_TOKEN: ${{ github.token }}
-          PF_TAG: ${{ github.ref_name }}
         run: |
+          PF_TAG=${PF_TEST_REF#refs/tags/}
           version=${PF_TAG#v}
           [[ "$PF_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git fetch --no-tags origin "$PF_TEST_REF"
+          [[ "$(git rev-parse HEAD)" == "$(git rev-parse 'FETCH_HEAD^{commit}')" ]]
           [[ "$(./pseudoforge version | head -n 1)" == "PseudoForge $version --"* ]]
           awk -v version="$version" '
             $1 == "##" && found {exit}
@@ -83,4 +104,5 @@ jobs:
             found {print}
             END {if (!found) exit 1}
           ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          if gh release view "$PF_TAG" >/dev/null 2>&1; then exit 0; fi
           gh release create "$PF_TAG" --verify-tag --title "PseudoForge $PF_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
