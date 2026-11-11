@@ -42,7 +42,24 @@ jobs:
       - name: install deps
         run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv
       - name: run_tests
-        run: ./tests/run_tests.sh --all
+        run: |
+          set +e
+          ./tests/run_tests.sh --all 2>&1 | tee "$RUNNER_TEMP/pf-tests.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          sed -E 's/\x1B\[[0-9;]*[mK]//g' "$RUNNER_TEMP/pf-tests.log" > "$RUNNER_TEMP/pf-tests-plain.log"
+          python3 - "$RUNNER_TEMP/pf-tests-plain.log" <<'PY'
+          import pathlib, re, sys
+          lines = pathlib.Path(sys.argv[1]).read_text(errors="replace").splitlines()
+          for line in lines:
+              if re.match(r"^\s*FAIL\s", line):
+                  print("::error title=Test failure::" + line.strip().replace("%", "%25"))
+              elif re.fullmatch(r"\d+ passed, \d+ failed, \d+ skipped", line):
+                  summary = line
+          if "summary" in globals():
+              print("::notice title=Full test suite::" + summary)
+          PY
+          exit "$result"
 
   publish:
     if: github.ref_type == 'tag'
