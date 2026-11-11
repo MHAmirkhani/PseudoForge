@@ -32,6 +32,7 @@ exec_env() {
     printf 'OMP_PROC_BIND=false\n'
     printf 'MKL_NUM_THREADS=%s\n' "${OMP_THREADS:-1}"
     printf 'OPENBLAS_NUM_THREADS=%s\n' "${OMP_THREADS:-1}"
+    [ -z "${OMPI_MCA_btl+x}" ] && printf 'OMPI_MCA_btl=^uct\n'
 }
 
 # exec_run <binary> <workdir> <logfile> <timeout> [stdin-file] [args...]

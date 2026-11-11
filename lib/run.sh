@@ -30,6 +30,7 @@ qe_run() {
         export OMP_NUM_THREADS="${OMP_THREADS:-1}"
         export OPENBLAS_NUM_THREADS="${OMP_THREADS:-1}"
         export MKL_NUM_THREADS="${OMP_THREADS:-1}"
+        [ -z "${OMPI_MCA_btl+x}" ] && export OMPI_MCA_btl="^uct"
         if [ "${tmo:-0}" -gt 0 ] && have timeout; then
             timeout --preserve-status "$tmo" "$bin" < "$deck" > "$log" 2>&1
         else
@@ -46,7 +47,7 @@ ld1_run() {   # ld1_run <deck> <log> <workdir>
     [ "${LD1_PARA:-0}" = 1 ] && prefix=$PARA_PREFIX
     if [ -n "$prefix" ]; then
         # shellcheck disable=SC2086
-        ( cd "$3" && $prefix "$LD1_BIN" $PARA_POSTFIX < "$1" > "$2" 2>&1 )
+        ( cd "$3" && [ -z "${OMPI_MCA_btl+x}" ] && export OMPI_MCA_btl="^uct"; $prefix "$LD1_BIN" $PARA_POSTFIX < "$1" > "$2" 2>&1 )
         return $?
     fi
     qe_run "$LD1_BIN" "$1" "$2" "${LD1_TIMEOUT:-0}" "$3"

@@ -253,7 +253,7 @@ deps_ld1_version() {
     # nothing here waits on it, so nothing here can hang with it. Reading the
     # file afterwards also replaces `| grep -m1`, which closed the pipe on
     # ld1.x mid-write.
-    ( cd "$wd" && OMP_NUM_THREADS="${OMP_THREADS:-1}" exec "$LD1_BIN" < in > out 2>/dev/null ) &
+    ( cd "$wd" && [ -z "${OMPI_MCA_btl+x}" ] && export OMPI_MCA_btl="^uct"; OMP_NUM_THREADS="${OMP_THREADS:-1}" exec "$LD1_BIN" < in > out 2>/dev/null ) &
     pid=$!
     i=0
     while kill -0 "$pid" 2>/dev/null && [ "$i" -lt $((lim * 10)) ]; do

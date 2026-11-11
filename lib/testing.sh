@@ -401,8 +401,12 @@ K_POINTS automatic
   8 8 8 0 0 0
 PWEOF
 
-    ( cd "$wd" && OMP_NUM_THREADS="${OMP_THREADS:-1}" \
-        timeout "${PW_TIMEOUT:-3600}" "$PW_BIN" -in "$label.in" > "$label.out" 2>&1 )
+    (
+        cd "$wd" || exit 1
+        export OMP_NUM_THREADS="${OMP_THREADS:-1}"
+        [ -z "${OMPI_MCA_btl+x}" ] && export OMPI_MCA_btl="^uct"
+        timeout "${PW_TIMEOUT:-3600}" "$PW_BIN" -in "$label.in" > "$label.out" 2>&1
+    )
     printf '%s\t%s\n' "$(pw_energy "$wd/$label.out")" "$(pw_pressure "$wd/$label.out")"
 }
 

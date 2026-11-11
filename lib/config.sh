@@ -96,6 +96,11 @@ pf_config_defaults() {
     # Atomic solvers are single-atom problems; a threaded BLAS spends longer
     # spin-waiting than computing, and on a busy machine can hang outright.
     : "${OMP_THREADS:=1}"
+
+    # ---- Open MPI execution ------------------------------------------------
+    # Open MPI 5 singleton execution: prevent UCT BTL deadlock when MPI-linked
+    # binaries (ld1.x, pw.x) are invoked directly without mpirun.
+    [ -z "${OMPI_MCA_btl+x}" ] && export OMPI_MCA_btl="^uct"
 }
 
 # ---- template written on first run ----------------------------------------
