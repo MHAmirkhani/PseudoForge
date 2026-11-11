@@ -111,7 +111,12 @@ pseudoforge engines build all     # fetch, patch, build, verify
 pseudoforge engines build ape     # or one at a time
 ```
 
-`build all` builds eight engines (`oncvpsp`, `uspp`, `fhi98pp`, `opium`, `gth`, `atompaw`, `ape`, `adpack`). It fetches each engine's source archive from `engines-src/` in the repository, verifies its checksum against `engines-src/MANIFEST.txt`, applies the patches PseudoForge carries where a build needs them, compiles into `~/.pseudoforge/engines`, and records a build id that goes into the provenance of anything that engine generates.
+`build all` builds seven bundled engines: `oncvpsp`, `uspp`, `opium`, `gth`,
+`atompaw`, `ape` and `adpack`. It checks their source archives against
+`engines-src/MANIFEST.txt`, applies any build patches, and compiles into
+`~/.pseudoforge/engines`. Provenance records the resulting build fingerprint.
+To build [fhi98PP](../reference/engines/fhi98pp.md#installing), supply its upstream
+source separately.
 
 Quantum ESPRESSO (`ld1.x`) comes from upstream QE rather than `engines-src/`, and PseudoForge prompts to download and build `ld1.x` the first time a run needs it.
 

@@ -64,7 +64,7 @@ if [ -n "${PF_VAR_DIR:-}" ]; then
             PF_NATIVE_DIR="$PF_VAR_DIR/native"
         fi
     fi
-elif [ -f "$HOME/.pseudoforgerc" ] && bash -c '[ -f "$1/.pseudoforgerc" ] && . "$1/.pseudoforgerc" && [ -n "${PF_VAR_DIR:-}" ]' _ "$HOME" 2>/dev/null; then
+elif [ -z "$PF_NATIVE_DIR" ] && [ -f "$HOME/.pseudoforgerc" ] && bash -c '[ -f "$1/.pseudoforgerc" ] && . "$1/.pseudoforgerc" && [ -n "${PF_VAR_DIR:-}" ]' _ "$HOME" 2>/dev/null; then
     rc_var=$(bash -c '. "$1/.pseudoforgerc"; printf "%s" "${PF_VAR_DIR:-}"' _ "$HOME" 2>/dev/null || true)
     if [ -n "$rc_var" ]; then
         PF_VAR_DIR="$rc_var"
@@ -76,6 +76,10 @@ elif [ -f "$HOME/.pseudoforgerc" ] && bash -c '[ -f "$1/.pseudoforgerc" ] && . "
             PF_NATIVE_DIR="$PF_VAR_DIR/native"
         fi
     fi
+fi
+
+if [ -z "${PF_VAR_DIR:-}" ] && [ -n "$PF_NATIVE_DIR" ]; then
+    PF_VAR_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/pseudoforge/local
 fi
 
 if [ -z "${PF_VAR_DIR:-}" ]; then
@@ -148,7 +152,7 @@ say "core:    $ROOT/pseudoforge"
 mkdir -p "$PF_VAR_DIR"/{cache,db,converter}
 mkdir -p "$PF_NATIVE_DIR"
 
-if [ "$using_fixtures" -eq 1 ] || [ ! -f "$PF_NATIVE_DIR/index.tsv" ]; then
+if [ "$using_fixtures" -eq 1 ]; then
     if [ ! -f "$PF_NATIVE_DIR/index.tsv" ] || [ ! -s "$PF_NATIVE_DIR/index.tsv" ]; then
         cp "$ROOT/tests/fixtures/upf/"*.UPF "$PF_NATIVE_DIR/" 2>/dev/null || true
         cp "$ROOT/tests/fixtures/psp8/"*.psp8 "$PF_NATIVE_DIR/" 2>/dev/null || true
@@ -208,7 +212,9 @@ cleanup() {
     rm -f "${TMPPY:-}"
     printf '\nstopped\n'
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 ( cd "$ROOT/server" && \
   export PF_BIN="$ROOT/pseudoforge" && \
@@ -216,7 +222,7 @@ trap cleanup EXIT INT TERM
   export PF_NATIVE_DIR="$PF_NATIVE_DIR" && \
   export PF_CACHE_DIR="$PF_VAR_DIR/cache" && \
   export PF_RATE_LIMIT=1000 && \
-  "$UVICORN" app:app --host "$HOST" --port "$API_PORT" --log-level warning \
+  exec "$UVICORN" app:app --host "$HOST" --port "$API_PORT" --log-level warning \
 ) & API_PID=$!
 
 up=0
@@ -230,33 +236,49 @@ say "api      http://127.0.0.1:$API_PORT/api/"
 
 # The front door: the same routing Nginx does, in about forty lines.
 TMPPY=$(mktemp --suffix=.py)
-cat > "$TMPPY" <<PYEOF
+cat > "$TMPPY" <<'PYEOF'
 import http.server
-import socketserver, urllib.request, urllib.error, os, posixpath
-from http.server import ThreadingHTTPServer
+import json
+import os
+import re
+import socketserver
+import urllib.error
+import urllib.parse
+import urllib.request
 
-WWW  = "$ROOT/frontend"
-DOCS = "$ROOT/site"
-API  = "http://127.0.0.1:$API_PORT" if "$HOST" == "127.0.0.1" else "http://$HOST:$API_PORT"
+from pathlib import Path
+
+ROOT = Path(os.environ["PF_LOCAL_ROOT"])
+WWW = ROOT / "frontend"
+DOCS = ROOT / "site"
+API = "http://127.0.0.1:" + os.environ["PF_LOCAL_API_PORT"]
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+
+    def send_head(self):
+        if urllib.parse.urlsplit(self.path).path == "/docs":
+            self.send_response(301)
+            self.send_header("Location", "/docs/")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+        return super().send_head()
+
     def translate_path(self, path):
-        path = path.split("?", 1)[0].split("#", 1)[0]
+        path = urllib.parse.unquote(urllib.parse.urlsplit(path).path)
+        if re.fullmatch(r"/elements/[A-Za-z]{1,2}/?", path):
+            return str(WWW / "elements" / "index.html")
         if path.startswith("/docs/"):
             root, rel = DOCS, path[len("/docs/"):]
-        elif path == "/docs":
-            self.send_response(301); self.send_header("Location", "/docs/")
-            self.end_headers(); return ""
         else:
             root, rel = WWW, path.lstrip("/")
-        # Refuse to leave the two directories this serves from.
-        full = os.path.normpath(os.path.join(root, rel))
-        if not full.startswith(os.path.normpath(root)):
-            return os.path.join(root, "index.html")
-        if os.path.isdir(full):
-            full = os.path.join(full, "index.html")
-        return full
+        full = (root / rel.lstrip("/")).resolve()
+        if not full.is_relative_to(root.resolve()):
+            return os.devnull + "/index.html"
+        if full.is_dir():
+            full /= "index.html"
+        return str(full)
 
     # Headers we forward from the client to the core. Range matters: FDM,
     # IDM and aria2 open downloads by asking for one byte and reading the
@@ -291,7 +313,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if v:
                     req.add_header(k, v)
             try:
-                r = urllib.request.urlopen(req)
+                r = urllib.request.urlopen(req, timeout=125)
             except urllib.error.HTTPError as e:
                 r = e
             with r:
@@ -317,13 +339,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             # nothing to fix; log a single line and move on.
             print("  (client closed early)")
         except Exception as exc:
-            msg = ('{"error":"transport","message":"%s"}' % exc).encode()
+            print(f"  transport error: {exc}")
+            msg = json.dumps({"error": "transport", "message": "Could not reach the local API."}).encode()
             try:
                 self.send_response(502)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(msg)))
                 self.end_headers()
-                self.wfile.write(msg)
+                if self.command != "HEAD":
+                    self.wfile.write(msg)
             except (BrokenPipeError, ConnectionResetError):
                 # Same cause as above, just caught a moment later.
                 pass
@@ -351,11 +375,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         print("  %s" % (fmt % args))
 
 socketserver.ThreadingTCPServer.allow_reuse_address = True
-with socketserver.ThreadingTCPServer(("$HOST", $PORT), Handler) as httpd:
+with socketserver.ThreadingTCPServer(
+    (os.environ["PF_LOCAL_HOST"], int(os.environ["PF_LOCAL_PORT"])), Handler
+) as httpd:
     httpd.serve_forever()
 PYEOF
 
-"$PYTHON" "$TMPPY" & FRONT_PID=$!
+PF_LOCAL_ROOT="$ROOT" PF_LOCAL_PORT="$PORT" PF_LOCAL_API_PORT="$API_PORT" PF_LOCAL_HOST="$HOST" \
+    "$PYTHON" "$TMPPY" & FRONT_PID=$!
 sleep 1
 
 curl -fsS --noproxy "*" "http://127.0.0.1:$PORT/" >/dev/null 2>&1 \

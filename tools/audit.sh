@@ -31,8 +31,10 @@ export PF_RC="${PF_RC_AUDIT:-$TMP/audit-rc}"
 : > "$PF_RC"
 exec < /dev/null
 
-OUT=$ROOT/AUDIT.md
-RAW=$ROOT/AUDIT-raw.tsv
+REPORT_DIR=${PF_AUDIT_OUTPUT_DIR:-$ROOT}
+mkdir -p "$REPORT_DIR" || exit 1
+OUT=$REPORT_DIR/AUDIT.md
+RAW=$REPORT_DIR/AUDIT-raw.tsv
 : > "$RAW"
 
 QUICK=0

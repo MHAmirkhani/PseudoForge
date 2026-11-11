@@ -18,7 +18,7 @@ declare -g CMP_FMT_CHANGED=false
 declare -ga CMP_WARNINGS=()
 
 _compare_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -d "$PF_NATIVE_DIR" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi
@@ -35,7 +35,7 @@ _compare_find_native_dir() {
 # Resolve one target (id, path, or basename) into metadata fields
 # _compare_resolve_side <target> <side: A|B>
 _compare_resolve_side() {
-    local q=${1:-} side=${2:-A}
+    local q=${1:-} side=${2:-A} mode=${3:-local}
     [ -n "$q" ] || return 1
 
     local id="" el="" xc="" fam="" rel="" eng="" fmt="" size=0 sha="" path=""
@@ -75,7 +75,7 @@ _compare_resolve_side() {
         path="$store_dir/$relpath"
         size=$(printf '%s' "$line" | cut -f11)
         sha=$(printf '%s' "$line" | cut -f12)
-    elif [ -f "$q" ] || [ -f "$store_dir/$q" ]; then
+    elif [ "$mode" = local ] && { [ -f "$q" ] || [ -f "$store_dir/$q" ]; }; then
         if [ -f "$q" ]; then path="$q"; else path="$store_dir/$q"; fi
         id=$(basename "$path")
         size=$(stat -c%s "$path" 2>/dev/null || wc -c < "$path" 2>/dev/null || echo 0)
@@ -90,6 +90,8 @@ _compare_resolve_side() {
     else
         return 1
     fi
+
+    [ -f "$path" ] || return 1
 
     # Lookup cutoffs via SSSP precision
     local cutoff_val="" cutoff_json="{}"
@@ -119,7 +121,7 @@ _compare_resolve_side() {
 }
 
 compare_for() {
-    local a=${1:-} b=${2:-}
+    local a=${1:-} b=${2:-} mode=${3:-local}
     [ -n "$a" ] && [ -n "$b" ] || return 1
 
     pf_elements_load 2>/dev/null || true
@@ -127,8 +129,8 @@ compare_for() {
     pf_profiles_load 2>/dev/null || true
     pf_engines_load 2>/dev/null || true
 
-    _compare_resolve_side "$a" "A" || return 1
-    _compare_resolve_side "$b" "B" || return 1
+    _compare_resolve_side "$a" "A" "$mode" || return 1
+    _compare_resolve_side "$b" "B" "$mode" || return 1
 
     CMP_DELTA_SIZE=$(( CMP_SIZE_B - CMP_SIZE_A ))
     [ "$CMP_SHA_A" = "$CMP_SHA_B" ] && CMP_SHA_EQUAL=true || CMP_SHA_EQUAL=false

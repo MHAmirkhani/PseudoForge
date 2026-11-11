@@ -739,7 +739,10 @@ ui_pick_engine() {
     local prof=${SPEC[profile]:-} fam=${SPEC[family]:-nc} xc=${SPEC[xc]:-pbe} rel=${SPEC[rel]:-scalar}
     local eng items=() menu_items=() n=0 c
 
-    [ "${SPEC[source]:-local}" = local ] || return 3
+    if [ "${SPEC[source]:-local}" != local ]; then
+        SPEC[engine]=""
+        return 3
+    fi
 
     for eng in "${ENG_ORDER[@]}"; do
         eng_compatible "$eng" "$fam" "$xc" "$rel" "$prof" || continue
@@ -755,39 +758,17 @@ ui_pick_engine() {
         return 4
     fi
 
-    # Auto-skip if only one engine is capable
+    # Keep the requested library independent of engine navigation. The auto
+    # profile already resolves published inputs or a custom deck per element.
     if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ "$n" -eq 1 ]; then
         SPEC[engine]=${items[0]}
-        if [ -z "${SPEC[profile]:-}" ] || [ "${SPEC[profile]}" = "pseudoforge-auto" ]; then
-            local def_prof
-            def_prof=$(eng_default_profile "${items[0]}" "$fam")
-            if [ -n "$def_prof" ] && [ "$def_prof" != "pseudoforge-auto" ]; then
-                if prof_supports_xc "$def_prof" "$xc" && prof_supports_rel "$def_prof" "$rel"; then
-                    SPEC[profile]=$def_prof
-                else
-                    SPEC[profile]=pseudoforge-auto
-                fi
-            fi
-        fi
         return 3
     fi
 
     UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
     c=$(ui_menu "Engine" \
 "\nSelect the atomic code to generate $(upper "$fam") with $(upper "$(xc_qe_string "$xc")").\n" 19 6 "${menu_items[@]}") || return $?
-
     SPEC[engine]=$c
-    if [ -z "${SPEC[profile]:-}" ] || [ "${SPEC[profile]}" = "pseudoforge-auto" ]; then
-        local def_prof
-        def_prof=$(eng_default_profile "$c" "$fam")
-        if [ -n "$def_prof" ] && [ "$def_prof" != "pseudoforge-auto" ]; then
-            if prof_supports_xc "$def_prof" "$xc" && prof_supports_rel "$def_prof" "$rel"; then
-                SPEC[profile]=$def_prof
-            else
-                SPEC[profile]=pseudoforge-auto
-            fi
-        fi
-    fi
     return 0
 }
 

@@ -35,7 +35,7 @@ declare -ga EL_UNAVAIL_XC=()
 declare -ga EL_UNAVAIL_CMD=()
 
 _el_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi

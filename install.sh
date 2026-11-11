@@ -24,7 +24,7 @@ Usage: ./install.sh [OPTIONS] [DEST_DIR]
 
 Options:
   --deps         Install system packages for your operating system
-  --bootstrap    Install dependencies and build all eight supported engines
+  --bootstrap    Install dependencies and build the bundled engines
   --dry-run      Print commands without executing them or modifying files
   --yes, -y      Skip confirmation prompts (assume yes)
   --help, -h     Show this help message
@@ -113,27 +113,37 @@ if [ "$do_deps" = true ]; then
         fi
     fi
 
+    # shellcheck source=lib/build.sh
+    . "$ROOT/lib/build.sh"
+
     cmd=""
     case $os in
         debian)
             if [ "$build_engines" = yes ]; then
-                cmd="sudo apt-get install -y gfortran gcc make libblas-dev liblapack-dev unzip curl"
+                cmd="sudo apt-get install -y gfortran gcc make libblas-dev liblapack-dev unzip curl tar gzip"
             else
-                cmd="sudo apt-get install -y bash coreutils gawk sed grep curl"
+                cmd="sudo apt-get install -y bash coreutils gawk sed grep curl findutils"
             fi
             ;;
         fedora|rhel)
             if [ "$build_engines" = yes ]; then
-                cmd="sudo dnf install -y gcc-gfortran gcc make blas-devel lapack-devel unzip curl"
+                cmd="sudo dnf install -y gcc-gfortran gcc make blas-devel lapack-devel unzip curl tar gzip"
             else
-                cmd="sudo dnf install -y bash coreutils gawk sed grep curl"
+                cmd="sudo dnf install -y bash coreutils gawk sed grep curl findutils"
             fi
             ;;
         arch)
             if [ "$build_engines" = yes ]; then
-                cmd="sudo pacman -S --needed --noconfirm gcc-fortran gcc make blas lapack unzip curl"
+                cmd="sudo pacman -S --needed --noconfirm gcc-fortran gcc make blas lapack unzip curl tar gzip"
             else
-                cmd="sudo pacman -S --needed --noconfirm bash coreutils gawk sed grep curl"
+                cmd="sudo pacman -S --needed --noconfirm bash coreutils gawk sed grep curl findutils"
+            fi
+            ;;
+        suse)
+            if [ "$build_engines" = yes ]; then
+                cmd="sudo zypper install -y gcc-fortran gcc make blas-devel lapack-devel unzip curl tar gzip"
+            else
+                cmd="sudo zypper install -y bash coreutils findutils gawk sed grep curl"
             fi
             ;;
         macos)
@@ -160,25 +170,22 @@ if [ "$do_deps" = true ]; then
         exit 0
     fi
 
-    all_present=true
-    if [ "$build_engines" = yes ]; then
-        for t in gfortran gcc make unzip curl; do
-            have "$t" || { all_present=false; break; }
+    missing_dependencies() {
+        local tool missing=""
+        for tool in awk sed grep sort cut tr find mkdir mktemp date curl; do
+            have "$tool" || missing="$missing $tool"
         done
-        if [ "$all_present" = true ]; then
-            # shellcheck source=lib/build.sh
-            . "$ROOT/lib/build.sh" 2>/dev/null || true
-            build_have_lapack || all_present=false
+        if [ "$build_engines" = yes ]; then
+            missing="$missing $(build_missing_tools)"
         fi
-    else
-        for t in bash awk sed grep find mkdir mktemp date curl; do
-            have "$t" || { all_present=false; break; }
-        done
-    fi
+        trim "$missing"
+    }
 
-    if [ "$all_present" = true ]; then
+    missing=$(missing_dependencies)
+    if [ -z "$missing" ]; then
         echo "All dependencies are already installed."
     else
+        echo "Missing dependencies: $missing" >&2
         echo "Installation command for $os:"
         echo "  $cmd"
         if [ "$assume_yes" = false ] && [ -t 0 ]; then
@@ -195,6 +202,12 @@ if [ "$do_deps" = true ]; then
         fi
     fi
 
+    missing=$(missing_dependencies)
+    if [ -n "$missing" ]; then
+        echo "Error: required dependencies are still missing: $missing" >&2
+        exit 1
+    fi
+
     # Verify required dependencies via doctor
     if ! "$ROOT/pseudoforge" doctor --check; then
         echo "Error: required dependencies are still missing." >&2
@@ -207,7 +220,7 @@ if [ "$do_deps" = true ]; then
 
     if [ "$do_bootstrap" = true ]; then
         echo
-        echo "== Building eight supported engines =="
+        echo "== Building bundled engines =="
         "$ROOT/pseudoforge" engines build all
         echo
         echo "== Installed engines status =="

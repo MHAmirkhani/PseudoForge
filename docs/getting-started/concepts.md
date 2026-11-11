@@ -154,6 +154,11 @@ The same core, reached four ways.
 : `pseudoforge api <method> <path>` (or the background HTTP server). Serves
   JSON endpoints for web frontends, REST clients, and automated CI pipelines.
 
+The website lets you share an element, its physics choices, and its output
+format by copying the page URL. Use **Build locally** to get a command checked
+by PseudoForge, or **Compare** to inspect two indexed files. For files that
+remain on your machine, use `pseudoforge compare FILE_A FILE_B`.
+
 All four interfaces call the exact same underlying library functions. No module
 in `lib/` knows which interface is running, and none may print to stdout or
 stderr directly — enforced by [the sink contract](../architecture/sink-contract.md).

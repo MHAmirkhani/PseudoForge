@@ -14,7 +14,7 @@ declare -gA COV_OUT_LABEL=()
 declare -gA COV_OUT_FAM=()
 
 _cov_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi
@@ -26,10 +26,6 @@ _cov_find_native_dir() {
         fi
     done
     printf '%s\n' "${PF_NATIVE_DIR:-/var/lib/pseudoforge/native}"
-}
-
-_cov_json_esc() {
-    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/	/\\t/g' -e 's/\r//g' -e ':a;N;$!ba;s/\n/\\n/g'
 }
 
 coverage_matrix() {
@@ -55,6 +51,7 @@ coverage_matrix() {
     # Determine profiles to show
     COV_OUT_PROFILES=()
     if [ -n "$filter_prof" ]; then
+        prof_exists "$filter_prof" || { error "unknown profile: $filter_prof"; return 1; }
         COV_OUT_PROFILES=("$filter_prof")
     else
         COV_OUT_PROFILES=("psl-high" "pseudodojo" "gbrv" "sssp" "atompaw")
@@ -94,12 +91,19 @@ coverage_matrix() {
     fi
 
     # Pre-cache profile characteristics
-    declare -A prof_kind prof_first_fam
-    local p
+    declare -A prof_kind prof_first_fam psl_has
+    local p set sym
     for p in "${COV_OUT_PROFILES[@]}"; do
         prof_kind[$p]=$(params_kind "$p" 2>/dev/null || echo none)
         local ff=${PROF_FAMILIES[$p]:-nc}
         prof_first_fam[$p]=${ff%% *}
+        set=$(prof_psl_set "$p" "${prof_first_fam[$p]}")
+        if [ -n "$set" ] && [ -r "$PF_DATA/psl/$set.index" ] &&
+           prof_compatible "$p" "${prof_first_fam[$p]}" pbe scalar; then
+            while IFS=$'\t' read -r sym _; do
+                [[ "$sym" = '#'* || -z "$sym" ]] || psl_has[$sym|$p]=1
+            done < "$PF_DATA/psl/$set.index"
+        fi
     done
 
     # Compute coverage cell for every (element, profile) pair
@@ -122,7 +126,7 @@ coverage_matrix() {
                 COV_OUT_FAM[$key]=""
                 COV_OUT_LABEL[$key]="🟡 import"
             # 3. Can it be built here?
-            elif [ "$kind" = "engine" ] || prof_covers_element "$p" "$e" "$fam" "pbe" "scalar" 2>/dev/null; then
+            elif [ -n "${psl_has[$key]:-}" ] || prof_covers_element "$p" "$e" "$fam" "pbe" "scalar" 2>/dev/null; then
                 COV_OUT_STATE[$key]="buildable"
                 COV_OUT_FAM[$key]=$fam
                 COV_OUT_LABEL[$key]="🔵 ${fam^^}"
@@ -171,19 +175,22 @@ coverage_render_human() {
 coverage_render_json() {
     printf '[\n'
     local first=1
-    local e p key
+    local e p key v i
+    local -a fields
     for e in "${COV_OUT_ELEMENTS[@]}"; do
         for p in "${COV_OUT_PROFILES[@]}"; do
             key="$e|$p"
             [ "$first" -eq 1 ] || printf ',\n'
             first=0
-            printf '  {\n'
-            printf '    "element": "%s",\n' "$(_cov_json_esc "$e")"
-            printf '    "profile": "%s",\n' "$(_cov_json_esc "$p")"
-            printf '    "state": "%s",\n' "$(_cov_json_esc "${COV_OUT_STATE[$key]:-absent}")"
-            printf '    "family": "%s",\n' "$(_cov_json_esc "${COV_OUT_FAM[$key]:-}")"
-            printf '    "label": "%s"\n' "$(_cov_json_esc "${COV_OUT_LABEL[$key]:-⚪ —}")"
-            printf '  }'
+            fields=("$e" "$p" "${COV_OUT_STATE[$key]:-absent}" "${COV_OUT_FAM[$key]:-}" "${COV_OUT_LABEL[$key]:-⚪ —}")
+            for i in "${!fields[@]}"; do
+                v=${fields[i]//\\/\\\\}
+                v=${v//\"/\\\"}
+                v=${v//$'\t'/\\t}
+                v=${v//$'\r'/\\r}
+                fields[i]=${v//$'\n'/\\n}
+            done
+            printf '  {"element": "%s", "profile": "%s", "state": "%s", "family": "%s", "label": "%s"}' "${fields[@]}"
         done
     done
     printf '\n]\n'

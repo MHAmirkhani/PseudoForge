@@ -26,7 +26,7 @@
   async function loadElement(symbol) {
     if (!symbol) return;
     input.value = symbol;
-    resultDiv.innerHTML = '<p class="muted">Loading files for element <strong>' + esc(symbol) + '</strong>...</p>';
+    resultDiv.innerHTML = '<p class="muted loading" role="status">Loading files for element <strong>' + esc(symbol) + '</strong>...</p>';
 
     try {
       const res = await API.element(symbol);

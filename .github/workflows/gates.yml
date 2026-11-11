@@ -3,8 +3,12 @@ name: gates
 on:
   push:
     branches: [ main ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   fast:
@@ -14,7 +18,7 @@ jobs:
       - name: install deps
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck
-        run: shellcheck -S warning lib/*.sh tools/*.sh tests/*.sh
+        run: shellcheck -S warning pseudoforge psmaker install.sh lib/*.sh tools/*.sh tests/*.sh deploy/scripts/*.sh
       - name: anchors
         run: python3 tools/check-anchors.py
       - name: reference tables
@@ -29,7 +33,7 @@ jobs:
       - name: audit-interfaces
         run: tools/audit-interfaces.sh
       - name: audit
-        run: tools/audit.sh
+        run: PF_AUDIT_OUTPUT_DIR="$RUNNER_TEMP/pf-audit" tools/audit.sh
 
   tests:
     runs-on: ubuntu-22.04
@@ -39,3 +43,27 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck python3-venv
       - name: run_tests
         run: ./tests/run_tests.sh --all
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: [fast, interfaces, tests]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PF_TAG: ${{ github.ref_name }}
+        run: |
+          version=${PF_TAG#v}
+          [[ "$PF_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(./pseudoforge version | head -n 1)" == "PseudoForge $version --"* ]]
+          awk -v version="$version" '
+            $1 == "##" && found {exit}
+            $1 == "##" && $2 == "Version" && $3 == version {found=1; next}
+            found {print}
+            END {if (!found) exit 1}
+          ' CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          gh release create "$PF_TAG" --verify-tag --title "PseudoForge $PF_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"

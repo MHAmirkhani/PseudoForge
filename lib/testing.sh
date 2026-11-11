@@ -32,7 +32,7 @@ BOHR_PER_ANGSTROM=1.8897259886
 ld1_test_one() {
     local el=$1
     local prof=${SPEC[profile]} fam=${SPEC[family]} rel=${SPEC[rel]}
-    local set tag key cond tpl deck log fct nrel upf fc out
+    local set tag key cond tpl deck log fct nrel upf fc test_path
     local maxde detot verdict
 
     deps_have_ld1 || return 1
@@ -52,8 +52,13 @@ ld1_test_one() {
     deck=$PROJECT_DIR/tests/$el.test.in
     log=$PROJECT_DIR/tests/$el.test.out
     sed -e "s/{{FCT}}/$fct/g" -e "s/{{GFUN}}/$(xc_qe_string "${SPEC[xc]}")/g" \
-        -e "s/{{NREL}}/$nrel/g" -e "s|{{PSDIR}}|$PROJECT_DIR/pseudos|g" \
+        -e "s/{{NREL}}/$nrel/g" \
         -e "s/{{FROZEN_CORE}}/$fc/g" "$tpl" > "$deck"
+    # The shipped test decks name the upstream file. Test the actual artifact
+    # even if this run used a custom or overridden recipe name.
+    test_path=$PROJECT_DIR/pseudos/$upf
+    test_path=${test_path//\'/\'\'}
+    nml_set "$deck" test file_pseudo "'$test_path'"
 
     # Log derivatives, only when they are going to be drawn.  These are read
     # by the iswitch=2 validation run, which happens after the UPF has been
@@ -69,7 +74,13 @@ ld1_test_one() {
         nml_set "$deck" input nld     "$PLOT_NLD"
     fi
 
-    ld1_run "$deck" "$log" "$PROJECT_DIR/tests" || true
+    VAL_METHOD="ld1 iswitch=2"
+    if ! ld1_run "$deck" "$log" "$PROJECT_DIR/tests"; then
+        VAL_MAXDE=0 VAL_DETOT=0 VAL_VERDICT=no-data
+        VAL_NOTE="ld1 transferability test did not complete; see tests/$el.test.out"
+        transfer_record "$el" "$upf"
+        return 0
+    fi
 
     # ld1.x (iswitch=2) prints, for each test configuration, a table of
     # all-electron vs pseudo eigenvalues whose last column is the difference,
@@ -94,7 +105,6 @@ ld1_test_one() {
 
     # Thresholds and the row format now live in validate.sh, so ld1 and the
     # five other engines cannot drift apart in how they grade or report.
-    VAL_METHOD="ld1 iswitch=2"
     VAL_MAXDE=${maxde:-0}
     VAL_DETOT=${detot:-0}
     VAL_VERDICT=$(transfer_verdict "${maxde:-0}")

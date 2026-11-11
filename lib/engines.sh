@@ -404,7 +404,7 @@ eng_source_archive() {
     local eng=$1 name d
     name=${ENG_SRC[$eng]:-}
     [ -n "$name" ] || return 1
-    for d in "${PF_SRC_DIR:-}" "$PF_ROOT" "$PF_ROOT/.." "$(eng_src_dir)" "$(eng_builddir)" "$PWD"; do
+    for d in "${PF_SRC_DIR:-}" "$PF_ROOT/engines-src" "$PF_ROOT" "$PF_ROOT/.." "$(eng_src_dir)" "$(eng_builddir)" "$PWD"; do
         [ -n "$d" ] || continue
         [ -f "$d/$name" ] && { abspath "$d/$name"; return 0; }
     done
@@ -421,6 +421,8 @@ eng_status() {
         printf 'buildable\t%s\n' "$src"
     elif [ "$eng" = ld1 ]; then
         printf 'missing\tinstall Quantum ESPRESSO and set QE_ROOT_DIR\n'
+    elif [ "$eng" = fhi98pp ]; then
+        printf 'missing\tobtain source from the authors and set FHI98PP_SRC_DIR\n'
     else
         printf 'missing\tno binary and no source archive found\n'
     fi

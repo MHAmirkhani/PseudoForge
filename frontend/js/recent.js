@@ -11,9 +11,9 @@ async function loadRecent(count) {
   tbody.innerHTML = '<tr><td colspan="7" class="loading" style="padding: 2rem; text-align: center;">Loading recent files…</td></tr>';
 
   try {
-    const res = await api.recent(count);
+    const res = await API.recent(count);
     if (res.status !== 200 || !Array.isArray(res.body)) {
-      tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--danger);">Failed to load recent files (${res.status}).</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--err);">Failed to load recent files (${res.status}).</td></tr>`;
       return;
     }
 
@@ -35,12 +35,12 @@ async function loadRecent(count) {
         <td><span class="badge" style="text-transform: uppercase;">${esc(f.xc || '—')}</span></td>
         <td style="text-align: right; white-space: nowrap;">
           ${f.id ? `<a href="/provenance/?id=${encodeURIComponent(f.id)}" class="btn-sm" style="margin-right: 0.35rem;">Provenance</a>` : ''}
-          ${f.id ? `<a href="${api.downloadUrl(f.id)}" class="btn-sm primary" download>Download</a>` : ''}
+          ${f.id ? `<a href="${API.downloadUrl(f.id)}" class="btn-sm primary" download>Download</a>` : ''}
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--danger);">Network error loading recent files.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="padding: 2rem; text-align: center; color: var(--err);">Network error loading recent files.</td></tr>`;
   }
 }
 

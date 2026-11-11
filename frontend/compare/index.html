@@ -13,9 +13,9 @@
   } catch (e) { document.documentElement.dataset.theme = 'light'; }
 })();
 </script>
-<link rel="stylesheet" href="/css/main.css?v=143">
+<link rel="stylesheet" href="/css/main.css?v=137">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="theme-color" content="#4051b5">
+<meta name="theme-color" content="#102f47">
 <style>
 .cmp-form {
   display: grid;
@@ -148,10 +148,10 @@
 
 <header class="site">
   <a class="brand" href="/">Pseudo<strong>Forge</strong></a>
-  <nav>
+  <nav aria-label="Primary">
     <a href="/">Generate</a>
     <a href="/advise/">Advise</a>
-    <a href="/compare/" class="active">Compare</a>
+    <a href="/compare/" class="active" aria-current="page">Compare</a>
     <a href="/cutoff/">Cutoff</a>
     <a href="/download/">Download</a>
     <a href="/validate/">Validate</a>
@@ -168,48 +168,41 @@
   </nav>
 </header>
 
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<main id="main-content">
 
 <section class="intro">
   <h1>Compare Pseudopotentials</h1>
   <p>
-    Diff two pseudopotentials across physics, generators, cutoff recommendations,
-    and radial wavefunctions.
+    Compare two indexed files by physics, generator, suggested cutoffs and radial data.
+    To compare files on your machine, run <code>pseudoforge compare FILE_A FILE_B</code>.
   </p>
 </section>
 
-<form id="cmp-form" onsubmit="return false;">
+<form id="cmp-form">
   <div class="cmp-form">
     <div class="cmp-col">
       <h3>Pseudopotential A</h3>
       <div class="cmp-field">
-        <label for="cmp-a">File ID or Symbol:</label>
-        <input type="text" id="cmp-a" list="native-list-a" placeholder="e.g. Fe.pbe-sp-van_ak.UPF or Fe" required>
+        <label for="cmp-a">Store file ID:</label>
+        <input type="text" id="cmp-a" list="native-list-a" placeholder="e.g. Fe.pbe-sp-van_ak.UPF" required>
         <datalist id="native-list-a"></datalist>
-      </div>
-      <div class="cmp-upload">
-        <label>Or upload / drop UPF:</label>
-        <input type="file" id="file-a" accept=".UPF,.upf">
       </div>
     </div>
 
     <div class="cmp-col">
       <h3>Pseudopotential B</h3>
       <div class="cmp-field">
-        <label for="cmp-b">File ID or Symbol:</label>
-        <input type="text" id="cmp-b" list="native-list-b" placeholder="e.g. Fe.pbe-spn-kjpaw_psl.1.0.0.UPF or Fe" required>
+        <label for="cmp-b">Store file ID:</label>
+        <input type="text" id="cmp-b" list="native-list-b" placeholder="e.g. Fe.pbe-spn-kjpaw_psl.1.0.0.UPF" required>
         <datalist id="native-list-b"></datalist>
-      </div>
-      <div class="cmp-upload">
-        <label>Or upload / drop UPF:</label>
-        <input type="file" id="file-b" accept=".UPF,.upf">
       </div>
     </div>
   </div>
 
   <div class="cmp-actions">
-    <button type="button" class="btn primary" id="btn-compare">Compare</button>
-    <span id="cmp-status" class="quiet"></span>
+    <button type="submit" class="btn primary" id="btn-compare">Compare</button>
+    <span id="cmp-status" class="quiet" role="status"></span>
   </div>
 </form>
 
@@ -297,9 +290,9 @@
   </p>
 </footer>
 
-<script src="/js/api.js"></script>
+<script src="/js/api.js?v=137"></script>
 <script src="/js/upf-plot.js"></script>
 <script src="/js/theme.js"></script>
-<script src="/js/compare.js"></script>
+<script src="/js/compare.js?v=137"></script>
 </body>
 </html>

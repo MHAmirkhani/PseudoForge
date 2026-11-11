@@ -19,14 +19,8 @@ ok_()   { printf '  %sPASS%s  %s\n' "$GREEN" "$RESET" "$1"; pass=$((pass + 1)); 
 bad_()  { printf '  %sFAIL%s  %s\n' "$RED" "$RESET" "$1"; [ -n "${2:-}" ] && printf '        %s\n' "$2"; fail=$((fail + 1)); }
 
 TMP=$(mktemp -d)
-[ -f "$ROOT/AUDIT.md" ] && cp "$ROOT/AUDIT.md" "$TMP/AUDIT.md.bak"
-[ -f "$ROOT/AUDIT-raw.tsv" ] && cp "$ROOT/AUDIT-raw.tsv" "$TMP/AUDIT-raw.tsv.bak"
-cleanup() {
-    [ -f "$TMP/AUDIT.md.bak" ] && cp "$TMP/AUDIT.md.bak" "$ROOT/AUDIT.md"
-    [ -f "$TMP/AUDIT-raw.tsv.bak" ] && cp "$TMP/AUDIT-raw.tsv.bak" "$ROOT/AUDIT-raw.tsv"
-    rm -rf "$TMP"
-}
-trap cleanup EXIT
+export PF_AUDIT_OUTPUT_DIR="$TMP"
+trap 'rm -rf "$TMP"' EXIT
 
 printf '\n%s== audit gate isolation%s\n' "$DIM" "$RESET"
 
@@ -56,13 +50,13 @@ else
 fi
 
 # 3. Verify 'generate an element a profile does not cover' appears in AUDIT-raw.tsv
-if grep -q '^PASS[[:space:]]*generate an element a profile does not cover' "$ROOT/AUDIT-raw.tsv"; then
+if grep -q '^PASS[[:space:]]*generate an element a profile does not cover' "$TMP/AUDIT-raw.tsv"; then
     ok_ "generate an element a profile does not cover is recorded in AUDIT-raw.tsv with ^PASS"
 else
     bad_ "generate an element a profile does not cover missing from AUDIT-raw.tsv"
 fi
 
-if grep -q '\\n' "$ROOT/AUDIT-raw.tsv"; then
+if grep -q '\\n' "$TMP/AUDIT-raw.tsv"; then
     bad_ "literal \\n detected in AUDIT-raw.tsv"
 else
     ok_ "AUDIT-raw.tsv contains no literal \\n"
@@ -70,16 +64,16 @@ fi
 
 # 4. Assert pass and fail counts in summary match raw TSV lines
 pass_from_summary=$(grep -m1 '^[[:space:]]*pass:[[:space:]]*' <<< "$out2" | sed -E 's/.*pass:[[:space:]]*([0-9]+).*/\1/')
-if [ -z "$pass_from_summary" ] && [ -f "$ROOT/AUDIT.md" ]; then
-    pass_from_summary=$(awk '/^- PASS:/{print $3}' "$ROOT/AUDIT.md")
+if [ -z "$pass_from_summary" ] && [ -f "$TMP/AUDIT.md" ]; then
+    pass_from_summary=$(awk '/^- PASS:/{print $3}' "$TMP/AUDIT.md")
 fi
-pass_from_tsv=$(grep -c '^PASS' "$ROOT/AUDIT-raw.tsv")
+pass_from_tsv=$(grep -c '^PASS' "$TMP/AUDIT-raw.tsv")
 
 fail_from_summary=$(grep -m1 '^[[:space:]]*pass:[[:space:]]*' <<< "$out2" | sed -E 's/.*fail:[[:space:]]*([0-9]+).*/\1/')
-if [ -z "$fail_from_summary" ] && [ -f "$ROOT/AUDIT.md" ]; then
-    fail_from_summary=$(awk '/^- FAIL:/{print $3}' "$ROOT/AUDIT.md")
+if [ -z "$fail_from_summary" ] && [ -f "$TMP/AUDIT.md" ]; then
+    fail_from_summary=$(awk '/^- FAIL:/{print $3}' "$TMP/AUDIT.md")
 fi
-fail_from_tsv=$(grep -c '^FAIL' "$ROOT/AUDIT-raw.tsv")
+fail_from_tsv=$(grep -c '^FAIL' "$TMP/AUDIT-raw.tsv")
 
 if [ "$pass_from_summary" -eq "$pass_from_tsv" ]; then
     ok_ "pass count in summary ($pass_from_summary) equals raw TSV count ($pass_from_tsv)"

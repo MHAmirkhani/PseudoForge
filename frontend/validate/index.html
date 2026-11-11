@@ -13,9 +13,9 @@
   } catch (e) { document.documentElement.dataset.theme = 'light'; }
 })();
 </script>
-<link rel="stylesheet" href="/css/main.css?v=142">
+<link rel="stylesheet" href="/css/main.css?v=137">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="theme-color" content="#4051b5">
+<meta name="theme-color" content="#102f47">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Validate — PseudoForge">
 <meta property="og:description" content="Upload a pseudopotential and check it against structural invariants.">
@@ -28,11 +28,11 @@
 
 <header class="site">
   <a class="brand" href="/">Pseudo<strong>Forge</strong></a>
-  <nav>
+  <nav aria-label="Primary">
     <a href="/">Generate</a>
     <a href="/advise/">Advise</a>
     <a href="/download/">Download</a>
-    <a href="/validate/" class="active">Validate</a>
+    <a href="/validate/" class="active" aria-current="page">Validate</a>
     <a href="/docs/">Docs</a>
     <a href="/about/">About</a>
     <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme">
@@ -46,7 +46,8 @@
   </nav>
 </header>
 
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<main id="main-content">
 
 <section class="intro">
   <h1>Validate a pseudopotential</h1>
@@ -112,7 +113,7 @@
      <a href="https://github.com/MHAmirkhani/pseudoforge">Source</a></p>
 </footer>
 
-<script src="/js/api.js"></script>
+<script src="/js/api.js?v=137"></script>
 <script src="/js/upf-plot.js?v=138"></script>
 <script src="/js/upf-info.js?v=138"></script>
 <script>
@@ -228,22 +229,18 @@ document.getElementById('upload').addEventListener('submit', async e => {
   resultPanel.hidden = false;
   resultTitle.textContent = 'Validating ' + selected.name;
   resultTitle.className = '';
-  resultBody.innerHTML = '<p class="loading">Sending to the server…</p>';
+  resultBody.innerHTML = '<p class="loading" role="status">Sending to the server…</p>';
 
-  const fd = new FormData();
-  fd.append('file', selected);
-
+  const file = selected;
   try {
-    const r = await fetch('/api/validate', { method: 'POST', body: fd });
-    let data;
-    try { data = await r.json(); }
-    catch (_) { data = { message: await r.text() }; }
+    const { status, body: data } = await API.validate(file);
+    if (file !== selected) return;
 
-    if (!r.ok) {
+    if (status !== 200) {
       resultTitle.textContent = 'Could not validate';
       resultTitle.className = 'bad';
       resultBody.innerHTML = '<p class="error">' +
-        esc(data.message || ('The server answered ' + r.status)) + '</p>';
+        esc(data.message || ('The server answered ' + status)) + '</p>';
       return;
     }
 
@@ -276,7 +273,7 @@ document.getElementById('upload').addEventListener('submit', async e => {
     resultTitle.className = 'bad';
     resultBody.innerHTML = '<p class="error">' + esc(err.message || err) + '</p>';
   } finally {
-    goBtn.disabled = false;
+    goBtn.disabled = !selected;
     goBtn.textContent = 'Validate';
   }
 });

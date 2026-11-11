@@ -83,6 +83,20 @@ else
     bad_ "GET /api/build-command did not return 409 on refusal" "$out8"
 fi
 
+out_fmt=$("$PSM" api GET "/api/build-command?element=Si&family=nc&profile=sg15&format=psp8" 2>&1 || true)
+if grep -q "status: 200" <<< "$out_fmt" && grep -q -- "--formats psp8" <<< "$out_fmt"; then
+    ok_ "GET /api/build-command preserves the requested output format"
+else
+    bad_ "GET /api/build-command lost its format parameter" "$out_fmt"
+fi
+
+out_element=$("$PSM" build-command -e NotAnElement 2>&1)
+if [ "$?" -ne 0 ] && grep -q "matched nothing" <<< "$out_element"; then
+    ok_ "build-command refuses a selection without elements"
+else
+    bad_ "build-command accepted an invalid element" "$out_element"
+fi
+
 printf '\n%s== 3. TUI presence%s\n' "$DIM" "$RESET"
 
 if grep -qE '^[[:space:]]*build-command[[:space:]]+' "$PF_LIB/tui.sh"; then

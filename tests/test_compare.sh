@@ -112,8 +112,16 @@ else
 fi
 
 # 2.3 Valid compare
+# The HTTP interface accepts indexed files only.
+export PF_NATIVE_DIR="$TMP/native"
+mkdir -p "$PF_NATIVE_DIR"
+cp "$f1" "$f2" "$PF_NATIVE_DIR/"
+cat > "$PF_NATIVE_DIR/index.tsv" <<'EOF'
+first	Fe	pbe	nc	scalar	oncvpsp	upf	sg15	plain	Fe1.UPF	100	123
+second	Fe	pbe	paw	scalar	atompaw	upf	atompaw	plain	Fe2.UPF	120	456
+EOF
 req_valid="$TMP/req_valid.json"
-printf '{"a":"%s","b":"%s"}' "$f1" "$f2" > "$req_valid"
+printf '{"a":"first","b":"second"}' > "$req_valid"
 out7=$("$PSM" api POST /api/compare "$req_valid" 2>&1 || true)
 if grep -q "status: 200" <<< "$out7" && grep -q '"engine_changed": true' <<< "$out7"; then
     ok_ "POST /api/compare returns 200 and diff fields"
@@ -125,6 +133,14 @@ if python3 -m json.tool <<< "$out7_body" >/dev/null 2>&1; then
     ok_ "POST /api/compare produces valid JSON body"
 else
     bad_ "POST /api/compare produces invalid JSON body" "$out7"
+fi
+
+printf '{"a":"%s","b":"second"}' "$f1" > "$req_valid"
+out_path=$("$PSM" api POST /api/compare "$req_valid" 2>&1 || true)
+if grep -q "status: 404" <<< "$out_path"; then
+    ok_ "HTTP compare refuses unindexed local files"
+else
+    bad_ "HTTP compare accepted a local file outside the native index"
 fi
 
 printf '\n%s== 3. TUI presence%s\n' "$DIM" "$RESET"

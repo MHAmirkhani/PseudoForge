@@ -13,9 +13,9 @@
   } catch (e) { document.documentElement.dataset.theme = 'light'; }
 })();
 </script>
-<link rel="stylesheet" href="/css/main.css?v=143">
+<link rel="stylesheet" href="/css/main.css?v=137">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="theme-color" content="#4051b5">
+<meta name="theme-color" content="#102f47">
 <style>
 .cutoff-grid {
   display: grid;
@@ -151,11 +151,11 @@
 
 <header class="site">
   <a class="brand" href="/">Pseudo<strong>Forge</strong></a>
-  <nav>
+  <nav aria-label="Primary">
     <a href="/">Generate</a>
     <a href="/advise/">Advise</a>
     <a href="/compare/">Compare</a>
-    <a href="/cutoff/" class="active">Cutoff</a>
+    <a href="/cutoff/" class="active" aria-current="page">Cutoff</a>
     <a href="/download/">Download</a>
     <a href="/validate/">Validate</a>
     <a href="/docs/">Docs</a>
@@ -171,7 +171,8 @@
   </nav>
 </header>
 
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<main id="main-content">
 
 <section class="intro">
   <h1>Cutoff Recommendation</h1>
@@ -273,7 +274,7 @@
   </p>
 </footer>
 
-<script src="/js/api.js"></script>
+<script src="/js/api.js?v=137"></script>
 <script src="/js/theme.js"></script>
 <script src="/js/cutoff.js"></script>
 </body>

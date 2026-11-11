@@ -10,9 +10,9 @@ async function loadCapabilities() {
   if (!wrap) return;
 
   try {
-    const res = await api.capabilities();
+    const res = await API.capabilities();
     if (res.status !== 200 || !res.body) {
-      wrap.innerHTML = `<p style="color: var(--danger);">Failed to load capabilities (${res.status}).</p>`;
+      wrap.innerHTML = `<p style="color: var(--err);">Failed to load capabilities (${res.status}).</p>`;
       return;
     }
 
@@ -37,7 +37,7 @@ async function loadCapabilities() {
       </div>
     `).join('');
   } catch (err) {
-    wrap.innerHTML = `<p style="color: var(--danger);">Network error loading capabilities.</p>`;
+    wrap.innerHTML = `<p style="color: var(--err);">Network error loading capabilities.</p>`;
   }
 }
 

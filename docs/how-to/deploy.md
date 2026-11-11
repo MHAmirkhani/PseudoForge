@@ -16,7 +16,9 @@ deploy/scripts/serve-local.sh          # -> http://127.0.0.1:8080
 
 It does locally what Nginx does on the server -- frontend at `/`, documentation
 at `/docs/`, API proxied at `/api/` -- so what you see is what will be
-deployed.
+deployed. Set `PF_NATIVE_DIR` explicitly to use a specific store, including
+an empty one. The launcher uses sample fixtures only when it falls back to
+its temporary demo store.
 
 !!! warning "Running `uvicorn` on its own serves only `/api/`"
     Opening `/` against it returns 404, correctly: the frontend is static files
@@ -69,13 +71,13 @@ sudo deploy/scripts/install-vps.sh
 
 It is idempotent — run it twice and get the same machine. It:
 
-1. installs Nginx, Python 3, SQLite and rsync;
+1. installs Nginx, Python 3, SQLite, rsync and curl;
 2. creates the `pseudoforge` system user;
 3. creates `/var/lib/pseudoforge/{native,converter,cache,db,docs,www}`;
 4. copies the tree to `/opt/pseudoforge` and builds the service virtualenv;
 5. applies the SQLite schema;
 6. installs and enables the systemd units;
-7. writes the Nginx site with your domain substituted in.
+7. writes the Nginx site with your configured domain, data path and API port.
 
 Afterwards, no root needed:
 

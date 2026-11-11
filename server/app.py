@@ -45,7 +45,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 PF_BIN = os.environ.get("PF_BIN", "pseudoforge")
 PF_VAR_DIR = Path(os.environ.get("PF_VAR_DIR", "/var/lib/pseudoforge"))
 PF_NATIVE_DIR = Path(os.environ.get("PF_NATIVE_DIR", PF_VAR_DIR / "native"))
-if not (PF_NATIVE_DIR / "index.tsv").is_file():
+if "PF_NATIVE_DIR" not in os.environ and "PF_VAR_DIR" not in os.environ and not (PF_NATIVE_DIR / "index.tsv").is_file():
     for _fallback in [Path.home() / "pf-native", Path.home() / "pf-var" / "native"]:
         if (_fallback / "index.tsv").is_file():
             PF_NATIVE_DIR = _fallback

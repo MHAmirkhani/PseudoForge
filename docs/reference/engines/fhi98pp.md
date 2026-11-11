@@ -14,8 +14,11 @@ transferability analysis tool.
 
 ## Installing
 
+The fhi98PP beta is not included in PseudoForge. Obtain a copy from the authors and
+unpack it. Set `FHI98PP_SRC_DIR` to the directory containing `src/fhipp.f`:
+
 ```bash
-pseudoforge engines build fhi98pp
+FHI98PP_SRC_DIR=/path/to/fhi98PP pseudoforge engines build fhi98pp
 ```
 
 ## Parameters

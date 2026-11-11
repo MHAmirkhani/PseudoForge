@@ -18,7 +18,7 @@
   }
 
   async function loadCoverage() {
-    container.innerHTML = '<p class="muted">Loading coverage matrix...</p>';
+    container.innerHTML = '<p class="muted loading" role="status">Loading coverage matrix...</p>';
     const params = {};
     if (elInput.value.trim()) params.element = elInput.value.trim();
     if (profSelect.value) params.profile = profSelect.value;

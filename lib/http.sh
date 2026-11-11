@@ -432,7 +432,7 @@ http_h_compare() {
         return 0
     fi
 
-    if ! compare_for "$a" "$b"; then
+    if ! compare_for "$a" "$b" indexed; then
         http_error 404 not_found "Could not resolve one or both files: '$a', '$b'"
         return 0
     fi
@@ -442,11 +442,10 @@ http_h_compare() {
 }
 
 http_h_cutoff() {
-    local el acc xc proj
+    local el acc xc
     el=$(http_query_param "$HTTP_QUERY" element)
     acc=$(http_query_param "$HTTP_QUERY" accuracy)
     xc=$(http_query_param "$HTTP_QUERY" xc)
-    proj=$(http_query_param "$HTTP_QUERY" project)
 
     [ -z "$el" ] && el=$(http_query_param "$HTTP_QUERY" e)
     [ -z "$acc" ] && acc="efficiency"
@@ -457,7 +456,7 @@ http_h_cutoff() {
         return 0
     fi
 
-    if ! cutoff_for "$el" "$acc" "$xc" "$proj"; then
+    if ! cutoff_for "$el" "$acc" "$xc"; then
         http_error 404 not_found "No recommended cutoff found for element '$el' ($acc, $xc)."
         return 0
     fi
@@ -497,7 +496,7 @@ http_h_build_command() {
     [ -n "$eng" ] && args+=("--engine" "$eng")
     [ -n "$rel" ] && args+=("-r" "$rel")
     [ -n "$prof" ] && args+=("-p" "$prof")
-    [ -n "$fmt" ] && args+=("-f" "$fmt")
+    [ -n "$fmt" ] && args+=("--format" "$fmt")
     [ -n "$ecut" ] && args+=("--ecut" "$ecut")
     [ -n "$dual" ] && args+=("--dual" "$dual")
 
@@ -529,7 +528,7 @@ http_h_recent() {
     count=$(http_query_param "$HTTP_QUERY" count)
     count=${count:-10}
     if ! recent_files "$count"; then
-        http_error 500 recent_failed "Could not retrieve recent files."
+        http_error 400 invalid_count "Count must be a positive integer."
         return 0
     fi
     recent_render_json

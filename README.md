@@ -86,7 +86,7 @@ meta-GGA a meta-GGA). See [the AtomPAW page](docs/reference/engines/atompaw.md).
 
 ## Generator engines
 
-PseudoForge drives nine atomic codes. Eight PseudoForge compiles from source for you, and `ld1.x` prompts to install on demand.
+PseudoForge drives nine atomic codes. Seven build from bundled source. fhi98PP requires locally supplied source, and `ld1.x` is installed on demand.
 
 | engine | families | notes |
 |---|---|---|
@@ -100,12 +100,12 @@ PseudoForge drives nine atomic codes. Eight PseudoForge compiles from source for
 | `ape` | NC | 28 of 28 elements |
 | `adpack` | NC | OpenMX format; 29 of 29 bundled decks; built from source |
 
-`./install.sh --bootstrap` installs build dependencies, fetches each engine's source from `engines-src/` in the repository, and builds eight engines. `ld1` comes with Quantum ESPRESSO; the first time a run needs it, PseudoForge prompts to download and build QE 7.4.1 (~500 MB, ~20 minutes).
+`./install.sh --bootstrap` installs build dependencies and builds the seven bundled engines. To build fhi98PP, obtain the source from its authors and set `FHI98PP_SRC_DIR`; see the [fhi98PP installation guide](docs/reference/engines/fhi98pp.md#installing). `ld1` comes with Quantum ESPRESSO; the first time a run needs it, PseudoForge prompts to download and build QE 7.4.1 (~500 MB, ~20 minutes).
 
 ```bash
-./install.sh --bootstrap           # install deps and build all eight engines
+./install.sh --bootstrap           # install deps and build the bundled engines
 pseudoforge engines list           # what is installed, what can be built
-pseudoforge engines build all      # compile the 8 supported engines, record the paths
+pseudoforge engines build all      # compile the bundled engines, record the paths
 pseudoforge doctor                 # engines, converters, mirror, database
 ```
 
@@ -238,12 +238,12 @@ with the same name as a shipped one overrides it deliberately.
 ```bash
 git clone https://github.com/MHAmirkhani/PseudoForge.git
 cd PseudoForge
-./install.sh --bootstrap           # install deps, fetch sources, build 8 engines
+./install.sh --bootstrap           # install deps, fetch sources, build bundled engines
 ```
 
 `--bootstrap` runs `--deps` (installs gfortran, gcc, make, BLAS, LAPACK,
 unzip, curl via the host package manager after showing the command and
-asking), then builds every engine that has a recipe from the archives in
+asking), then builds from the archives in
 `engines-src/`. It does not install Quantum ESPRESSO; the first run that
 needs `ld1.x` will prompt to download and build it (~500 MB, ~20 min).
 
@@ -252,7 +252,7 @@ If you prefer to do each step by hand:
 ```bash
 ./install.sh --deps                # install system packages only
 ./install.sh                       # symlink pseudoforge into ~/.local/bin
-./pseudoforge engines build all    # build the eight engines
+./pseudoforge engines build all    # build the bundled engines
 ./pseudoforge doctor               # check the environment
 ```
 
@@ -262,14 +262,14 @@ Requirements:
 
 | | |
 |---|---|
-| required | bash ≥ 4.0, coreutils, awk, sed, grep |
-| to build the eight engines | gfortran, gcc, make, BLAS, LAPACK, unzip, curl |
+| required | bash ≥ 4.0, coreutils, findutils, awk, sed, grep, curl |
+| to build the bundled engines | gfortran, gcc, make, BLAS/LAPACK, tar, gzip, unzip or bsdtar, curl |
 | for `ld1` (Quantum ESPRESSO) | fetched and built on demand the first time a run needs it (~500 MB, ~20 min) |
 | for cutoff scans | Quantum ESPRESSO `pw.x` (installed alongside `ld1`) |
 | for the menus | `whiptail` (Debian/Ubuntu: `whiptail`, Fedora: `newt`, macOS: `brew install newt`) |
 
 On first run PseudoForge writes `~/.pseudoforgerc`.
-`./install.sh --bootstrap` records `LD1_BIN` when it builds QE. To point
+`pseudoforge engines build ld1` records `LD1_BIN` when it builds QE. To point
 at an existing Quantum ESPRESSO instead:
 
 ```bash
@@ -466,7 +466,7 @@ against the output of the upstream `.job` files. It is what backs the
 Cite it as:
 
 > M. H. Amirkhani, *PseudoForge: a multi-engine pseudopotential generator and
-> validator*, version 1.3.6 (2026). <https://amirkhani.me>
+> validator*, version 1.3.7 (2026). <https://amirkhani.me>
 
 The archived version is on Zenodo:
 

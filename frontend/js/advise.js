@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function runAdvise(el, calc, code, acc) {
     container.hidden = false;
-    resultsDiv.innerHTML = '<div class="advise-loading">Evaluating pseudopotential candidates…</div>';
+    resultsDiv.innerHTML = '<div class="advise-loading loading" role="status">Evaluating pseudopotential candidates…</div>';
 
     const params = { element: el };
     if (calc) params.calculation = calc;

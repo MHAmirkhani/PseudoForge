@@ -4,90 +4,51 @@
 'use strict';
 
 (function () {
-  let fileTextA = null;
-  let fileTextB = null;
+  let comparison = 0;
+  API.native().then(({status, body}) => {
+    if (status !== 200 || !Array.isArray(body)) return;
+    for (const id of ['native-list-a', 'native-list-b']) {
+      const list = document.getElementById(id);
+      list.replaceChildren(...body.map(it => new Option(`${it.element} (${it.engine}, ${it.xc})`, it.id)));
+    }
+  });
 
-  // Pre-populate autocomplete from /api/native
-  fetch('/api/native')
-    .then(r => r.ok ? r.json() : [])
-    .then(items => {
-      const dlA = document.getElementById('native-list-a');
-      const dlB = document.getElementById('native-list-b');
-      if (!dlA || !dlB || !Array.isArray(items)) return;
-      items.slice(0, 100).forEach(it => {
-        const optA = document.createElement('option');
-        optA.value = it.id;
-        optA.textContent = `${it.element} (${it.engine}, ${it.xc})`;
-        dlA.appendChild(optA);
-
-        const optB = document.createElement('option');
-        optB.value = it.id;
-        optB.textContent = `${it.element} (${it.engine}, ${it.xc})`;
-        dlB.appendChild(optB);
-      });
-    })
-    .catch(() => {});
-
-  const inpFileA = document.getElementById('file-a');
-  if (inpFileA) {
-    inpFileA.addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      document.getElementById('cmp-a').value = f.name;
-      const r = new FileReader();
-      r.onload = () => { fileTextA = r.result; };
-      r.readAsText(f);
-    });
-  }
-
-  const inpFileB = document.getElementById('file-b');
-  if (inpFileB) {
-    inpFileB.addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      if (!f) return;
-      document.getElementById('cmp-b').value = f.name;
-      const r = new FileReader();
-      r.onload = () => { fileTextB = r.result; };
-      r.readAsText(f);
-    });
+  const search = new URLSearchParams(location.search);
+  for (const side of ['a', 'b']) {
+    document.getElementById('cmp-' + side).value = search.get(side) || '';
   }
 
   const btn = document.getElementById('btn-compare');
   const statusEl = document.getElementById('cmp-status');
   const resEl = document.getElementById('cmp-result');
 
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      const a = (document.getElementById('cmp-a').value || '').trim();
-      const b = (document.getElementById('cmp-b').value || '').trim();
+  document.getElementById('cmp-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const a = document.getElementById('cmp-a').value.trim();
+    const b = document.getElementById('cmp-b').value.trim();
+    if (!a || !b) {
+      statusEl.textContent = 'Enter both file IDs.';
+      return;
+    }
 
-      if (!a || !b) {
-        statusEl.textContent = 'Please provide both File A and File B.';
-        return;
-      }
-
-      statusEl.textContent = 'Comparing...';
-      try {
-        const resp = await fetch('/api/compare', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ a, b })
-        });
-
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          statusEl.textContent = 'Error: ' + (err.message || resp.statusText);
-          return;
-        }
-
-        const data = await resp.json();
-        statusEl.textContent = '';
-        renderComparison(data);
-      } catch (e) {
-        statusEl.textContent = 'Network error: ' + e.message;
-      }
-    });
-  }
+    const run = ++comparison;
+    const plotBox = document.getElementById('cmp-plot-box');
+    plotBox.hidden = true;
+    resEl.hidden = true;
+    btn.disabled = true;
+    statusEl.classList.add('loading');
+    statusEl.textContent = 'Comparing…';
+    const { status, body } = await API.compare(a, b);
+    btn.disabled = false;
+    statusEl.classList.remove('loading');
+    if (status !== 200) {
+      statusEl.textContent = body.message || 'Could not compare these files.';
+      API.notify(statusEl.textContent);
+      return;
+    }
+    statusEl.textContent = '';
+    renderComparison(body, run);
+  });
 
   function pill(val, isChanged) {
     if (isChanged) {
@@ -96,7 +57,7 @@
     return `<span class="cmp-pill same">${val}</span>`;
   }
 
-  function renderComparison(data) {
+  function renderComparison(data, run) {
     resEl.hidden = false;
 
     // Diff table
@@ -140,38 +101,25 @@
     if (data.warnings && data.warnings.length > 0) {
       warnEl.hidden = false;
       warnEl.innerHTML = '<strong>Warnings:</strong><ul style="margin:0.5rem 0 0 1rem;padding:0;">' +
-        data.warnings.map(w => `<li>${w}</li>`).join('') + '</ul>';
+        data.warnings.map(w => `<li>${String(w).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</li>`).join('') + '</ul>';
     } else {
       warnEl.hidden = true;
       warnEl.innerHTML = '';
     }
 
     // Plots overlay if UPF texts exist
-    renderPlots(a.id, b.id);
+    if (a.format === "upf" && b.format === "upf") renderPlots(a.id, b.id, run);
   }
 
-  async function renderPlots(idA, idB) {
+  async function renderPlots(idA, idB, run) {
     const box = document.getElementById('cmp-plot-box');
     const plots = document.getElementById('cmp-plots');
     if (!window.UPFPlot) return;
 
-    if (!fileTextA && idA) {
-      try {
-        const r = await fetch(`/api/download/${idA}`);
-        if (r.ok) fileTextA = await r.text();
-      } catch (e) {}
-    }
-    if (!fileTextB && idB) {
-      try {
-        const r = await fetch(`/api/download/${idB}`);
-        if (r.ok) fileTextB = await r.text();
-      } catch (e) {}
-    }
-
-    if (!fileTextA || !fileTextB) {
-      box.hidden = true;
-      return;
-    }
+    const read = id => fetch(API.downloadUrl(id))
+      .then(response => response.ok ? response.text() : null).catch(() => null);
+    const [fileTextA, fileTextB] = await Promise.all([read(idA), read(idB)]);
+    if (run !== comparison || !fileTextA || !fileTextB) return;
 
     const arrA = UPFPlot.parseArrays(fileTextA);
     const arrB = UPFPlot.parseArrays(fileTextB);

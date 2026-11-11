@@ -13,9 +13,9 @@
   } catch (e) { document.documentElement.dataset.theme = 'light'; }
 })();
 </script>
-<link rel="stylesheet" href="/css/main.css?v=143">
+<link rel="stylesheet" href="/css/main.css?v=137">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="theme-color" content="#4051b5">
+<meta name="theme-color" content="#102f47">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Download — PseudoForge">
 <meta property="og:description" content="Every pre-built pseudopotential this server holds, with what made it.">
@@ -28,10 +28,10 @@
 
 <header class="site">
   <a class="brand" href="/">Pseudo<strong>Forge</strong></a>
-  <nav>
+  <nav aria-label="Primary">
     <a href="/">Generate</a>
     <a href="/advise/">Advise</a>
-    <a href="/download/" class="active">Download</a>
+    <a href="/download/" class="active" aria-current="page">Download</a>
     <a href="/validate/">Validate</a>
     <a href="/docs/">Docs</a>
     <a href="/about/">About</a>
@@ -47,7 +47,8 @@
   </nav>
 </header>
 
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<main id="main-content">
 
 <section class="intro">
   <h1>Pre-built files</h1>
@@ -89,7 +90,7 @@
 </section>
 
 <section class="panel">
-  <div id="list"><p class="loading">Loading…</p></div>
+  <div id="list"><p class="loading" role="status">Loading…</p></div>
 </section>
 
 </main>
@@ -101,7 +102,7 @@
      <a href="https://github.com/MHAmirkhani/pseudoforge">Source</a></p>
 </footer>
 
-<script src="/js/api.js"></script>
+<script src="/js/api.js?v=137"></script>
 <script>
 'use strict';
 
@@ -194,7 +195,7 @@ function render() {
   });
 
   if (!slice.length) {
-    host.innerHTML = '<p class="loading">Nothing matches.</p>';
+    host.innerHTML = '<p class="quiet">Nothing matches.</p>';
     return;
   }
 
@@ -240,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const { status, body } = await API.native();
   if (status === 503) {
-    host.innerHTML = '<p class="loading">This server has no files indexed yet. ' +
+    host.innerHTML = '<p class="quiet">This server has no files indexed yet. ' +
       'See <a href="/docs/how-to/deploy/">how to deploy a store</a>.</p>';
     return;
   }

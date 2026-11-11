@@ -38,7 +38,24 @@ PF_USER=${PF_USER:-pseudoforge}
 PF_PORT=${PF_PORT:-8099}
 
 CHECK_ONLY=0
-[ "${1:-}" = "--check" ] && CHECK_ONLY=1
+case "${1:-}" in
+    "") ;;
+    --check) CHECK_ONLY=1 ;;
+    -h|--help) printf 'Usage: %s [--check]\n' "$0"; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
+
+for path in "$PF_VAR_DIR" "$PF_OPT_DIR"; do
+    [[ "$path" =~ ^/[[:alnum:]_./-]+$ && "$path" != */ ]] || {
+        printf 'Use an absolute deployment path without spaces or a trailing slash: %s\n' "$path" >&2; exit 2;
+    }
+done
+[[ "$PF_USER" =~ ^[a-z_][a-z0-9_-]*$ && "$PF_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || {
+    printf 'Invalid PF_USER or PF_DOMAIN.\n' >&2; exit 2;
+}
+[[ "$PF_PORT" =~ ^[1-9][0-9]{0,4}$ ]] && [ "$PF_PORT" -le 65535 ] || {
+    printf 'Invalid PF_PORT: %s\n' "$PF_PORT" >&2; exit 2;
+}
 
 say()  { printf '  %s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
@@ -54,9 +71,11 @@ if [ "$CHECK_ONLY" = 1 ]; then
         if [ -d "$PF_VAR_DIR/$d" ]; then say "ok      $PF_VAR_DIR/$d"
         else say "MISSING $PF_VAR_DIR/$d"; rc=1; fi
     done
-    command -v nginx   >/dev/null && say "ok      nginx"   || { say "MISSING nginx"; rc=1; }
-    command -v python3 >/dev/null && say "ok      python3" || { say "MISSING python3"; rc=1; }
-    command -v sqlite3 >/dev/null && say "ok      sqlite3" || { say "MISSING sqlite3"; rc=1; }
+    for tool in bash awk sed grep find curl nginx python3 sqlite3 rsync systemctl; do
+        command -v "$tool" >/dev/null && say "ok      $tool" || { say "MISSING $tool"; rc=1; }
+    done
+    [ -x "$PF_OPT_DIR/server/.venv/bin/uvicorn" ] && say "ok      API virtual environment" ||
+        { say "MISSING $PF_OPT_DIR/server/.venv/bin/uvicorn"; rc=1; }
     systemctl is-active --quiet pseudoforge-api 2>/dev/null \
         && say "ok      pseudoforge-api is running" \
         || say "note    pseudoforge-api is not running"
@@ -75,7 +94,7 @@ step "packages"
 # Nginx, Python, SQLite. Nothing that could build an engine.
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq nginx python3 python3-venv python3-pip sqlite3 rsync
+apt-get install -y -qq nginx python3 python3-venv python3-pip sqlite3 rsync curl
 say "installed"
 
 step "user"
@@ -98,7 +117,8 @@ chmod 0775 "$PF_VAR_DIR/cache" "$PF_VAR_DIR/db"
 step "the core"
 install -d -m 0755 "$PF_OPT_DIR"
 rsync -a --delete \
-    --exclude '.git' --exclude 'deploy/local' --exclude 'site' --exclude '__pycache__' \
+    --exclude '/.git' --exclude '/deploy/local' --exclude '/site' --exclude '__pycache__' \
+    --exclude '/server/.venv' --exclude '/engines-src' --exclude '/manuscript' --exclude '/pseudoforge-output' \
     "$ROOT/" "$PF_OPT_DIR/"
 chown -R "$PF_USER:$PF_USER" "$PF_OPT_DIR"
 say "$PF_OPT_DIR"
@@ -118,17 +138,25 @@ chown "$PF_USER:$PF_USER" "$PF_VAR_DIR/db/pseudoforge.db"
 say "schema applied (idempotent)"
 
 step "systemd"
-install -m 0644 "$ROOT/deploy/systemd/pseudoforge-api.service"   /etc/systemd/system/
-install -m 0644 "$ROOT/deploy/systemd/pseudoforge-cache.service" /etc/systemd/system/
-install -m 0644 "$ROOT/deploy/systemd/pseudoforge-cache.timer"   /etc/systemd/system/
+for unit in pseudoforge-api.service pseudoforge-cache.service; do
+    sed -e "s|/opt/pseudoforge|$PF_OPT_DIR|g" \
+        -e "s|/var/lib/pseudoforge|$PF_VAR_DIR|g" \
+        -e "s|^User=pseudoforge$|User=$PF_USER|" \
+        -e "s|^Group=pseudoforge$|Group=$PF_USER|" \
+        -e "s|--port 8099|--port $PF_PORT|" \
+        "$ROOT/deploy/systemd/$unit" > "/etc/systemd/system/$unit"
+done
+install -m 0644 "$ROOT/deploy/systemd/pseudoforge-cache.timer" /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now pseudoforge-api.service
+systemctl enable pseudoforge-api.service
+systemctl restart pseudoforge-api.service
 systemctl enable --now pseudoforge-cache.timer
 say "units installed and enabled"
 
 step "nginx"
 conf=/etc/nginx/sites-available/pseudoforge.conf
 sed -e "s|PSEUDOFORGE_DOMAIN|$PF_DOMAIN|g" \
+    -e "s|/var/lib/pseudoforge|$PF_VAR_DIR|g" \
     -e "s|127.0.0.1:8099|127.0.0.1:$PF_PORT|g" \
     "$ROOT/deploy/nginx/pseudoforge.conf" > "$conf"
 ln -sfn "$conf" /etc/nginx/sites-enabled/pseudoforge.conf

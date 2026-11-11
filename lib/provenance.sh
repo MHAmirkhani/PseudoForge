@@ -27,7 +27,7 @@ declare -g PROV_OUT_SHA256=""
 declare -g PROV_OUT_RAW=""
 
 _prov_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -f "$PF_NATIVE_DIR/index.tsv" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi

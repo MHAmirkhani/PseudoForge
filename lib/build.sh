@@ -32,11 +32,11 @@ build_detect_os() {
 # compiler and preprocessor, make, and reference BLAS/LAPACK.
 build_packages() {
     case $(build_detect_os) in
-        debian)      echo "gfortran gcc make libblas-dev liblapack-dev unzip" ;;
-        rhel|fedora) echo "gcc-gfortran gcc make blas-devel lapack-devel unzip" ;;
-        arch)        echo "gcc-fortran gcc make blas lapack unzip" ;;
-        suse)        echo "gcc-fortran gcc make blas-devel lapack-devel unzip" ;;
-        macos)       echo "gcc open-mpi lapack unzip" ;;
+        debian)      echo "gfortran gcc make libblas-dev liblapack-dev unzip tar gzip curl" ;;
+        rhel|fedora) echo "gcc-gfortran gcc make blas-devel lapack-devel unzip tar gzip curl" ;;
+        arch)        echo "gcc-fortran gcc make blas lapack unzip tar gzip curl" ;;
+        suse)        echo "gcc-fortran gcc make blas-devel lapack-devel unzip tar gzip curl" ;;
+        macos)       echo "gcc make openblas unzip curl" ;;
         *)           echo "" ;;
     esac
 }
@@ -55,26 +55,21 @@ build_install_command() {
 # Which of the build prerequisites are actually missing right now?
 build_missing_tools() {
     local missing="" t
-    for t in gfortran gcc make; do have "$t" || missing="$missing $t"; done
+    for t in gfortran gcc make tar gzip curl; do have "$t" || missing="$missing $t"; done
+    have unzip || have bsdtar || missing="$missing unzip"
     # cpp is only needed by ONCVPSP, but it comes with gcc everywhere
     build_have_lapack || missing="$missing lapack/blas"
     trim "$missing"
 }
 
 build_have_lapack() {
-    local d
-    for d in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib /opt/homebrew/lib; do
-        [ -e "$d/liblapack.so" ] || [ -e "$d/liblapack.a" ] || \
-        [ -e "$d/liblapack.dylib" ] || continue
-        return 0
-    done
-    # a linker probe is the honest test, but it needs a compiler
+    local probe rc=0
     have gfortran || return 1
-    printf '      program t\n      end\n' > "${TMPDIR:-/tmp}/pf_lapack_$$.f"
-    if gfortran -o /dev/null "${TMPDIR:-/tmp}/pf_lapack_$$.f" -llapack -lblas 2>/dev/null; then
-        rm -f "${TMPDIR:-/tmp}/pf_lapack_$$.f"; return 0
-    fi
-    rm -f "${TMPDIR:-/tmp}/pf_lapack_$$.f"; return 1
+    probe=$(mktemp -d) || return 1
+    printf '      program t\n      end\n' > "$probe/link.f"
+    gfortran -o "$probe/link" "$probe/link.f" -llapack -lblas 2>/dev/null || rc=$?
+    rm -rf "$probe"
+    return "$rc"
 }
 
 # ---------------------------------------------------------------------------
@@ -131,6 +126,11 @@ build_install_deps() {
     esac
     # shellcheck disable=SC2086
     $cmd $pkgs || { error "package installation failed"; return 1; }
+    missing=$(build_missing_tools)
+    if [ -n "$missing" ]; then
+        error "build prerequisites are still missing: $missing"
+        return 1
+    fi
     ok "build prerequisites installed"
 }
 
@@ -190,19 +190,26 @@ build_install_binaries() {   # build_install_binaries <srcdir> <binaries...>
     printf '%s\n' "$found"
 }
 
-build_fetch_src() {   # build_fetch_src <engine>
-    local eng=$1
-    local file=${ENG_SRC[$eng]:-}
+# Dependency archives share the engine source search without appearing as engines.
+build_register_source() {
+    case $1 in
+        gsl) ENG_SRC[gsl]="gsl-$GSL_VERSION.tar.gz" ;;
+        libxc)
+            local archive
+            for archive in "$PF_ROOT"/engines-src/libxc-*.tar.gz "$(eng_src_dir)"/libxc-*.tar.gz; do
+                [ -f "$archive" ] || continue
+                ENG_SRC[libxc]=${archive##*/}
+                return 0
+            done
+            ENG_SRC[libxc]=libxc-7.1.2.tar.gz ;;
+    esac
+}
 
-    # libxc has no ENG_SRC entry; discover by glob.
-    if [ "$eng" = libxc ] && [ -z "$file" ]; then
-        file=$(cd "$PF_ROOT/engines-src" 2>/dev/null \
-               && ls libxc-*.tar.gz 2>/dev/null | head -1)
-        [ -n "$file" ] || file=$(cd "$(eng_src_dir)" 2>/dev/null \
-               && ls libxc-*.tar.gz 2>/dev/null | head -1)
-        [ -n "$file" ] || file="libxc-7.1.2.tar.gz"
-        ENG_SRC[libxc]=$file
-    fi
+build_fetch_src() {   # build_fetch_src <engine>
+    local eng=$1 file
+    [ "$eng" != fhi98pp ] || return 1
+    build_register_source "$eng"
+    file=${ENG_SRC[$eng]:-}
     [ -n "$file" ] || return 1
 
     local base=${PF_ENGINES_SRC_URL:-https://raw.githubusercontent.com/MHAmirkhani/PseudoForge/main/engines-src}
@@ -217,31 +224,31 @@ build_fetch_src() {   # build_fetch_src <engine>
         return 1
     fi
 
-    local manifest=${PF_MANIFEST_PATH:-$PF_ROOT/engines-src/MANIFEST.txt}
-    if [ -f "$manifest" ]; then
-        local sha
-        sha=$(awk -v f="$file" '$1==f{print $2; exit}' "$manifest")
-        if [ -n "$sha" ]; then
-            local actual=""
-            if have sha256sum; then
-                actual=$(sha256sum "$dest" 2>/dev/null | awk '{print $1}')
-            elif have shasum; then
-                actual=$(shasum -a 256 "$dest" 2>/dev/null | awk '{print $1}')
-            fi
-            if [ -n "$actual" ] && [ "$actual" = "$sha" ]; then
-                ok "verified $file against MANIFEST.txt"
-            else
-                error "checksum mismatch for $eng source"
-                error "  expected: $sha"
-                error "  file:     $dest"
-                rm -f "$dest"
-                return 1
-            fi
-        fi
-    else
-        warn "MANIFEST.txt not found at $manifest; skipping checksum verification"
+    if ! build_verify_archive "$dest"; then
+        rm -f "$dest"
+        return 1
     fi
-    return 0
+}
+
+build_verify_archive() {
+    local archive=$1 manifest=${PF_MANIFEST_PATH:-$PF_ROOT/engines-src/MANIFEST.txt}
+    if [ ! -f "$manifest" ]; then
+        warn "MANIFEST.txt not found at $manifest; skipping checksum verification"
+        return 0
+    fi
+    local file=${archive##*/} sha actual=""
+    sha=$(awk -v f="$file" '$1==f{print $2; exit}' "$manifest")
+    [ -n "$sha" ] || return 0    # locally supplied archives may not be in the manifest
+    if have sha256sum; then
+        actual=$(sha256sum "$archive" | awk '{print $1}')
+    elif have shasum; then
+        actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+    fi
+    if [ "$actual" != "$sha" ]; then
+        error "checksum mismatch for $file (expected $sha)"
+        return 1
+    fi
+    ok "verified $file against MANIFEST.txt"
 }
 
 # ---------------------------------------------------------------------------
@@ -283,6 +290,7 @@ build_prepare_src() {
     fi
 
     # 1b. search local source archives
+    build_register_source "$eng"
     ar=$(eng_source_archive "$eng" 2>/dev/null) || ar=""
 
     # 2. if not found: build_fetch_src <engine>
@@ -290,6 +298,11 @@ build_prepare_src() {
         if build_fetch_src "$eng"; then
             ar=$(eng_source_archive "$eng" 2>/dev/null) || ar=""
         fi
+    fi
+
+    if [ -z "$ar" ] && [ "$eng" = fhi98pp ]; then
+        error "fhi98PP is not distributed with PseudoForge. Obtain it from the authors and set FHI98PP_SRC_DIR to its unpacked directory."
+        return 1
     fi
 
     # 3. if still not found: print archive name, every local path tried, and the URL, then error
@@ -305,6 +318,7 @@ build_prepare_src() {
         return 1
     fi
 
+    build_verify_archive "$ar" || return 1
     info "unpacking $(basename "$ar")"
     mkdir -p "$build"
     build_extract "$ar" "$build" || return 1
@@ -676,7 +690,6 @@ build_libxc() {
         cm=$(build_find_cmake)
     fi
 
-    build_fetch_src libxc 2>/dev/null || true
     src=$(build_prepare_src libxc "src/xc.h" 2>/dev/null) || {
         error "libxc source not found (expected an archive named ${ENG_SRC[libxc]:-libxc-*.tar.gz})"
         return 1
@@ -801,12 +814,8 @@ build_ape() {
         error "  and ninja could not be fetched.  Set NINJA_BIN to one you have."
         return 1
     }
-    build_have_libxc || { error "APE needs libxc -- run: pseudoforge engines build libxc"; return 1; }
-    [ -f "$prefix/include/gsl/gsl_version.h" ] || {
-        error "APE needs GSL, which was not found in $prefix."
-        error "  Build it there with:  ./configure --prefix=$prefix && make && make install"
-        return 1
-    }
+    build_have_libxc || build_libxc || return 1
+    [ -f "$prefix/include/gsl/gsl_version.h" ] || build_gsl || return 1
 
     src=$(build_prepare_src ape "src/ape.F90" 2>/dev/null) || \
     src=$(build_prepare_src ape "CMakeLists.txt") || return 1
@@ -876,8 +885,7 @@ build_fetch_ninja() {
     zip=$b/ninja.zip
     info "fetching ninja $NINJA_VERSION (no root needed)"
     DOWNLOAD_TIMEOUT=${DOWNLOAD_TIMEOUT:-300} fetch_url "$url" "$zip" || { error "could not download ninja from $url"; return 1; }
-    ( cd "$b" && { unzip -o "$zip" >/dev/null 2>&1 || \
-        python3 -c "import zipfile,sys;zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$zip" "$b"; } )
+    build_extract "$zip" "$b" || return 1
     chmod +x "$b/ninja" 2>/dev/null
     rm -f "$zip"
     build_find_ninja >/dev/null 2>&1 || { error "ninja unpacked but not executable"; return 1; }
@@ -1078,11 +1086,15 @@ build_engine() {
     # libxc is a dependency rather than a generator, so it is not in the engine
     # registry -- but it is built the same way and people will reach for the
     # same command, so let that work instead of reporting it as unknown.
-    if [ "$eng" = libxc ]; then
-        banner "Building libxc"
-        build_libxc
-        return $?
-    fi
+    case $eng in
+        libxc|gsl)
+            banner "Building $eng"
+            if [ -n "$(build_missing_tools)" ]; then
+                build_install_deps "$assume_yes" || return 1
+            fi
+            if [ "$eng" = libxc ]; then build_libxc; else build_gsl; fi
+            return $? ;;
+    esac
     eng_exists "$eng" || { error "unknown engine '$eng'"; return 1; }
 
     banner "Building ${ENG_LABEL[$eng]}"
@@ -1167,11 +1179,16 @@ build_all() {
             info "${ENG_LABEL[$eng]}: already installed, skipping"
             continue
         fi
+        if [ "$eng" = fhi98pp ] && [ ! -f "${FHI98PP_SRC_DIR:-/dev/null}/src/fhipp.f" ] &&
+           ! eng_source_archive "$eng" >/dev/null 2>&1; then
+            info "fhi98PP: optional, supply upstream source and run pseudoforge engines build fhi98pp"
+            continue
+        fi
         build_engine "$eng" "$assume_yes" || failed="$failed $eng"
     done
     if [ -n "$failed" ]; then
         warn "these engines failed to build:$failed"
         return 1
     fi
-    ok "all engines available"
+    ok "all automatic engine builds completed"
 }

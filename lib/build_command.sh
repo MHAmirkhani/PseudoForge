@@ -31,6 +31,9 @@ build_command_for() {
         spec_init
         cli_parse "$@"
         [ -n "$CLI_ELEMENTS" ] || die "no elements given: use -e/--elements (pseudoforge help)"
+        local -a elements=()
+        mapfile -t elements < <(el_expand $CLI_ELEMENTS 2>/dev/null)
+        [ "${#elements[@]}" -gt 0 ] || die "element selection '$CLI_ELEMENTS' matched nothing"
         cli_check_spec
         spec_cmdline
     ) > "$out_file" 2> "$err_file" || rc=$?

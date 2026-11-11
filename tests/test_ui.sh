@@ -244,6 +244,37 @@ case " $paw_els " in
     *) bad_ "paw available elements missing Fe/Si: $paw_els" ;;
 esac
 
+printf '\n%s== going back through the wizard%s\n' "$DIM" "$RESET"
+if (
+    # Drive the real wizard loop, substituting menu responses for keypresses.
+    visits=0 seen=
+    ui_init() { return 0; }
+    tui_theme() { return 0; }
+    tui_layer_family() { return 0; }
+    tui_layer_xc() { return 0; }
+    tui_layer_rel() { return 0; }
+    tui_layer_elements() {
+        visits=$((visits + 1))
+        if [ "$visits" -eq 1 ]; then return 0; fi
+        seen=${SPEC[profile]}
+        return 2
+    }
+    tui_layer_profile() {
+        if [ "${SPEC[profile]}" = pseudoforge-auto ]; then
+            SPEC[profile]=psl-high
+            return 0
+        fi
+        return 1
+    }
+    tui_layer_source() { return 1; }
+    tui_wizard
+    [ "$visits" -eq 2 ] && [ "$seen" = pseudoforge-auto ]
+); then
+    ok_ "going back past the library restores unpinned element filtering"
+else
+    bad_ "going back past the library kept the previous library restriction"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

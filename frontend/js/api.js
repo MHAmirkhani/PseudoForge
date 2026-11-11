@@ -11,40 +11,59 @@
 const API = (() => {
   const base = '/api';
 
-  async function get(path) {
-    const r = await fetch(base + path, { headers: { Accept: 'application/json' } });
-    const body = await r.json().catch(() => ({
-      error: 'unreadable_response',
-      message: 'The server did not return JSON.',
-    }));
-    return { status: r.status, body };
+  let lastNotice = '';
+  let noticeTimer;
+  function notify(message) {
+    if (message === lastNotice) return;
+    lastNotice = message;
+    let toast = document.getElementById('pf-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'pf-toast';
+      toast.className = 'toast';
+      toast.setAttribute('role', 'status');
+      document.body.appendChild(toast);
+    }
+    toast.hidden = false;
+    toast.textContent = message;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => {
+      toast.hidden = true;
+      lastNotice = '';
+    }, 6000);
   }
 
-  async function post(path, payload) {
-    const r = await fetch(base + path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const body = await r.json().catch(() => ({
-      error: 'unreadable_response',
-      message: 'The server did not return JSON.',
-    }));
-    return { status: r.status, body };
+  async function request(path, options = {}) {
+    try {
+      const r = await fetch(base + path, { ...options, signal: AbortSignal.timeout(125000) });
+      const body = await r.json().catch(() => null);
+      if (body !== null && typeof body === 'object') return { status: r.status, body };
+      notify('The server returned an unreadable response.');
+      return { status: r.ok ? 502 : r.status, body: {
+        error: 'unreadable_response', message: 'The server did not return readable JSON.',
+      } };
+    } catch {
+      const message = 'Could not reach PseudoForge. Check your connection and try again.';
+      notify(message);
+      return { status: 0, body: { error: 'network_error', message } };
+    }
   }
 
-  async function upload(path, file) {
-    const form = new FormData();
-    form.append('file', file);
-    const r = await fetch(base + path, { method: 'POST', body: form });
-    const body = await r.json().catch(() => ({
-      error: 'unreadable_response',
-      message: 'The server did not return JSON.',
-    }));
-    return { status: r.status, body };
+  const get = path => request(path, { headers: { Accept: 'application/json' } });
+  const post = (path, payload) => request(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  function upload(path, file) {
+    const body = new FormData();
+    body.append('file', file);
+    return request(path, { method: 'POST', body });
   }
 
   return {
+    notify,
+    buildCommand: params => get('/build-command?' + new URLSearchParams(params)),
     health:   ()      => get('/health'),
     engines:  ()      => get('/engines'),
     engine:   (n)     => get('/engines/' + encodeURIComponent(n)),
@@ -61,9 +80,10 @@ const API = (() => {
     advise:   (params)=> get('/advise?' + new URLSearchParams(params).toString()),
     provenance: (id)  => get('/provenance/' + encodeURIComponent(id)),
     coverage:   (params) => get('/coverage' + (params ? '?' + new URLSearchParams(params).toString() : '')),
+    compare: (a, b) => post('/compare', { a, b }),
     recent:     (count)  => get('/recent' + (count ? '?count=' + encodeURIComponent(count) : '')),
     capabilities: ()     => get('/capabilities'),
-    downloadUrl: (id) => base + '/download/' + id,
+    downloadUrl: (id) => base + '/download/' + encodeURIComponent(id),
   };
 })();
 

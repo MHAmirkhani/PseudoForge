@@ -1204,7 +1204,7 @@ cmd_engines() {
                     pf_engines_load
                     printf 'usage: pseudoforge engines build <name>|all [--yes]\n\n'
                     printf 'Available engines: %s\n' "${ENG_ORDER[*]}"
-                    printf '  all builds eight engines (excludes ld1, which is built on demand)\n'
+                    printf '  all builds bundled engines (fhi98PP needs local source; ld1 is built separately)\n'
                     ;;
                 show)  printf 'usage: pseudoforge engines show <name>\n' ;;
                 path)  printf 'usage: pseudoforge engines path <name>\n' ;;

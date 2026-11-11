@@ -32,7 +32,7 @@
   async function loadProvenance(id) {
     if (!id) return;
     input.value = id;
-    resultDiv.innerHTML = '<p class="muted">Loading provenance for <code>' + esc(id) + '</code>...</p>';
+    resultDiv.innerHTML = '<p class="muted loading" role="status">Loading provenance for <code>' + esc(id) + '</code>...</p>';
 
     try {
       const res = await API.provenance(id);

@@ -17,9 +17,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PseudoForge — pseudopotentials, built and checked</title>
 <meta name="description" content="Pre-built pseudopotentials for nine engines, on-demand format conversion, and validation. Generation runs on your machine.">
-<link rel="stylesheet" href="/css/main.css?v=143">
+<link rel="stylesheet" href="/css/main.css?v=137">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="theme-color" content="#4051b5">
+<meta name="theme-color" content="#102f47">
 <meta property="og:type" content="website">
 <meta property="og:title" content="PseudoForge — pseudopotentials, built and checked">
 <meta property="og:description" content="A Bash-native, multi-engine pseudopotential generator, validator and converter.">
@@ -32,8 +32,8 @@
 
 <header class="site">
   <a class="brand" href="/">Pseudo<strong>Forge</strong></a>
-  <nav>
-    <a href="/" class="active">Generate</a>
+  <nav aria-label="Primary">
+    <a href="/" class="active" aria-current="page">Generate</a>
     <a href="/advise/">Advise</a>
     <a href="/download/">Download</a>
     <a href="/validate/">Validate</a>
@@ -51,11 +51,13 @@
   </nav>
 </header>
 
-<main>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<main id="main-content">
 
 <div class="layout-split">
 
-<section class="intro">
+<section class="intro home-intro">
+  <p class="eyebrow">Electronic structure toolkit</p>
   <h1>Pseudopotentials, built and checked.</h1>
   <p class="lede">
     Pick an element, choose the physics, and get a file — pre-built here, or
@@ -76,10 +78,9 @@
 <!-- ------------------------------------------------------------------ -->
 <section class="panel element-table">
   <div class="ptable-wrap"><div id="ptable" class="ptable" aria-label="Periodic table">
-    <p class="loading">Loading the element table…</p>
-  </div>
+    <p class="loading" role="status">Loading the element table…</p>
+  </div></div>
 </section>
-</div>
 
 
 <!-- ------------------------------------------------------------------ -->
@@ -125,7 +126,7 @@
 
     <div class="actions">
       <button id="btn-here"     class="btn primary" disabled>Download</button>
-      <button id="btn-build"    class="btn">Build locally</button>
+      <button id="btn-build"    class="btn" disabled>Build locally</button>
       <button id="btn-compare"  class="btn"         disabled>Compare</button>
     </div>
 
@@ -138,7 +139,7 @@
     </p>
   </div>
 
-  <div id="output" class="output" hidden></div>
+  <div id="output" class="output" aria-live="polite" hidden></div>
 </section>
 
 <!-- ------------------------------------------------------------------ -->
@@ -147,8 +148,8 @@
     <h2 style="margin: 0;">Recently added</h2>
     <a href="/recent/" style="font-size: 0.88rem; color: var(--accent); text-decoration: none; font-weight: 500;">See all &rarr;</a>
   </div>
-  <div id="recent-list" class="recent-list">
-    <p class="loading">Loading recent files…</p>
+  <div id="recent-list" class="recent-list" aria-live="polite">
+    <p class="loading" role="status">Loading recent files…</p>
   </div>
 </section>
 
@@ -167,9 +168,9 @@
   </p>
 </footer>
 
-<script src="/js/api.js"></script>
-<script src="/js/main.js?v=141"></script>
-<script src="/js/ux.js?v=1"></script>
+<script src="/js/api.js?v=137"></script>
+<script src="/js/main.js?v=137"></script>
+<script src="/js/ux.js?v=137"></script>
 <script src="/js/theme.js"></script>
 </body>
 </html>

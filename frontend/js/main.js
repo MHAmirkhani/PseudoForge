@@ -8,62 +8,7 @@
  * ------------------------------------------------------------------------- */
 'use strict';
 
-const state = { element: null, native: [], xcLabel: new Map(), fmtLabel: new Map(), filter: { cov: null, q: '' }, pickedProfile: null };
-
-/* -- colour theme --------------------------------------------------------- */
-
-/* The theme is stored under one key and applied in three places:
- *
- *   1. before first paint, by a small inline snippet in index.html, so a
- *      reader who chose light does not see a dark flash before this file
- *      loads.  That snippet and this function must agree on the key name
- *      and the two values.
- *   2. on load, from this file, in case the inline snippet ran before
- *      prefers-color-scheme settled -- which it does on some browsers.
- *   3. on every click, saving the choice and toggling the animation class
- *      so the transition plays exactly once.
- *
- * Without the inline snippet the site would still work; it would just blink
- * on every page load for readers who did not pick the default.
- */
-function currentTheme() {
-  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-}
-
-function applyTheme(theme, animate) {
-  document.documentElement.dataset.theme = theme;
-  if (animate) {
-    document.documentElement.classList.add('theme-anim');
-    // The transition is one-shot: once it has played, remove the class so
-    // a later theme switch is instant if the reader wants it to be.
-    setTimeout(() => document.documentElement.classList.remove('theme-anim'), 250);
-  }
-  const btn = document.getElementById('theme-toggle');
-  if (btn) {
-    btn.setAttribute('aria-label',
-      theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
-    btn.title = theme === 'light' ? 'Dark' : 'Light';
-  }
-}
-
-function initTheme() {
-  const saved = localStorage.getItem('pf-theme');
-  if (saved === 'light' || saved === 'dark') {
-    applyTheme(saved, false);
-  } else {
-    const prefersLight = matchMedia('(prefers-color-scheme: light)').matches;
-    applyTheme(prefersLight ? 'light' : 'dark', false);
-  }
-  const btn = document.getElementById('theme-toggle');
-  if (btn && !btn.dataset.wired) {
-    btn.dataset.wired = '1';
-    btn.addEventListener('click', () => {
-      const next = currentTheme() === 'light' ? 'dark' : 'light';
-      applyTheme(next, true);
-      localStorage.setItem('pf-theme', next);
-    });
-  }
-}
+const state = { element: null, native: [], xcLabel: new Map(), fmtLabel: new Map(), filter: { cov: null, q: '' }, pickedProfile: null, conversions: [], storeFailed: false, action: 0 };
 
 /* -- the periodic table ---------------------------------------------------- */
 /* -- table decoration ------------------------------------------------------ */
@@ -132,114 +77,15 @@ function ensureLegend() {
   }
 }
 
-/* Colour each cell by how many files the store holds for that element.
- * Three buckets, not a continuum: the useful distinction is "plenty",
- * "some" and "a few", and a gradient implies an order that does not exist. */
-function paintCoverage() {
-  const counts = new Map();
-  for (const n of state.native) {
-    counts.set(n.element, (counts.get(n.element) || 0) + 1);
-  }
-  document.querySelectorAll('.el').forEach((cell) => {
-    const sym = cell.dataset.symbol;
-    const n = counts.get(sym) || 0;
-    cell.classList.remove('cov-rich', 'cov-some', 'cov-thin', 'cov-none');
-    if (n === 0)      cell.classList.add('cov-none');
-    else if (n >= 50) cell.classList.add('cov-rich');
-    else if (n >= 5)  cell.classList.add('cov-some');
-    else              cell.classList.add('cov-thin');
-    if (n > 0) {
-      const base = (cell.title || '').split(' — ')[0];
-      cell.title = base + ' — ' + n + ' file' + (n === 1 ? '' : 's') + ' in the store';
-    }
-  });
-}
-
-/* Wiring for the search box, the legend buttons, and the double-click on
- * a cell.  Delegated on the table so it survives a redraw. */
-function wireTableTools() {
-  const host = document.getElementById('ptable');
-  if (!host || host.dataset.wired === '1') return;
-
-  if (!document.getElementById('ptable-search')) {
-    const head = document.querySelector('.element-head');
-    if (head) {
-      const tools = document.createElement('div');
-      tools.className = 'ptable-tools';
-      tools.innerHTML =
-        '<div class="ptable-search">' +
-          '<input type="search" id="ptable-q" placeholder="Search element — symbol, name, Z" ' +
-                 'autocomplete="off" spellcheck="false" aria-label="Search elements">' +
-          '<button class="clear" type="button" aria-label="Clear search" hidden>×</button>' +
-        '</div>';
-      head.appendChild(tools);
-    }
-  }
-
-  const input = document.getElementById('ptable-q');
-  if (input) {
-    input.addEventListener('input', () => {
-      state.filter.q = input.value;
-      const wrap = input.closest('.ptable-search');
-      if (wrap) wrap.classList.toggle('has-value', !!input.value);
-      const clear = input.parentElement.querySelector('.clear');
-      if (clear) clear.hidden = !input.value;
-      applyFilters();
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        input.value = ''; state.filter.q = ''; applyFilters(); input.blur();
-      }
-    });
-    const clear = input.parentElement.querySelector('.clear');
-    if (clear) clear.addEventListener('click', () => {
-      input.value = ''; state.filter.q = ''; applyFilters(); input.focus();
-    });
-  }
-
-  host.addEventListener('dblclick', (e) => {
-    const cell = e.target.closest('.el');
-    if (!cell || cell.classList.contains('filtered-out')) return;
-    const btn = document.getElementById('btn-here');
-    if (btn && !btn.disabled) btn.click();
-  });
-
-  host.dataset.wired = '1';
-}
-
-/* The filter itself.  Coverage and text are independent -- "show only what
- * is downloadable" and "jump to silicon" are different questions, and a
- * reader may want both at once. */
-function applyFilters() {
-  const q = (state.filter.q || '').trim().toLowerCase();
-  const cov = state.filter.cov;
-  let shown = 0;
-  document.querySelectorAll('.el').forEach((cell) => {
-    const sym = (cell.dataset.symbol || '').toLowerCase();
-    const title = (cell.title || '').toLowerCase();
-    const inCov =
-      (cell.classList.contains('cov-rich') && cov === 'rich') ||
-      (cell.classList.contains('cov-some') && cov === 'some') ||
-      (cell.classList.contains('cov-thin') && cov === 'thin') ||
-      (cell.classList.contains('cov-none') && cov === 'none');
-    const covOk = !cov || inCov;
-    const qOk = !q || sym.includes(q) || title.includes(q);
-    const show = covOk && qOk;
-    cell.classList.toggle('filtered-out', !show);
-    if (show) shown++;
-  });
-  const legend = document.getElementById('ptable-legend');
-  if (legend) legend.classList.toggle('has-filter', !!(cov || q));
-  return shown;
-}
-
-
 async function drawTable() {
   const host = document.getElementById('ptable');
+  host.setAttribute('aria-busy', 'true');
   const { status, body } = await API.elements();
+  host.removeAttribute('aria-busy');
   if (status !== 200 || !Array.isArray(body)) {
     host.innerHTML = '<p class="error">The element table could not be loaded. ' +
                      'The API may be down — see <a href="/docs/">the docs</a>.</p>';
+    API.notify('The element table could not be loaded.');
     return;
   }
 
@@ -295,6 +141,8 @@ async function drawTable() {
     cell.className = 'el el-' + (el.block || 'x');
     cell.type = 'button';
     cell.dataset.symbol = el.symbol;
+    cell.setAttribute('aria-label', `${el.symbol} — ${el.name} (Z = ${el.z})`);
+    cell.setAttribute('aria-pressed', 'false');
     cell.title = `${el.name} (Z = ${el.z})`;
     cell.innerHTML =
       `<span class="z">${el.z}</span>` +
@@ -323,32 +171,37 @@ async function drawTable() {
    * loadSelectors to call paintCoverage meant the two raced: whichever
    * finished last won, and if drawTable ran after, the classes were never
    * applied and the legend filter could not find any cell to keep. */
-  if (state.native.length) paintCoverage();
+  paintCoverage();
+  restoreSelection();
 
-  /* Double-click on a cell does what the Download button does, using
-   * whatever physics is currently selected.  Attached on the grid rather
-   * than on the table so a rebuild replaces it along with the cells. */
-  grid.addEventListener('dblclick', (e) => {
-    const cell = e.target.closest('.el');
-    if (!cell || cell.classList.contains('filtered-out')) return;
-    const btn = document.getElementById('btn-here');
-    if (btn && !btn.disabled) btn.click();
+  ensureLegend();
+  wireTableTools();
+}
+
+function restoreSelection() {
+  const q = new URLSearchParams(location.search);
+  const cell = [...document.querySelectorAll('.el')].find(n => n.dataset.symbol === q.get('e'));
+  if (!cell) return;
+  cell.click();
+  refillForElement(state.element, {
+    xc: q.get('xc'), family: q.get('f'), rel: q.get('r'), format: q.get('fmt'),
   });
+  state.pickedProfile = q.get('p');
+  refresh();
 }
 
 function choose(el) {
   state.element = el;
   document.getElementById('chosen').textContent = `${el.symbol} — ${el.name} (Z = ${el.z})`;
-
-  /* Move the "on" class from wherever it was to where it belongs.  No
-   * animation, no scale: the outline does the work.  This is the same
-   * approach a print table takes when a reader points at a cell. */
-  document.querySelectorAll('.el.on').forEach((n) => n.classList.remove('on'));
+  document.querySelectorAll('.el.on').forEach(n => {
+    n.classList.remove('on');
+    n.setAttribute('aria-pressed', 'false');
+  });
   const cell = document.querySelector(`.el[data-symbol="${el.symbol}"]`);
-  if (cell) cell.classList.add('on');
-
+  cell.classList.add('on');
+  cell.setAttribute('aria-pressed', 'true');
   state.pickedProfile = null;
-  refillForElement(el, true);
+  refillForElement(el);
   refresh();
 }
 
@@ -380,13 +233,13 @@ function describeFile(m) {
 }
 
 /* -- the selectors --------------------------------------------------------- */
-function fill(id, items, value, label, keep) {
+function fill(id, items, value, label, preferred) {
   const sel = document.getElementById(id);
-  const current = sel.value;
-  sel.innerHTML = '';
-  if (keep) sel.appendChild(new Option(keep, ''));
-  items.forEach((it) => sel.appendChild(new Option(label(it), value(it))));
-  if (current) sel.value = current;
+  sel.replaceChildren(...items.map(it => new Option(label(it), value(it))));
+  sel.disabled = !items.length;
+  if (!items.length) sel.appendChild(new Option(state.element ? 'No stored options' : 'Select an element first', ''));
+  else if ([...sel.options].some(o => o.value === preferred)) sel.value = preferred;
+  return sel.value;
 }
 
 /* The form offers what exists, not what the registry can name.
@@ -422,62 +275,19 @@ const REL = { scalar: 'Scalar', full: 'Full (spin–orbit)', nonrel: 'Non-relati
  * reset a functional you already picked if both elements have it.  When it
  * does not survive, the first available option takes over; refresh() then
  * reports what that choice resolves to. */
-function refillForElement(el, keep) {
-  const base = el ? state.native.filter((n) => n.element === el.symbol) : state.native;
-
-  /* Cascade: each dropdown offers only the choices that are reachable given
-   * the ones above it.  Without this, picking Al and PAW still showed WC in
-   * the functional list -- there is no PAW/WC aluminium file, and the page
-   * only said so after the choice was made.  The order is functional ->
-   * family -> relativity -> format, because that is the order a person
-   * decides them in: the physics first, the container last.
-   *
-   * `keep` says whether to preserve the current dropdown value if it still
-   * exists.  It is true when the user is only changing the element, false
-   * when they changed a physics choice themselves -- in that case the
-   * value they just set is the one to keep, and the ones below it follow.
-   */
-  const curXc  = keep ? document.getElementById('xc').value     : null;
-  const curFam = keep ? document.getElementById('family').value : null;
-  const curRel = keep ? document.getElementById('rel').value    : null;
-
-  fill('xc', uniq(base, 'xc'), (v) => v, (v) => state.xcLabel.get(v) || v.toUpperCase());
-  if (curXc && base.some((n) => n.xc === curXc)) {
-    document.getElementById('xc').value = curXc;
-  }
-  const xc = document.getElementById('xc').value;
-
-  const forXc = base.filter((n) => n.xc === xc);
-  fill('family', uniq(forXc, 'family'), (v) => v, (v) => FAMILY[v] || v.toUpperCase());
-  if (curFam && forXc.some((n) => n.family === curFam)) {
-    document.getElementById('family').value = curFam;
-  }
-  const family = document.getElementById('family').value;
-
-  const forFam = forXc.filter((n) => n.family === family);
-  fill('rel', uniq(forFam, 'relativity'), (v) => v, (v) => REL[v] || v);
-  if (curRel && forFam.some((n) => n.relativity === curRel)) {
-    document.getElementById('rel').value = curRel;
-  }
-  const rel = document.getElementById('rel').value;
-
-  /* Format is last because it is the only choice the server can change for
-   * you.  Offer (a) the formats actually held for this exact physics, plus
-   * (b) whatever a non-refused conversion reaches from them.  A format that
-   * exists elsewhere in the store but not here is not offered, because
-   * picking it would end in no_such_path after the click rather than before
-   * it.  The current pick is preserved if it survives the filter. */
-  const candidates = forFam.filter((n) => n.relativity === rel);
-  const heldFmt = new Set(candidates.map((n) => n.format));
-  const reachable = new Set(heldFmt);
+function refillForElement(el, preferred = want()) {
+  const base = el ? state.native.filter(n => n.element === el.symbol) : [];
+  const xc = fill('xc', uniq(base, 'xc'), v => v, v => state.xcLabel.get(v) || v.toUpperCase(), preferred.xc);
+  const forXc = base.filter(n => n.xc === xc);
+  const family = fill('family', uniq(forXc, 'family'), v => v, v => FAMILY[v] || v.toUpperCase(), preferred.family);
+  const forFam = forXc.filter(n => n.family === family);
+  const rel = fill('rel', uniq(forFam, 'relativity'), v => v, v => REL[v] || v, preferred.rel);
+  const held = new Set(forFam.filter(n => n.relativity === rel).map(n => n.format));
+  const reachable = new Set(held);
   for (const cv of state.conversions) {
-    if (heldFmt.has(cv.from)) reachable.add(cv.to);
+    if (held.has(cv.from)) reachable.add(cv.to);
   }
-  const curFmt = document.getElementById('format').value;
-  fill('format', [...reachable].sort(), (v) => v, (v) => state.fmtLabel.get(v) || v.toUpperCase());
-  if (curFmt && reachable.has(curFmt)) {
-    document.getElementById('format').value = curFmt;
-  }
+  fill('format', [...reachable].sort(), v => v, v => state.fmtLabel.get(v) || v.toUpperCase(), preferred.format);
 }
 
 /* -- coverage colouring --------------------------------------------------- */
@@ -539,6 +349,7 @@ function applyFilters() {
     const qOk = !q || sym.includes(q) || title.includes(q);
     const show = covOk && qOk;
     cell.classList.toggle('filtered-out', !show);
+    cell.disabled = !show;
     if (show) shown++;
   });
   document.getElementById('ptable-legend')
@@ -583,22 +394,6 @@ function wireTableTools() {
     state.filter.q = input.value;
     wrap.classList.toggle('has-value', !!input.value);
     applyFilters();
-  });
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      input.value = '';
-      state.filter.q = '';
-      wrap.classList.remove('has-value');
-      applyFilters();
-      input.blur();
-    }
-    if (e.key === 'Enter') {
-      const first = document.querySelector('.el:not(.filtered-out)');
-      if (first) {
-        first.click();
-        first.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }
   });
   clear.addEventListener('click', () => {
     input.value = '';
@@ -672,63 +467,20 @@ async function loadSelectors() {
     API.native(), API.xc(), API.formats(),
   ]);
 
-  state.native = (native.status === 200 && Array.isArray(native.body)) ? native.body : [];
-
-  /* Labels still come from the registries -- "Perdew-Burke-Ernzerhof" is
-   * better than "pbe" -- but the *set* comes from the store. */
-  state.xcLabel = new Map(
-    (xc.status === 200 ? xc.body : []).map((x) => [x.id, x.label]));
-  state.fmtLabel = new Map(
-    (formats.status === 200 && formats.body.formats ? formats.body.formats : [])
-      .map((f) => [f.id, f.label]));
-  const xcLabel = state.xcLabel;
-  const fmtLabel = state.fmtLabel;
-
-  if (!state.native.length) {
-    document.getElementById('summary').textContent =
-      'Nothing is built on this server yet.';
-    show(
-      `<h3>The store is empty</h3>
-       <p>This server holds pre-built files and converts between formats. It
-          does not run the engines, so it cannot make one on demand
-          — <a href="/docs/architecture/http/">why</a>. Until the store is
-          populated, every answer here is the build-locally command.</p>`,
-      'refused');
-    return;
+  state.storeFailed = native.status !== 200 || !Array.isArray(native.body);
+  state.native = state.storeFailed ? [] : native.body;
+  state.xcLabel = new Map((xc.status === 200 && Array.isArray(xc.body) ? xc.body : []).map(x => [x.id, x.label]));
+  state.fmtLabel = new Map((formats.status === 200 && Array.isArray(formats.body?.formats)
+    ? formats.body.formats : []).map(f => [f.id, f.label]));
+  state.conversions = formats.status === 200 && Array.isArray(formats.body?.conversions)
+    ? formats.body.conversions.filter(c => c.kind !== 'refused') : [];
+  if (state.storeFailed) {
+    show('<h3>Store unavailable</h3><p>Reload to try again, or <a href="/docs/">open the documentation</a>.</p>', 'error');
+  } else if (!state.native.length) {
+    show('<h3>The store is empty</h3><p>Choose an element to get a local generation command.</p>', 'refused');
   }
-
-  /* Before an element is chosen, no physics choice is meaningful yet --
-   * every option here was reachable only from a specific element.  Leave
-   * the lists empty and put a marker in the first slot so the page does
-   * not present a menu that is not yet a menu. */
-  fill('xc',     [], (v) => v, (v) => v);
-  fill('family', [], (v) => v, (v) => v);
-  fill('rel',    [], (v) => v, (v) => v);
-  document.getElementById('xc').appendChild(new Option('Select an element first', ''));
-  document.getElementById('family').appendChild(new Option('Select an element first', ''));
-  document.getElementById('rel').appendChild(new Option('Select an element first', ''));
-
-  /* Formats: the ones held, plus the ones a registered conversion can reach
-   * from them. A format nothing can produce is not offered. */
-  /* Keep the conversion table for per-selection filtering below.  Building
-   * the format list once from the whole store is what offered "GTH" for a
-   * silicon selection that only had UPF, and then failed at click time with
-   * no_such_path: the format was globally held, not held *for this element*.
-   * The format choice is made last and depends on the three physics choices
-   * above it, so it is filled from refillForElement, not here. */
-  state.conversions = (formats.status === 200 && Array.isArray(formats.body.conversions))
-    ? formats.body.conversions.filter((c) => c.kind !== 'refused')
-    : [];
-  fill('format', [], (v) => v, (v) => v);
-  document.getElementById('format').appendChild(new Option('Select an element first', ''));
-
-  /* Now that the store is loaded, colour the table by coverage and add the
-   * legend that explains the colours.  The count per element comes straight
-   * from the fetched index, not a second request.  ensureLegend() is
-   * idempotent, so calling it here and in drawTable is safe. */
-  paintCoverage();
-  ensureLegend();
 }
+
 
 /* -- what is available for the current choice ------------------------------ */
 /* The store is fetched once and filtered here. It used to be matched on the
@@ -791,13 +543,13 @@ function setPreview(match, all, w) {
 
   let html = '<div class="pv-row">' +
     '<span class="pv-label">File</span>' +
-    `<span class="pv-value"><code>${name}</code></span>` +
+    `<span class="pv-value"><code>${esc(name)}</code></span>` +
   '</div>';
 
   if (desc) {
     html += '<div class="pv-row">' +
       '<span class="pv-label">Source</span>' +
-      `<span class="pv-value">${desc}</span>` +
+      `<span class="pv-value">${esc(desc)}</span>` +
     '</div>';
   }
 
@@ -811,7 +563,7 @@ function setPreview(match, all, w) {
   if (willConvert) {
     html += '<div class="pv-row">' +
       '<span class="pv-label">Convert</span>' +
-      `<span class="pv-value">${match.format} → ${w.format} on the server</span>` +
+      `<span class="pv-value">${esc(match.format)} → ${esc(w.format)} on the server</span>` +
     '</div>';
   }
 
@@ -829,8 +581,8 @@ function setPreview(match, all, w) {
   if (alts.length > 1) {
     const others = alts.filter((p) => p !== match.profile);
     const buttons = others.map((p) =>
-      `<button type="button" class="pv-alt" data-profile="${p}" ` +
-      `title="Use the ${p} file instead">${p}</button>`
+      `<button type="button" class="pv-alt" data-profile="${esc(p)}" ` +
+      `title="Use the ${esc(p)} file instead">${esc(p)}</button>`
     ).join('');
     html += '<div class="pv-row pv-alt-row">' +
       '<span class="pv-label">Also</span>' +
@@ -843,7 +595,7 @@ function setPreview(match, all, w) {
   if (state.pickedProfile) {
     html += '<div class="pv-row">' +
       '<span class="pv-label">Pinned</span>' +
-      `<span class="pv-value">${state.pickedProfile} ` +
+      `<span class="pv-value">${esc(state.pickedProfile)} ` +
       `<button type="button" class="pv-alt pv-alt-clear" data-profile="">release</button></span>` +
     '</div>';
   }
@@ -852,16 +604,18 @@ function setPreview(match, all, w) {
   box.hidden = false;
 }
 
-async function refresh() {
+function refresh() {
   const el = state.element;
   const btnHere = document.getElementById('btn-here');
   const btnCompare = document.getElementById('btn-compare');
   const summary = document.getElementById('summary');
 
   if (!el) return;
+  state.action++;
+  document.getElementById('btn-build').disabled = false;
+  document.getElementById('output').removeAttribute('aria-busy');
   const w = want();
-  summary.textContent =
-    `${el.symbol} · ${w.xc.toUpperCase()} · ${w.family.toUpperCase()} · ${w.rel}`;
+  summary.textContent = [el.symbol, w.xc.toUpperCase(), w.family.toUpperCase(), w.rel].filter(Boolean).join(' · ');
 
   /* Everything the store holds for this element and this physics. Format is
    * not part of the match: a different format is a conversion, which the
@@ -883,15 +637,17 @@ async function refresh() {
    * is used.  Reset pickedProfile when the element or physics changes --
    * a profile that was valid for one element is usually not valid for the
    * next, and silently keeping it would make the picker feel stuck. */
-  const candidates = state.pickedProfile
-    ? [...base].sort((a, b) =>
-        (a.profile === state.pickedProfile ? -1 : 0) -
-        (b.profile === state.pickedProfile ? -1 : 0))
-    : base;
-
-  /* Prefer one already in the format asked for, so the common case needs no
-   * conversion at all. */
-  state.match = candidates.find((n) => n.format === w.format) || candidates[0];
+  const candidates = base.filter(n => n.format === w.format ||
+    state.conversions.some(c => c.from === n.format && c.to === w.format));
+  if (!candidates.some(n => n.profile === state.pickedProfile)) state.pickedProfile = null;
+  const preferred = state.pickedProfile ? candidates.filter(n => n.profile === state.pickedProfile) : candidates;
+  state.match = preferred.find(n => n.format === w.format) || preferred[0];
+  const url = new URL(location.href);
+  for (const [key, value] of Object.entries({e: el.symbol, xc: w.xc, f: w.family, r: w.rel, fmt: w.format, p: state.pickedProfile})) {
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  }
+  history.replaceState(null, '', url);
 
   btnHere.disabled = !state.match;
   btnCompare.disabled = !state.match;
@@ -899,7 +655,7 @@ async function refresh() {
   if (!state.match) {
     btnHere.textContent = 'Not available here';
     setPreview(null);
-    showMiss(el, w);
+    showMiss(el);
     return;
   }
 
@@ -937,19 +693,12 @@ function showHave(m, w) {
 /* A miss is an answer too, and the server cannot fill it: it does not run
  * engines. Say what to do instead rather than leaving a disabled button and
  * no explanation. */
-function showMiss(el, w) {
-  const cmd = buildCmd(el.symbol, w, null);
-  show(
-    `<h3 data-status="miss">Not pre-built here</h3>
-     <p>Nothing in the store matches
-        <strong>${esc(el.symbol)} · ${esc(w.xc.toUpperCase())} ·
-        ${esc(w.family.toUpperCase())} · ${esc(w.rel)}</strong>.
-        This server converts formats; it does not run engines, so it cannot
-        make one. <a href="/docs/architecture/http/">Why</a>.</p>
-     <pre>${esc(cmd)}</pre>
-     <p><a class="btn" href="/docs/getting-started/installation/">Install PseudoForge</a></p>`,
-    'refused');
+function showMiss(el) {
+  show(`<h3 data-status="miss">${state.storeFailed ? 'Store unavailable' : 'Not pre-built here'}</h3>
+    <p>${state.storeFailed ? 'The store could not be checked.' : `No stored file is available for ${esc(el.name)}.`}
+    Use <strong>Build locally</strong> for a command checked by PseudoForge.</p>`, 'refused');
 }
+
 
 /* -- the four buttons ------------------------------------------------------ */
 function show(html, kind) {
@@ -957,6 +706,7 @@ function show(html, kind) {
   out.hidden = false;
   out.className = 'output ' + (kind || '');
   out.innerHTML = html;
+  if (kind === 'error') API.notify(out.querySelector('h3')?.textContent || 'The request failed.');
 }
 
 function esc(s) {
@@ -974,8 +724,15 @@ async function onHere() {
     return;
   }
 
-  show('<p>Converting…</p>');
+  const action = ++state.action;
+  const button = document.getElementById('btn-here');
+  button.disabled = true;
+  document.getElementById('output').setAttribute('aria-busy', 'true');
+  show('<p class="loading" role="status">Converting…</p>');
   const { status, body } = await API.convert(m.id, wanted);
+  if (action !== state.action) return;
+  button.disabled = false;
+  document.getElementById('output').removeAttribute('aria-busy');
 
   if (status === 409) {
     /* A refusal is an answer, and there are two different answers. Saying
@@ -1019,86 +776,71 @@ async function onHere() {
 }
 
 
-/* The command names a library only when one is actually implied -- by the
- * file we matched. Printing `-p psl-high` because that happened to be first
- * in a dropdown told people to reproduce a library they had not chosen. */
-function buildCmd(sym, w, profile) {
-  return `pseudoforge generate -e ${sym}` +
-    ` -t ${w.family}` +
-    (profile ? ` -p ${profile}` : '') +
-    ` -x ${w.xc}` +
-    ` -r ${w.rel}` +
-    (w.format && w.format !== 'upf' ? ` --format ${w.format}` : '') +
-    ` -o ./out`;
-}
-
 async function onBuild() {
-  const el = state.element ? state.element.symbol : 'Fe';
+  if (!state.element) return;
   const w = want();
-  let cmd = buildCmd(el, w, state.match ? state.match.profile : null);
+  const args = { element: state.element.symbol };
+  if (w.family) args.family = w.family;
+  if (w.xc) args.xc = w.xc;
+  if (w.rel) args.relativity = w.rel;
+  if (w.format) args.format = w.format;
+  if (state.match?.profile && state.match.profile !== 'unknown') args.profile = state.match.profile;
 
-  try {
-    const u = new URL('/api/build-command', window.location.origin);
-    u.searchParams.set('element', el);
-    if (w.family) u.searchParams.set('family', w.family);
-    if (w.xc) u.searchParams.set('xc', w.xc);
-    if (w.rel) u.searchParams.set('relativity', w.rel);
-    const resp = await fetch(u.toString());
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.command) cmd = data.command;
+  const action = ++state.action;
+  const button = document.getElementById('btn-build');
+  button.disabled = true;
+  document.getElementById('btn-here').disabled = true;
+  document.getElementById('output').setAttribute('aria-busy', 'true');
+  show('<p class="loading" role="status">Checking generation options…</p>');
+  const { status, body } = await API.buildCommand(args);
+  if (action !== state.action) return;
+  button.disabled = false;
+  document.getElementById('btn-here').disabled = !state.match;
+  document.getElementById('output').removeAttribute('aria-busy');
+  if (status !== 200 || !body.command) {
+    show(`<h3>No local command available</h3><p>${esc(body.reason || body.message || 'Try again in a moment.')}</p>
+      <p><a href="/docs/how-to/convert-formats/">See generation and conversion options</a>.</p>`, status === 409 ? 'refused' : 'error');
+    return;
+  }
+  show(`<h3>Build it on your machine</h3>
+    <p>PseudoForge generates files on your machine with a local atomic engine.</p>
+    <pre id="cmd">${esc(body.command)}</pre>
+    <div class="actions">
+      <button class="btn primary" id="copy">Copy command</button>
+      <a class="btn" href="/docs/getting-started/installation/">Install PseudoForge</a>
+    </div>`, 'ok');
+  const copy = document.getElementById('copy');
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(body.command);
+      copy.textContent = 'Copied';
+    } catch {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(document.getElementById('cmd'));
+      selection.removeAllRanges();
+      selection.addRange(range);
+      API.notify('Clipboard unavailable. The command is selected for manual copying.');
     }
-  } catch (e) {}
-
-  show(
-    `<h3>Build it on your machine</h3>
-     <p>Generation does not run on this server — it needs the engines, and
-        this is a small VPS that deliberately does not have them.
-        <a href="/docs/architecture/http/">Why</a>.</p>
-     <pre id="cmd">${esc(cmd)}</pre>
-     <p>
-       <button class="btn" id="copy">Copy</button>
-       <a class="btn" href="/docs/getting-started/installation/">Install PseudoForge</a>
-       <a class="btn" href="/docs/tutorials/01-carbon/">Follow a tutorial</a>
-     </p>`);
-
-  document.getElementById('copy').addEventListener('click', () => {
-    navigator.clipboard.writeText(cmd).then(() => {
-      document.getElementById('copy').textContent = 'Copied';
-    });
   });
 }
 
 function onCompare() {
-  show(
-    `<h3>Compare two files</h3>
-     <p>Download one from here and one from the authors, then diff them
-        channel by channel:</p>
-     <pre>pseudoforge compare ./from-this-site.UPF ./from-the-authors.UPF</pre>
-     <p>It reports valence charge, projectors, grid and suggested cutoffs.
-        Add <code>--ecut N</code> to compare at one cutoff.</p>
-     <p>Or upload one to <a href="/validate/">the validator</a> to see its
-        structural report.</p>`);
+  if (state.match) location.assign('/compare/?a=' + encodeURIComponent(state.match.id));
 }
 
 /* -- go -------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', async () => {
-  /* Selectors first: refresh() filters the store, and drawTable's click
-   * handler calls refresh(). Drawing the table before the store is loaded
-   * meant the first element clicked was matched against an empty list. */
-  await loadSelectors();
-  drawTable();
-  ['xc', 'family', 'rel', 'format'].forEach((id) =>
-    document.getElementById(id).addEventListener('change', refresh));
-  /* When the user changes functional or family, cascade the choices below
-   * it without losing their own pick.  `keep=false` means "this change is
-   * the new truth; rebuild the lists from it".  Element stays the anchor. */
-  ['xc', 'family', 'rel'].forEach((id) => {
+  refillForElement(null);
+  ['xc', 'family', 'rel', 'format'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {
-      refillForElement(state.element, false);
+      state.pickedProfile = null;
+      refillForElement(state.element);
       refresh();
     });
   });
+  await loadSelectors();
+  drawTable();
 
   document.getElementById('btn-here').addEventListener('click', onHere);
   document.getElementById('btn-build').addEventListener('click', onBuild);
@@ -1111,8 +853,9 @@ async function loadRecentSection() {
   if (!container) return;
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   try {
-    const res = await api.recent(5);
-    if (res.status !== 200 || !Array.isArray(res.body) || res.body.length === 0) {
+    const res = await API.recent(5);
+    if (res.status !== 200 || !Array.isArray(res.body)) throw new Error('Recent files unavailable');
+    if (!res.body.length) {
       container.innerHTML = '<p class="quiet">No recently added files found.</p>';
       return;
     }
@@ -1138,7 +881,7 @@ async function loadRecentSection() {
               <td style="padding: 0.45rem 0.6rem;">${esc((f.xc || '—').toUpperCase())}</td>
               <td style="padding: 0.45rem 0.6rem; text-align: right; white-space: nowrap;">
                 ${f.id ? `<a href="/provenance/?id=${encodeURIComponent(f.id)}" class="btn-sm" style="margin-right: 0.35rem; display: inline-block; padding: 0.2rem 0.45rem; font-size: 0.78rem; text-decoration: none; border: 1px solid var(--line); border-radius: 4px; color: var(--fg);">Provenance</a>` : ''}
-                ${f.id ? `<a href="${api.downloadUrl(f.id)}" class="btn-sm primary" style="display: inline-block; padding: 0.2rem 0.45rem; font-size: 0.78rem; text-decoration: none; background: var(--accent); color: #fff; border-radius: 4px;" download>Download</a>` : ''}
+                ${f.id ? `<a href="${API.downloadUrl(f.id)}" class="btn-sm primary" style="display: inline-block; padding: 0.2rem 0.45rem; font-size: 0.78rem; text-decoration: none; background: var(--accent); color: #fff; border-radius: 4px;" download>Download</a>` : ''}
               </td>
             </tr>
           `).join('')}

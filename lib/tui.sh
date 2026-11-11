@@ -221,7 +221,13 @@ tui_wizard() {
         rc=$?
         case $rc in
             0) dir=fwd; i=$((i + 1)) ;;
-            1) dir=back; [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;;
+            1)
+                dir=back
+                # Earlier physics pickers must not inherit a choice made in
+                # the later library layer when the user goes back past it.
+                [ "${keys[$i]}" != profile ] || SPEC[profile]=pseudoforge-auto
+                [ "$i" -gt 0 ] && i=$((i - 1)) || return 1
+                ;;
             2) return 1 ;;          # quit
             3) [ "$dir" = back ] && [ "$i" -gt 0 ] && i=$((i - 1)) || i=$((i + 1)) ;; # auto-skipped layer
             4) dir=back; [ "$i" -gt 0 ] && i=$((i - 1)) || return 1 ;; # fallback to previous step

@@ -16,7 +16,7 @@ declare -ga RECENT_OUT_ID=()
 declare -ga RECENT_OUT_PATH=()
 
 _recent_find_native_dir() {
-    if [ -n "${PF_NATIVE_DIR:-}" ] && [ -d "$PF_NATIVE_DIR" ]; then
+    if [ -n "${PF_NATIVE_DIR:-}" ] && [ "$PF_NATIVE_DIR" != /var/lib/pseudoforge/native ]; then
         printf '%s\n' "$PF_NATIVE_DIR"
         return 0
     fi
@@ -36,11 +36,11 @@ _recent_json_esc() {
 
 recent_files() {
     local count=${1:-10}
-    # Ensure count is positive integer
-    case "$count" in
-        ''|*[!0-9]*) count=10 ;;
-    esac
-    [ "$count" -gt 0 ] 2>/dev/null || count=10
+    # The caller chooses the default; an explicitly invalid count is an error.
+    if [[ "$count" = *[!0-9]* ]] || ! [ "$count" -gt 0 ] 2>/dev/null; then
+        error "count must be a positive integer"
+        return 1
+    fi
 
     RECENT_OUT_DATE=()
     RECENT_OUT_FILENAME=()
@@ -55,12 +55,9 @@ recent_files() {
     store_dir=$(_recent_find_native_dir)
     idx="$store_dir/index.tsv"
 
-    [ -d "$store_dir" ] || return 0
+    [ -f "$idx" ] || return 0
 
-    local idx_arg="/dev/null"
-    [ -f "$idx" ] && idx_arg="$idx"
-
-    # Find the top N files by modification time
+    # Stat all indexed formats and skip files removed since the last scan.
     while IFS=$'\t' read -r _date _fn _el _xc _fam _prof _id _path; do
         [ -n "$_date" ] || continue
         RECENT_OUT_DATE+=("$_date")
@@ -71,32 +68,22 @@ recent_files() {
         RECENT_OUT_PROFILE+=("$_prof")
         RECENT_OUT_ID+=("$_id")
         RECENT_OUT_PATH+=("$_path")
-    done < <(awk -F'\t' '
-        NR == FNR {
-            date[$3] = $2
-            order[++cnt] = $3
-            next
-        }
-        $10 in date {
-            meta_id[$10] = $1
-            meta_el[$10] = $2
-            meta_xc[$10] = $3
-            meta_fam[$10] = $4
-            meta_prof[$10] = $8
-        }
-        END {
-            for (i = 1; i <= cnt; i++) {
-                p = order[i]
-                fn = p; sub(".*/", "", fn); sub(/\.gz$/, "", fn)
-                el = (p in meta_el) ? meta_el[p] : ""
-                xc = (p in meta_xc) ? meta_xc[p] : ""
-                fam = (p in meta_fam) ? meta_fam[p] : ""
-                prof = (p in meta_prof) ? meta_prof[p] : ""
-                id = (p in meta_id) ? meta_id[p] : ""
-                print date[p] "\t" fn "\t" el "\t" xc "\t" fam "\t" prof "\t" id "\t" p
-            }
-        }
-    ' <(find "$store_dir" -type f \( -name "*.UPF" -o -name "*.UPF.gz" -o -name "*.vps" -o -name "*.vps.gz" -o -name "*.xml" -o -name "*.xml.gz" -o -name "*.psp" -o -name "*.psp.gz" -o -name "*.fhi" -o -name "*.fhi.gz" \) ! -path '*/.rejected/*' ! -path '*/rejected/*' -printf '%T@\t%TY-%Tm-%Td\t%P\n' 2>/dev/null | sort -k1,1rn | head -n "$count") "$idx_arg")
+    done < <(
+        find "$store_dir" -type f -printf '%T@\t%TY-%Tm-%Td\t%P\n' 2>/dev/null |
+            awk -F'\t' '
+                BEGIN { OFS = FS }
+                FILENAME == ARGV[1] {
+                    if ($1 !~ /^#/ && $1 !~ /_rejected_/ && $10 !~ /(^|\/)\.?rejected\// && $10 != "") {
+                        id[$10] = $1; el[$10] = $2; xc[$10] = $3; fam[$10] = $4; prof[$10] = $8
+                    }
+                    next
+                }
+                $3 in id {
+                    path = $3; name = path; sub(/.*\//, "", name); sub(/\.gz$/, "", name)
+                    print $1, $2, name, el[path], xc[path], fam[path], prof[path], id[path], path
+                }
+            ' "$idx" - | sort -t $'\t' -k1,1nr -k8,8 | sed -n "1,${count}p" | cut -f2-
+    )
 
     return 0
 }
