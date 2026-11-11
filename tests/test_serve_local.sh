@@ -119,7 +119,7 @@ trap 'rm -rf "$TMP_DIR" "$STORE_TMP"' EXIT
 # 8. With PF_VAR_DIR=$TMP/fake-store where $TMP/fake-store/native/index.tsv exists (3 lines): prints store: $TMP/fake-store/native
 mkdir -p "$STORE_TMP/fake-store/native"
 printf "id\tpath\tformat\n1\ta\tupf\n2\tb\tupf\n3\tc\tupf\n" > "$STORE_TMP/fake-store/native/index.tsv"
-out_env=$(PF_VAR_DIR="$STORE_TMP/fake-store" CHECK_ONLY=1 "$SCRIPT" 2>&1)
+out_env=$(PF_NATIVE_DIR="" PF_VAR_DIR="$STORE_TMP/fake-store" CHECK_ONLY=1 "$SCRIPT" 2>&1)
 if printf '%s' "$out_env" | grep -q "store:[[:space:]]*$STORE_TMP/fake-store/native"; then
     ok_ "prints store: \$TMP/fake-store/native when PF_VAR_DIR is set"
 else
@@ -143,6 +143,14 @@ if printf '%s' "$out_fix" | grep -qE "store:.*fixtures|fixtures"; then
     ok_ "falls back to fixtures and says so when no store present"
 else
     bad_ "did not indicate fixture fallback when store absent" "$out_fix"
+fi
+
+# An explicit empty store wins over a populated default.
+out_empty=$(PF_NATIVE_DIR="$STORE_TMP/empty" PF_VAR_DIR="$STORE_TMP/fake-store" CHECK_ONLY=1 "$SCRIPT" 2>&1)
+if printf '%s' "$out_empty" | grep -q "store:[[:space:]]*$STORE_TMP/empty"; then
+    ok_ "an explicit empty store is used without falling back to a populated default"
+else
+    bad_ "serve-local ignored an explicitly selected empty store" "$out_empty"
 fi
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \

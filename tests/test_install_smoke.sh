@@ -75,10 +75,14 @@ missing=no
 for t in gfortran gcc make unzip; do
     command -v "$t" >/dev/null 2>&1 || missing=yes
 done
+if [ "$missing" = no ]; then
+    printf 'end\n' > "$TEST_TMP/link.f90"
+    gfortran "$TEST_TMP/link.f90" -llapack -lblas -o "$TEST_TMP/link" >/dev/null 2>&1 || missing=yes
+fi
 if [ "$check_rc" -eq 0 ] && [ "$missing" = no ]; then
     ok_ "doctor --check exits 0 (host has required build tools)"
 elif [ "$check_rc" -eq 1 ] && [ "$missing" = yes ]; then
-    ok_ "doctor --check exits 1 (host missing a required build tool)"
+    ok_ "doctor --check exits 1 (a build tool or the BLAS/LAPACK link is unavailable)"
 else
     bad_ "doctor --check exited $check_rc on a host with missing_tools=$missing"
 fi

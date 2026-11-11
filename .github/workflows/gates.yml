@@ -19,7 +19,7 @@ permissions:
 env:
   # The main-branch retry runs the corrected workflow against the same
   # immutable tag. Later retries can be started from the Actions UI.
-  PF_TEST_REF: ${{ (inputs.release_tag && format('refs/tags/{0}', inputs.release_tag)) || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies' && 'refs/tags/v1.3.7') || github.ref }}
+  PF_TEST_REF: ${{ (inputs.release_tag && format('refs/tags/{0}', inputs.release_tag)) || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'Retry v1.3.7 with explicit runner dependencies' && 'refs/tags/v1.3.7') || (github.ref_type == 'tag' && github.ref) || github.sha }}
 
 jobs:
   fast:
