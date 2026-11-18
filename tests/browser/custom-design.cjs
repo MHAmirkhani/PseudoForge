@@ -75,12 +75,14 @@ const {AxeBuilder} = require('@axe-core/playwright');
     await page.getByRole('button', {name: 'Download protocol'}).click();
     assert.equal((await downloadPromise).suggestedFilename(), 'protocol.json');
     const report = {schema_version: 1, selected: 'fixture', meets_reference_constraints: false,
-      reference_kinds: ['synthetic-test'], pareto: ['fixture'], test: {passes: false},
-      results: [{id: '<img src=x onerror=alert(1)>', status: 'evaluated', training: {cost_seconds: 1, worst_normalized_error: 0.2}}]};
+      reference_kinds: ['synthetic-test'], pareto: [], test: {passes: false, convergence: {passes: false}},
+      results: [{id: '<img src=x onerror=alert(1)>', status: 'evaluated', training: {cost_seconds: 1, worst_normalized_error: 0.2, convergence: {passes: true}}}]};
     await page.locator('#design-report-file').setInputFiles({name: 'report.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(report))});
     await page.getByText('Synthetic test data: these results are not a physical verification.', {exact: true}).waitFor();
     assert.equal(await page.locator('#design-results img').count(), 0);
     assert.match(await page.locator('#design-results').innerText(), /<img src=x/);
+    assert.equal(await page.getByRole('columnheader', {name: 'Numerical stability'}).count(), 1);
+    assert.equal(await page.getByText('Held-out numerical stability failed.', {exact: true}).count(), 1);
     const designViolations = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     assert.deepEqual(designViolations.violations.map(v => v.id), [], 'design page accessibility');
     for (const route of ['/customize/', '/design/']) {

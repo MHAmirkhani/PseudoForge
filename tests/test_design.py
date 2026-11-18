@@ -119,6 +119,61 @@ JOB DONE.
             with self.assertRaises(ValueError):
                 design.parse_qe(invalid, 1)
 
+    def test_convergence_levels_must_tighten_and_require_mesh_token(self):
+        self.protocol["convergence"] = {
+            "base_k_mesh": [4, 4, 4], "tolerance_fraction": 0.1,
+            "levels": [{"ecutwfc": 40, "ecutrho": 240, "k_mesh": [4, 4, 4]}],
+        }
+        with self.assertRaisesRegex(ValueError, "K_POINTS automatic"):
+            self.load()
+        for path in self.root.glob("*.in"):
+            path.write_text(path.read_text().replace("K_POINTS gamma", "K_POINTS automatic\n{{K_MESH}} 0 0 0"))
+        self.load()
+        for change in ({"k_mesh": [4, 3, 4]}, {"ecutwfc": 30}, {"ecutrho": 200}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                protocol = copy.deepcopy(self.protocol)
+                protocol["convergence"]["levels"][0].update(change)
+                self.load(protocol)
+
+    def test_numerical_drift_uses_signed_difference_not_absolute_error_delta(self):
+        anchor = {"id": "a", "composition": ["Si"], "tolerances": {}}
+        case = {"id": "b", "relative_to": "a", "composition": ["Si"],
+                "tolerances": {"relative_energy_Ry_atom": 0.01}}
+        earlier = {"cases": [{"id": "a", "measurements": [{"energy_Ry": -100.0}]},
+                             {"id": "b", "measurements": [{"energy_Ry": -99.998}]}]}
+        later = {"cases": [{"id": "a", "measurements": [{"energy_Ry": -101.0}]},
+                           {"id": "b", "measurements": [{"energy_Ry": -101.002}]}]}
+        drift = design.numerical_drift([anchor, case], earlier, later, 0.1)
+        self.assertAlmostEqual(drift["changes"]["b"]["relative_energy_Ry_atom"], 0.004)
+        self.assertFalse(drift["passes"])
+
+    def test_end_to_end_rejects_numerical_drift_even_with_reference_passes(self):
+        self.protocol["convergence"] = {
+            "base_k_mesh": [4, 4, 4], "tolerance_fraction": 0.1,
+            "levels": [{"ecutwfc": 40, "ecutrho": 240, "k_mesh": [6, 6, 6]}],
+        }
+        for path in self.root.glob("*.in"):
+            path.write_text(path.read_text().replace("K_POINTS gamma", "K_POINTS automatic\n{{K_MESH}} 0 0 0"))
+        self.load()
+        solver = self.root / "pw-fixture"
+        solver.write_text("#!/usr/bin/env python3\nimport sys\ns = sys.stdin.read()\nf = 0.0005 if '6 6 6 0 0 0' in s else 0\nprint('! total energy = -10 Ry')\nprint(f'atom 1 type 1 force = {f} 0 0')\nprint('JOB DONE.')\n")
+        solver.chmod(0o755)
+        rc = self.root / "rc"
+        rc.touch()
+        output = self.root / "report"
+        env = dict(os.environ, PF_RC=str(rc), LD1_BIN=str(ROOT / "tests/mock/ld1.x"),
+                   MOCK_FAIL_ELEMENTS="", MOCK_FAIL_ALWAYS="")
+        command = [str(ROOT / "pseudoforge"), "design", str(self.root / "protocol.json"),
+                   "--pw", str(solver), "-o", str(output)]
+        result = subprocess.run(command, env=env, text=True, capture_output=True, timeout=90)
+        self.assertEqual(result.returncode, 2, result.stderr + result.stdout)
+        report = json.loads((output / "report.json").read_text())
+        assessment = report["results"][0]["training"]
+        self.assertTrue(assessment["reference_passes"])
+        self.assertTrue(assessment["convergence"]["levels"][0]["assessment"]["passes"])
+        self.assertFalse(assessment["convergence"]["passes"])
+        self.assertIsNone(report["selected"])
+
     def test_pareto_uses_feasible_training_results_only(self):
         results = [{"id": str(i), "training": {"passes": p, "cost_seconds": c, "worst_normalized_error": e}}
                    for i, (p, c, e) in enumerate([(True, 1, .5), (True, 2, .6), (True, 3, .2), (False, .1, 2)])]

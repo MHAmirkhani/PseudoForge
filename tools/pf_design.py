@@ -116,6 +116,42 @@ def composition(text):
     return tuple(sorted(symbols))
 
 
+def convergence_settings(protocol):
+    if "convergence" not in protocol:
+        return
+    check = protocol["convergence"]
+    keys(check, {"base_k_mesh", "levels", "tolerance_fraction"}, "convergence")
+    def mesh(value):
+        if (not isinstance(value, list) or len(value) != 3 or
+                any(type(n) is not int or n < 1 for n in value)):
+            raise ValueError("a convergence k mesh needs three positive integers")
+        return value
+    previous_mesh = mesh(check.get("base_k_mesh"))
+    fraction = finite(check.get("tolerance_fraction"), "convergence tolerance fraction", positive=True)
+    if fraction > 1:
+        raise ValueError("convergence tolerance fraction must be at most 1")
+    levels = check.get("levels")
+    if not isinstance(levels, list) or not 1 <= len(levels) <= 6:
+        raise ValueError("provide 1..6 tighter convergence levels")
+    for level in levels:
+        keys(level, {"ecutwfc", "ecutrho", "k_mesh"}, "convergence level")
+        wave = finite(level.get("ecutwfc"), "convergence ecutwfc", positive=True)
+        density = finite(level.get("ecutrho"), "convergence ecutrho", positive=True)
+        if density < wave:
+            raise ValueError("convergence ecutrho must be >= ecutwfc")
+        current_mesh = mesh(level.get("k_mesh"))
+        if any(a < b for a, b in zip(current_mesh, previous_mesh)):
+            raise ValueError("convergence levels cannot coarsen the k mesh")
+        previous_mesh = current_mesh
+    for candidate in protocol["candidates"]:
+        previous = (candidate["ecutwfc"], candidate["ecutrho"], *check["base_k_mesh"])
+        for level in levels:
+            current = (level["ecutwfc"], level["ecutrho"], *level["k_mesh"])
+            if current == previous or any(a < b for a, b in zip(current, previous)):
+                raise ValueError("each convergence level must tighten at least one setting without loosening any")
+            previous = current
+
+
 def load_protocol(path):
     def unique(pairs):
         obj = {}
@@ -126,7 +162,7 @@ def load_protocol(path):
         return obj
 
     protocol = json.loads(path.read_text(), object_pairs_hook=unique)
-    keys(protocol, {"schema_version", "element", "xc", "relativity", "candidates", "benchmarks", "fixed_pseudos", "repeats", "timeout_seconds", "reference_description"}, "protocol")
+    keys(protocol, {"schema_version", "element", "xc", "relativity", "candidates", "benchmarks", "fixed_pseudos", "repeats", "timeout_seconds", "reference_description", "convergence", "selection"}, "protocol")
     if type(protocol.get("schema_version")) is not int or protocol["schema_version"] != 1:
         raise ValueError("schema_version must be 1")
     if not re.fullmatch(r"[A-Z][a-z]?", str(protocol.get("element", ""))):
@@ -134,6 +170,8 @@ def load_protocol(path):
     identifier(protocol.get("xc"), "XC")
     if protocol.get("relativity") not in ("nonrel", "scalar", "full"):
         raise ValueError("relativity must be nonrel, scalar or full")
+    if protocol.get("selection", "cost") not in ("cost", "accuracy"):
+        raise ValueError("selection must be cost or accuracy")
     for key, default, maximum in (("repeats", 3, 20), ("timeout_seconds", 600, 86400)):
         value = protocol.get(key, default)
         if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
@@ -177,6 +215,7 @@ def load_protocol(path):
             option_args(item["options"])
             expanded.append(item)
     protocol["candidates"] = expanded
+    convergence_settings(protocol)
     fixed = protocol.get("fixed_pseudos", {})
     if not isinstance(fixed, dict):
         raise ValueError("fixed_pseudos must map symbols to local UPF paths")
@@ -207,6 +246,12 @@ def load_protocol(path):
         for token in ("{{PSEUDO_DIR}}", "{{UPF}}", "{{ECUTWFC}}", "{{ECUTRHO}}", "{{OUTDIR}}", "{{PREFIX}}"):
             if token not in text:
                 raise ValueError(f"{name}: missing template token {token}")
+        mesh_token = re.search(r"^\s*K_POINTS\s+automatic[ \t]*\r?\n[ \t]*{{K_MESH}}[ \t]+[01][ \t]+[01][ \t]+[01][ \t]*$", text, re.M | re.I)
+        if "convergence" in protocol:
+            if not mesh_token or text.count("{{K_MESH}}") != 1:
+                raise ValueError(f"{name}: convergence needs K_POINTS automatic with {{{{K_MESH}}}} followed by three shifts")
+        elif "{{K_MESH}}" in text:
+            raise ValueError(f"{name}: {{{{K_MESH}}}} requires a convergence specification")
         if not re.search(r"\bcalculation\s*=\s*['\"]scf['\"]", text, re.I):
             raise ValueError(f"{name}: benchmarks must be single-point SCF calculations")
         if "input_dft" in text.lower():
@@ -356,7 +401,7 @@ def execute(command, directory, logfile, env, timeout, stdin=None):
     return time.perf_counter() - started
 
 
-def run_cases(protocol, candidate, project, cases, pw, env):
+def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index=0):
     # Every repeat has a distinct scratch directory. No candidate benefits
     # from another candidate's wavefunctions or a previous test's restart.
     by_id = {case["id"]: case for case in cases}
@@ -364,17 +409,22 @@ def run_cases(protocol, candidate, project, cases, pw, env):
     upfs = [p for p in (project / "pseudos").iterdir() if p.suffix.lower() == ".upf" and not p.name.endswith(".fixed.UPF")]
     if len(upfs) != 1:
         raise ValueError("design requires exactly one generated UPF")
+    numerical = candidate if level is None else level
+    k_mesh = level["k_mesh"] if level is not None else protocol.get("convergence", {}).get("base_k_mesh")
+    directory = "benchmarks" if not index else f"convergence-{index}"
     for case in cases:
         measurements, durations = [], []
         text = Path(case["input"]).read_text()
-        for repeat in range(protocol["repeats"]):
-            folder = project / "benchmarks" / case["id"] / str(repeat + 1)
+        for repeat in range(protocol["repeats"] if not index else 1):
+            folder = project / directory / case["id"] / str(repeat + 1)
             folder.mkdir(parents=True)
             scratch = folder / "scratch"
             scratch.mkdir()
             substitutions = {"PSEUDO_DIR": str(project / "pseudos"), "UPF": upfs[0].name,
-                             "ECUTWFC": str(candidate["ecutwfc"]), "ECUTRHO": str(candidate["ecutrho"]),
+                             "ECUTWFC": str(numerical["ecutwfc"]), "ECUTRHO": str(numerical["ecutrho"]),
                              "OUTDIR": str(scratch), "PREFIX": "pf_design", "ELEMENT": protocol["element"]}
+            if k_mesh is not None:
+                substitutions["K_MESH"] = " ".join(map(str, k_mesh))
             rendered = text
             for key, value in substitutions.items():
                 rendered = rendered.replace("{{" + key + "}}", value)
@@ -391,7 +441,7 @@ def run_cases(protocol, candidate, project, cases, pw, env):
     evaluated, worst = [], 0.0
     for case in cases:
         errors = {key: 0.0 for key in case["tolerances"]}
-        for repeat in range(protocol["repeats"]):
+        for repeat in range(len(all_measurements[case["id"]])):
             samples = {key: values[repeat] for key, values in all_measurements.items()}
             observed = measure_errors(case, samples[case["id"]], samples, by_id)
             for metric, value in observed.items():
@@ -402,6 +452,54 @@ def run_cases(protocol, candidate, project, cases, pw, env):
                           "passes": ratio <= 1.0, "measurements": all_measurements[case["id"]]})
     return {"cases": evaluated, "cost_seconds": sum(elapsed), "worst_normalized_error": worst,
             "passes": worst <= 1.0}
+
+
+def numerical_drift(cases, earlier, later, fraction):
+    """Compare the actual observables, including the signed relative energies."""
+    by_id = {case["id"]: case for case in cases}
+    last = {case["id"]: case["measurements"][0] for case in later["cases"]}
+    samples = {case["id"]: case["measurements"] for case in earlier["cases"]}
+    errors = {}
+    for repeat in range(len(next(iter(samples.values())))):
+        first = {name: values[repeat] for name, values in samples.items()}
+        reference = {name: {**case, "reference": first[name]} for name, case in by_id.items()}
+        for name, case in reference.items():
+            observed = measure_errors(case, last[name], last, reference)
+            error = errors.setdefault(name, {})
+            for metric, value in observed.items():
+                error[metric] = max(value, error.get(metric, 0.0))
+    worst = max((value / by_id[name]["tolerances"][metric]) / fraction
+                for name, metrics in errors.items() for metric, value in metrics.items())
+    return {"changes": errors, "worst_normalized_drift": worst, "passes": worst <= 1}
+
+
+def evaluate(protocol, candidate, project, cases, pw, env):
+    result = run_cases(protocol, candidate, project, cases, pw, env)
+    if "convergence" not in protocol:
+        return result
+    check = protocol["convergence"]
+    result["reference_passes"] = result["passes"]
+    result["convergence"] = {"passes": False, "levels": []}
+    record = result["convergence"]
+    previous = result
+    for index, settings in enumerate(check["levels"], start=1):
+        try:
+            assessed = run_cases(protocol, candidate, project, cases, pw, env, level=settings, index=index)
+            fraction = check["tolerance_fraction"]
+            entry = {"settings": settings, "assessment": assessed,
+                     "from_previous": numerical_drift(cases, previous, assessed, fraction),
+                     "from_base": numerical_drift(cases, result, assessed, fraction)}
+        except (ValueError, OSError) as exc:
+            record["levels"].append({"settings": settings, "error": str(exc)})
+            result["passes"] = False
+            return result
+        record["levels"].append(entry)
+        previous = assessed
+    record["passes"] = all(level["from_previous"]["passes"] and level["from_base"]["passes"]
+                           for level in record["levels"])
+    result["passes"] = result["reference_passes"] and record["passes"] and all(
+        level["assessment"]["passes"] for level in record["levels"])
+    return result
 
 
 def pareto(results):
@@ -464,6 +562,7 @@ def main(argv=None):
     portable["fixed_pseudos"] = {symbol: Path(file).name for symbol, file in protocol["fixed_pseudos"].items()}
     write_json(archive / "protocol.json", portable)
     report = {"schema_version": 1, "protocol_sha256": digest(protocol_path), "selection_uses": "train only",
+              "selection_objective": protocol.get("selection", "cost"),
               "frozen_protocol_sha256": digest(archive / "protocol.json"),
               "host": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version(), "threads": 1},
               "reference_description": protocol.get("reference_description", ""),
@@ -497,27 +596,35 @@ def main(argv=None):
     for candidate, command in zip(protocol["candidates"], commands):
         item = {"id": candidate["id"], "candidate": candidate, "status": "failed"}
         project = output / candidate["id"]
+        started = time.perf_counter()
         try:
-            execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env, protocol["timeout_seconds"])
+            try:
+                execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env, protocol["timeout_seconds"])
+            finally:
+                item["generation_wall_seconds"] = time.perf_counter() - started
             for symbol, file in protocol["fixed_pseudos"].items():
                 shutil.copyfile(file, project / "pseudos" / (symbol + ".fixed.UPF"))
             # The generated UPF is selected independently of fixed species.
-            item["training"] = run_cases(protocol, candidate, project, train, pw, env)
+            item["training"] = evaluate(protocol, candidate, project, train, pw, env)
             item["status"] = "evaluated"
         except (ValueError, OSError) as exc:
             item["error"] = str(exc)
+        item["trial_wall_seconds"] = time.perf_counter() - started
         report["results"].append(item)
         write_json(output / "report.json", report)
         print(candidate["id"], item["status"], flush=True)
     report["pareto"] = pareto(report["results"])
     feasible = [item for item in report["results"] if item.get("training", {}).get("passes")]
     if feasible:
-        winner = min(feasible, key=lambda item: (item["training"]["cost_seconds"], item["training"]["worst_normalized_error"], item["id"]))
+        criteria = ("cost_seconds", "worst_normalized_error")
+        if report["selection_objective"] == "accuracy":
+            criteria = tuple(reversed(criteria))
+        winner = min(feasible, key=lambda item: (*(item["training"][key] for key in criteria), item["id"]))
         report["selected"] = winner["id"]
         # Commit the decision to disk before opening any held-out calculation.
         write_json(output / "report.json", report)
         try:
-            report["test"] = run_cases(protocol, winner["candidate"], output / winner["id"], heldout, pw, env)
+            report["test"] = evaluate(protocol, winner["candidate"], output / winner["id"], heldout, pw, env)
             report["meets_reference_constraints"] = report["test"]["passes"] and "synthetic-test" not in report["reference_kinds"]
         except (ValueError, OSError) as exc:
             report["test"] = {"passes": False, "error": str(exc)}

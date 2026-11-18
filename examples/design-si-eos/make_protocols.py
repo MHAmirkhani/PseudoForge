@@ -28,6 +28,7 @@ def eos_energy(volume, equilibrium_volume, bulk_modulus, bulk_derivative):
 def qe_input(volume, mesh):
     # ibrav=2 uses the FCC primitive cell with one fourth of the cubic volume.
     alat = (4 * volume) ** (1 / 3) / ANGSTROM_PER_BOHR
+    mesh_row = "{{K_MESH}}" if mesh is None else f"{mesh} {mesh} {mesh}"
     return f"""&CONTROL
  calculation='scf', prefix='{{{{PREFIX}}}}', outdir='{{{{OUTDIR}}}}',
  pseudo_dir='{{{{PSEUDO_DIR}}}}', disk_io='none'
@@ -46,7 +47,7 @@ ATOMIC_POSITIONS alat
  Si 0.0 0.0 0.0
  Si 0.25 0.25 0.25
 K_POINTS automatic
- {mesh} {mesh} {mesh} 0 0 0
+ {mesh_row} 0 0 0
 """
 
 
@@ -55,9 +56,14 @@ def main():
     parser.add_argument("reference", type=Path, help="pinned ACWF unary all-electron EOS JSON")
     parser.add_argument("-o", "--output", required=True, type=Path, help="new output directory")
     parser.add_argument("--k-mesh", type=int, help="override the reference-spacing mesh for a smoke run")
+    parser.add_argument("--convergence-mesh", type=int,
+                        help="check wavefunction and density cutoff increases, then this denser mesh")
     args = parser.parse_args()
     if args.k_mesh is not None and args.k_mesh < 1:
         parser.error("--k-mesh must be positive")
+    if args.convergence_mesh is not None and (
+            args.k_mesh is None or args.convergence_mesh <= args.k_mesh):
+        parser.error("--convergence-mesh requires a smaller --k-mesh")
     data = args.reference.read_bytes()
     if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
         parser.error("reference SHA-256 differs from the pinned ACWF data")
@@ -77,7 +83,7 @@ def main():
             reciprocal_length = 2 * math.pi * math.sqrt(3) / alat_angstrom
             mesh = args.k_mesh or math.ceil(reciprocal_length / 0.06)
             filename = f"{case_id}.in"
-            (args.output / filename).write_text(qe_input(volume, mesh))
+            (args.output / filename).write_text(qe_input(volume, None if args.convergence_mesh else mesh))
             energy = eos_energy(volume, fit["min_volume"], fit["bulk_modulus_ev_ang3"], fit["bulk_deriv"])
             cases.append({
                 "id": case_id, "split": split, "input": filename,
@@ -102,6 +108,18 @@ def main():
                     for scale in scales
                 ],
             }
+            if args.convergence_mesh:
+                base_mesh = [args.k_mesh] * 3
+                protocol["selection"] = "accuracy"
+                protocol["convergence"] = {
+                    "base_k_mesh": base_mesh,
+                    "tolerance_fraction": 0.1,
+                    "levels": [
+                        {"ecutwfc": 80, "ecutrho": 480, "k_mesh": base_mesh},
+                        {"ecutwfc": 80, "ecutrho": 640, "k_mesh": base_mesh},
+                        {"ecutwfc": 80, "ecutrho": 640, "k_mesh": [args.convergence_mesh] * 3},
+                    ],
+                }
             (args.output / f"{name}-{mode}.json").write_text(json.dumps(protocol, indent=2) + "\n")
 
 

@@ -19,3 +19,10 @@ done
 ```
 
 The preparer checks the reference checksum. An exit status of 2 from `design` means no candidate met the reported constraints. Inspect `report.json`, the executed QE inputs and the generation/SCF logs for each case. The held-out cases are other volumes of the same structural family. They exercise the selection boundary in the runner. The example uses fixed cutoffs (60 Ry wavefunction, 480 Ry density), one timing repeat and an exploratory 2 meV/atom relative-energy tolerance. Consumer cutoff convergence, runtime savings, transferability across material families and forces/stresses need separate tests. Use `--k-mesh 8` with the preparer for a shortened integration smoke run and report the reduced sampling with its results.
+
+To measure stability at the fixed settings, add `--k-mesh 8 --convergence-mesh 12`.
+This checks 80 Ry wavefunction cutoff, then 640 Ry density cutoff, then a
+`12×12×12` mesh, allowing up to 0.2 meV/atom of energy-difference drift from
+the base and each preceding level. It selects by training error among feasible
+candidates and records changes in each stage separately. Increase and justify
+the settings for production benchmarks.

@@ -62,7 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (report.reference_kinds && report.reference_kinds.includes('synthetic-test')) view.append(make('p', 'Synthetic test data: these results are not a physical verification.', 'error'));
     const table = make('table');
     const head = make('thead'); const header = make('tr');
-    for (const text of ['Candidate', 'Status', 'Training time (s)', 'Worst error / tolerance', 'Training frontier']) header.append(make('th', text));
+    const hasConvergence = report.results.some(result => result.training?.convergence);
+    const headings = ['Candidate', 'Status', 'Training time (s)', 'Worst error / tolerance', 'Training frontier'];
+    if (hasConvergence) headings.push('Numerical stability');
+    for (const text of headings) header.append(make('th', text));
     head.append(header); table.append(head);
     const body = make('tbody');
     for (const result of report.results) {
@@ -70,12 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const training = result.training || {};
       const cost = Number.isFinite(training.cost_seconds) ? training.cost_seconds.toFixed(3) : '—';
       const error = Number.isFinite(training.worst_normalized_error) ? training.worst_normalized_error.toFixed(3) : '—';
-      for (const text of [result.id, result.error || result.status, cost, error, (report.pareto || []).includes(result.id) ? 'yes' : '']) row.append(make('td', String(text || '—')));
+      const values = [result.id, result.error || result.status, cost, error, (report.pareto || []).includes(result.id) ? 'yes' : ''];
+      if (hasConvergence) values.push(training.convergence ? (training.convergence.passes ? 'Passed' : 'Failed') : 'Not measured');
+      for (const text of values) row.append(make('td', String(text || '—')));
       body.append(row);
     }
     table.append(body); const scroll = make('div', '', 'table-scroll'); scroll.append(table); view.append(scroll);
     if (!report.results.length) view.append(make('p', 'This is a plan; no candidates have been measured.', 'hint'));
-    if (report.test) view.append(make('pre', JSON.stringify(report.test, null, 2)));
+    if (report.test) {
+      if (report.test.convergence) view.append(make('p', report.test.convergence.passes ? 'Held-out numerical stability passed.' : 'Held-out numerical stability failed.'));
+      const details = make('details');
+      details.append(make('summary', 'Held-out measurements'), make('pre', JSON.stringify(report.test, null, 2)));
+      view.append(details);
+    }
   };
   reportFile.addEventListener('change', () => read(reportFile.files[0], renderReport));
   results.append(reportLabel, view); host.append(intro, guide, make('p'), custom, editor, results); validate();

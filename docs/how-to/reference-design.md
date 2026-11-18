@@ -1,8 +1,8 @@
 # Design against reference data
 
 `pseudoforge design` searches a finite, explicit set of generation parameters
-and chooses the least expensive candidate that meets physical error limits on
-training structures. It then evaluates the locked choice on held-out structures.
+and selects a candidate that meets physical error limits on training
+structures. It then evaluates the locked choice on held-out structures.
 This is a reproducible constrained grid search, not a new Bayesian optimizer or
 a claim that a potential is accurate outside those structures.
 
@@ -120,9 +120,42 @@ OpenMP/BLAS thread. The sum of the median times per training case is the cost.
 The worst physical error over repeats is divided by each stated tolerance.
 A candidate is feasible only when every training constraint is satisfied.
 The report includes the nondominated training candidates in cost/error space.
-Selection chooses the feasible candidate with the lowest training cost; ties
-use its worst normalized error and then its id. A loaded machine can change
-wall-time rankings; the report records the host and solver identity.
+By default (`"selection": "cost"`), selection chooses the feasible candidate
+with the lowest training cost. Ties use its worst normalized error and then
+its id. With `"selection": "accuracy"`, error comes first and time breaks ties.
+Use this mode for matched fixed-cutoff comparisons. A loaded machine can
+change wall-time rankings. The report records the host and solver identity.
+
+### Test numerical stability
+
+Add an optional block at the protocol's top level. For example, a candidate
+using 60/480 Ry can be checked with three successive increases.
+
+```json
+{
+  "convergence": {
+    "base_k_mesh": [8, 8, 8],
+    "tolerance_fraction": 0.1,
+    "levels": [
+      {"ecutwfc": 80, "ecutrho": 480, "k_mesh": [8, 8, 8]},
+      {"ecutwfc": 80, "ecutrho": 640, "k_mesh": [8, 8, 8]},
+      {"ecutwfc": 80, "ecutrho": 640, "k_mesh": [12, 12, 12]}
+    ]
+  }
+}
+```
+
+In every template, use `K_POINTS automatic` followed by
+`{{K_MESH}} 0 0 0`, or the desired three shifts. Every level must increase
+at least one setting and keep the others the same or tighter. The evaluator
+runs each tighter level once. It compares forces, stress and signed energy
+differences with the preceding level and with all base repeats. For each
+metric, the maximum drift must fit within the specified fraction of the
+benchmark tolerance. The physical reference limits must also pass at every
+level. A failed level stays in the report. The selection time objective still
+uses the median base-setting simulation time, while the complete generation
+and training trial elapsed times are recorded separately. A pass establishes
+stability across the declared levels and structures.
 
 Every generation runs with `--no-autofix`; the search must evaluate the requested
 parameters. A bound ghost detected by ONCVPSP is refused even with optional
