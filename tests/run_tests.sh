@@ -626,6 +626,12 @@ run_subsuite() {
     fi
 }
 
+section "physics control effects"
+run_subsuite "physics control effects" bash "$HERE/test_physics_contract.sh"
+
+section "reference-constrained design"
+run_subsuite "reference-constrained design" python3 "$HERE/test_design.py"
+
 section "REST interface"
 run_subsuite "the website REST API contract" env http_proxy="" https_proxy="" no_proxy="*" bash "$HERE/test_http.sh"
 

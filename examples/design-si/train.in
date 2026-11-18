@@ -1,0 +1,18 @@
+&CONTROL
+ calculation='scf', prefix='{{PREFIX}}', outdir='{{OUTDIR}}',
+ pseudo_dir='{{PSEUDO_DIR}}', tprnfor=.true., tstress=.true., disk_io='none'
+/
+&SYSTEM
+ ibrav=2, celldm(1)=10.26, nat=2, ntyp=1,
+ ecutwfc={{ECUTWFC}}, ecutrho={{ECUTRHO}}
+/
+&ELECTRONS
+ conv_thr=1.0d-10, mixing_beta=0.3
+/
+ATOMIC_SPECIES
+ Si 28.0855 {{UPF}}
+ATOMIC_POSITIONS crystal
+ Si 0.0 0.0 0.0
+ Si 0.255 0.25 0.25
+K_POINTS automatic
+ 2 2 2 0 0 0

@@ -81,9 +81,9 @@ reset_val; val_oncvpsp "$TMP/oncv.log"
 near "$VAL_MAXDE" 0.000002 0.0000005 \
     && ok_ "eigenvalue error converted Ha -> Ry ($VAL_MAXDE)" \
     || bad_ "max|dE| = $VAL_MAXDE" "expected ~0.000002 Ry (2x the 1.03e-6 Ha in the log)"
-[ "$VAL_VERDICT" = excellent ] \
-    && ok_ "a positive-energy ghost above the cutoff is not a failing verdict" \
-    || bad_ "verdict = $VAL_VERDICT" "GHOST(+) at 46 Ry is a note, not a condemnation"
+[ "$VAL_VERDICT" = no-data ] \
+    && ok_ "reference-only agreement is not graded as measured transferability" \
+    || bad_ "verdict = $VAL_VERDICT" "no alternative configuration was tested"
 case $VAL_NOTE in *"positive-energy ghost"*) ok_ "the ghost is still reported in the note" ;;
                   *) bad_ "the positive-energy ghost was dropped entirely" "note: $VAL_NOTE" ;; esac
 case $VAL_NOTE in *"reference configuration only"*) ok_ "says the deck tested no alternative configurations" ;;

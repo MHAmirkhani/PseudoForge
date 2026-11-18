@@ -4,7 +4,7 @@
 #
 # The rule is tested on its own (opt_choose) against tables whose right answer
 # can be read off by hand; the command is tested for what it refuses; and,
-# gated behind PF_SLOW_TESTS=1, a real ONCVPSP sweep checks that the choice is
+# gated behind PF_SLOW_TESTS=1, a real ld1 PAW sweep checks that the choice is
 # reproducible from the recipe it saves.
 # ---------------------------------------------------------------------------
 set -uo pipefail
@@ -36,8 +36,8 @@ want() {   # want <label> <expected scale|none> <min-rank> <rows...>
 }
 
 printf '\n%s== the rule%s\n' "$DIM" "$RESET"
-# The measured Si/ONCVPSP sweep: 1.1 and 1.2 tie at 15 Ry; 1.1 has the smaller error.
-want "measured Si sweep, cutoff tie broken by the error" 1.1 3 \
+# Ranking fixture: 1.1 and 1.2 tie at 15 Ry; 1.1 has the smaller error.
+want "cutoff tie broken by the error" 1.1 3 \
     "0.9|ok|good|0.002340|21|a|p" "1.0|ok|good|0.001726|18|a|p" \
     "1.1|ok|good|0.001190|15|a|p" "1.2|ok|good|0.003140|15|a|p" \
     "1.3|ok|marginal|0.005240|12|a|p"
@@ -72,15 +72,15 @@ refused "an engine without --rcut-scale" "honours --rcut-scale"  -e Si -t us -p 
 "$PSM" optimise --help >/dev/null 2>&1 && ok_ "--help exits 0" || bad_ "--help fails"
 
 printf '\n%s== a real sweep%s\n' "$DIM" "$RESET"
-if [ "${PF_SLOW_TESTS:-0}" = 1 ] && "$PSM" engines path oncvpsp >/dev/null 2>&1; then
+if [ "${PF_SLOW_TESTS:-0}" = 1 ] && "$PSM" engines path ld1 >/dev/null 2>&1; then
     export OMP_NUM_THREADS=1
     name=pf-test-opt-$$
-    "$PSM" optimise -e Si -t nc -p pseudoforge-auto -x pbe --engine oncvpsp \
-        --scales 1.0,1.2,1.4 -o "$TMP/o" --save-recipe "$name" >/dev/null 2>&1
+    "$PSM" optimise -e Si -t paw -p psl-high -x pbe --engine ld1 \
+        --scales 1.0,1.05 -o "$TMP/o" --save-recipe "$name" >/dev/null 2>&1
     c=$(cat "$TMP/o/choice" 2>/dev/null)
-    case $c in 1.0|1.2|1.4) ok_ "a scale from the ladder was chosen ($c)" ;; *) bad_ "no choice recorded" ;; esac
+    case $c in 1.0|1.05) ok_ "a scale from the ladder was chosen ($c)" ;; *) bad_ "no choice recorded" ;; esac
     rows=$(grep -vc '^#' "$TMP/o/optimise.tsv" 2>/dev/null)
-    [ "$rows" = 3 ] && ok_ "every rung is recorded in optimise.tsv" || bad_ "optimise.tsv has $rows rows, not 3"
+    [ "$rows" = 2 ] && ok_ "every rung is recorded in optimise.tsv" || bad_ "optimise.tsv has $rows rows, not 2"
     "$PSM" generate --recipe "$name" -o "$TMP/re" >/dev/null 2>&1
     a=$(ls "$TMP"/o/rc-"$c"/pseudos/*.UPF 2>/dev/null | head -1)
     b=$(ls "$TMP"/re/pseudos/*.UPF 2>/dev/null | head -1)
@@ -92,7 +92,7 @@ if [ "${PF_SLOW_TESTS:-0}" = 1 ] && "$PSM" engines path oncvpsp >/dev/null 2>&1;
     fi
     "$PSM" recipe delete "$name" >/dev/null 2>&1
 else
-    skip_ "a real ONCVPSP sweep (needs ONCVPSP and PF_SLOW_TESTS=1)"
+    skip_ "a real ld1 PAW sweep (needs ld1 and PF_SLOW_TESTS=1)"
 fi
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \

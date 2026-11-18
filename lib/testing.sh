@@ -321,6 +321,22 @@ validate_batch() {
             transfer_test_one "$el" &
         done
         wait
+        local upf stem f rejected=0
+        for el in "$@"; do
+            if awk -F'\t' -v e="$el" '$1==e && $5=="ghost" {found=1} END{exit !found}' "$PROJECT_DIR/tests/transferability.tsv"; then
+                upf=$(state_field "$el" 7); stem=${upf%.*}
+                mkdir -p "$PROJECT_DIR/pseudos/rejected"
+                for f in "$PROJECT_DIR/pseudos/$stem".*; do
+                    [ -f "$f" ] && mv -f "$f" "$PROJECT_DIR/pseudos/rejected/"
+                done
+                state_record "$el" "${SPEC[family]}" "${SPEC[profile]}" "${SPEC[xc]}" "${SPEC[rel]}" \
+                    "$(state_field "$el" 6)" "$upf" fail "$(state_field "$el" 9)" "$(state_field "$el" 10)" \
+                    "rejected: ghost state detected by the atomic validator"
+                error "$el: ghost-state output moved to pseudos/rejected"
+                rejected=1
+            fi
+        done
+        [ "$rejected" = 0 ] || state_merge
     fi
 
     if [ "${RUN_CUTOFF_SCAN:-0}" = 1 ]; then

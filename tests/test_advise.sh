@@ -7,6 +7,10 @@ set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
 export PF_ROOT=$ROOT PF_LIB=$ROOT/lib PF_DATA=$ROOT/data
+# These are ranking and deck-rendering tests, independent of installed engines.
+# Their PBEsol recommendations require a Libxc-capable ONCVPSP. Declare that
+# fixture capability explicitly; physics-contract tests check refusal without it.
+export ONCVPSP_LIBXC=1
 
 for m in core sink config deps elements xc namelist profiles metadata formats gth sssp params engines recipe advise; do
     # shellcheck disable=SC1090

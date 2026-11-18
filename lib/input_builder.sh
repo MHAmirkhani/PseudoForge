@@ -24,6 +24,121 @@
 IB_PROVENANCE=
 IB_SOURCE=
 
+# One contract for CLI validation, direct builders and the capability API.
+# "construction" means that a published deck is not rewritten for this key;
+# the element-specific builder must refuse it if it finds such a deck.
+ib_option_keys() {
+    printf '%s\n' variant author config core_hole zed zval nlcc rcore rho0 channel_radii \
+        which_augfun rmatch_augfun lloc rcloc rcut_scale nc_form beta tr2 \
+        lsd gipaw extra_projectors xmin dx rmax
+}
+
+ib_option_mode() {
+    case $1:$2 in
+        ld1:*) printf 'native' ;;
+        *:author) printf 'metadata' ;;
+        oncvpsp:config|opium:config) printf 'construction' ;;
+        atompaw:config|ape:config|fhi98pp:lsd|gth:variant|oncvpsp:rcut_scale|oncvpsp:channel_radii|oncvpsp:lloc|oncvpsp:rcloc|oncvpsp:nlcc|opium:rcut_scale|ape:rcut_scale) printf 'native' ;;
+        *) printf 'unsupported' ;;
+    esac
+}
+
+ib_number() {
+    [[ "$1" =~ ^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eEdD][+-]?[0-9]+)?$ ]] || return 1
+    awk -v x="${1//[dD]/e}" 'BEGIN {exit !(x > -1e100 && x < 1e100)}'
+}
+
+ib_check_options() {
+    local eng=$1 key value mode failed=0
+    while IFS= read -r key; do
+        value=${SPEC[$key]:-}
+        [ -n "$value" ] || continue
+        if [[ "$value" = *$'\n'* || "$value" = *$'\r'* ]]; then
+            error "$key must be a single line"; failed=1; continue
+        fi
+        mode=$(ib_option_mode "$eng" "$key")
+        if [ "${SPEC[source]:-local}" = online ] && [ "$key" != author ] && [ "$key" != variant ]; then
+            error "--source online downloads published files; it cannot apply '$key'. Use --source local."
+            failed=1
+        elif [ "$mode" = unsupported ]; then
+            case $key in
+                rcut_scale) error "--rcut-scale is not available with ${ENG_LABEL[$eng]:-$eng}: $(ib_rc_refusal "$eng")" ;;
+                extra_projectors) error "--projector is only available with ld1.x in this build." ;;
+                *) error "$eng does not implement '$key' through this interface; use a supported engine or supply an edited native deck." ;;
+            esac
+            failed=1
+        fi
+        case $key in
+            zed|zval|rcore|rcloc|rmatch_augfun|rcut_scale|dx|rmax|tr2)
+                if ! ib_number "$value" || ! awk -v x="${value//[dD]/e}" 'BEGIN {exit !(x > 0 && x < 1e100)}'; then
+                    error "$key must be a positive number (finite)"; failed=1
+                fi ;;
+            beta)
+                if ! ib_number "$value" || ! awk -v x="${value//[dD]/e}" 'BEGIN {exit !(x > 0 && x <= 1)}'; then
+                    error "beta must be in (0, 1]"; failed=1
+                fi ;;
+            xmin|rho0)
+                if ! ib_number "$value"; then error "$key must be a finite number"; failed=1; fi ;;
+            lloc) [[ "$value" =~ ^(-1|[0-4])$ ]] || { error "lloc must be an integer from -1 to 4"; failed=1; } ;;
+            nlcc) case $value in on|off) ;; *) error "nlcc must be on or off"; failed=1 ;; esac ;;
+            nc_form) case $value in separable|semilocal) ;; *) error "nc-form must be separable or semilocal"; failed=1 ;; esac ;;
+            config)
+                if [[ "$value" = *[!a-zA-Z0-9\[\].+\ -]* ]]; then
+                    error "config contains invalid characters; use noble-gas cores and orbital occupations"; failed=1
+                fi ;;
+            core_hole) [[ "$value" =~ ^[1-9][spdf]$ ]] || { error "core-hole must name an orbital such as 1s"; failed=1; } ;;
+        esac
+        case $key in zed|zval|rcore|rcloc|rmatch_augfun|rcut_scale|dx|rmax|tr2|beta|xmin|rho0)
+            SPEC[$key]=${value//[dD]/e} ;;
+        esac
+    done < <(ib_option_keys)
+    if [ "${SPEC[family]:-nc}" = nc ] && [ -n "${SPEC[which_augfun]:-}${SPEC[rmatch_augfun]:-}" ]; then
+        error "augmentation options require a US or PAW potential"; failed=1
+    fi
+    if [ "${SPEC[family]:-nc}" != nc ] && [ -n "${SPEC[nc_form]:-}" ]; then
+        error "nc-form requires a norm-conserving potential"; failed=1
+    fi
+    if [ "${SPEC[nlcc]:-}" = off ] && [ -n "${SPEC[rcore]:-}${SPEC[rho0]:-}" ]; then
+        error "rcore/rho0 cannot be combined with nlcc=off"; failed=1
+    fi
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        case $eng in ape|atompaw|gth)
+            error "$eng does not implement --params; its current builder cannot adopt arbitrary native decks"; failed=1 ;;
+        esac
+    fi
+    if [ "${GTH_REFIT:-0}" = 1 ] && [ "$eng" != gth ]; then
+        error "--refit is only available with gth"; failed=1
+    fi
+    if [ "${GTH_CYCLES_EXPLICIT:-0}" = 1 ]; then
+        if [ "$eng" != gth ] || [ "${GTH_REFIT:-0}" != 1 ]; then
+            error "--refit-cycles requires gth with --refit"; failed=1
+        elif [[ ! "${GTH_CYCLES:-}" =~ ^[1-9][0-9]{0,6}$ ]]; then
+            error "--refit-cycles must be an integer in 1..9999999"; failed=1
+        fi
+    fi
+    local entry channel radius aug seen=" "
+    for entry in ${SPEC[extra_projectors]:-}; do
+        if [[ ! "$entry" =~ ^[1-9][spdfSPDF]:[^:]+$ ]] || ! ib_number "${entry#*:}"; then
+            error "projector needs an orbital and a finite reference energy, e.g. 3D:0.5"; failed=1
+        fi
+    done
+    for entry in ${SPEC[channel_radii]:-}; do
+        IFS=: read -r channel radius aug <<< "$entry"
+        case $channel in s|p|d|f|0|1|2|3) ;; *) error "channel-rc must use s, p, d, f or 0..3"; failed=1 ;; esac
+        case $channel in s) channel=0 ;; p) channel=1 ;; d) channel=2 ;; f) channel=3 ;; esac
+        if [[ "$seen" = *" $channel "* ]]; then error "duplicate channel-rc for l=$channel"; failed=1; fi
+        seen="$seen$channel "
+        if ! ib_number "$radius" || ! awk -v x="${radius//[dD]/e}" 'BEGIN {exit !(x > 0 && x < 1e100)}'; then
+            error "channel-rc needs a positive radius in bohr"; failed=1
+        fi
+        if [ -n "$aug" ] && { [ "$eng" != ld1 ] || ! ib_number "$aug" || ! awk -v x="${aug//[dD]/e}" 'BEGIN {exit !(x > 0 && x < 1e100)}'; }; then
+            error "channel-rc accepts a positive third (augmentation) radius only for ld1"; failed=1
+        fi
+        [[ "$entry" =~ ^[^:]+:[^:]+(:[^:]+)?$ ]] || { error "channel-rc needs channel:radius[:augmentation-radius]"; failed=1; }
+    done
+    [ "$failed" = 0 ]
+}
+
 # ---------------------------------------------------------------------------
 # ib_check_deck <deck> <engine>
 #
@@ -190,6 +305,18 @@ ib_check_valence() {
 ib_build() {
     local eng=$1 el=$2 outdir=$3
     IB_PROVENANCE=; IB_SOURCE=
+    ib_check_options "$eng" || return 1
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        local supplied
+        supplied=$(params_find "${SPEC[profile]}" "$el") || {
+            error "no input for $el under explicit --params $PARAMS_DIR"; return 1;
+        }
+        case $eng:$supplied in
+            ld1:*.in|oncvpsp:*.dat|oncvpsp:*.in|opium:*.param|adpack:*.inp|fhi98pp:*.ini) ;;
+            uspp:*) [ -d "$supplied" ] || { error "USPP --params needs both atomic and pseudo decks"; return 1; } ;;
+            *) error "--params does not contain a $eng input for $el"; return 1 ;;
+        esac
+    fi
     mkdir -p "$outdir" || return 1
     local line rc
     case $eng in
@@ -207,10 +334,77 @@ ib_build() {
     [ "$rc" -eq 0 ] && [ -n "$line" ] || return 1
     # Check the product, not the process -- see ib_check_deck.
     ib_check_deck "$(printf '%s' "$line" | cut -d"$(printf '')" -f1)" "$eng" || return 1
+    # The builder is also the dry-run path. Apply radii here so that a preview
+    # is the exact input used by a real run, rather than an unscaled template.
+    local deck expected provenance source key overrides=""
+    IFS=$'\x1f' read -r deck expected provenance source <<< "$line"
+    if [ "$eng" != ld1 ] && [ -n "${SPEC[rcut_scale]:-}" ]; then
+        ib_scale_rc "$eng" "$deck" "${SPEC[rcut_scale]}" || return 1
+    fi
+    if [ "$eng" = oncvpsp ]; then
+        ib_oncv_overrides "$deck" || return 1
+    fi
+    while IFS= read -r key; do
+        [ "$key" = author ] || [ "$key" = variant ] || [ -z "${SPEC[$key]:-}" ] || overrides="$overrides $key"
+    done < <(ib_option_keys)
+    if [ -n "$overrides" ]; then
+        line="$deck"$'\x1f'"$expected"$'\x1f'"pseudoforge"$'\x1f'"derived from $source; overrides:$overrides"
+    elif [ -n "${PARAMS_DIR:-}" ]; then
+        line="$deck"$'\x1f'"$expected"$'\x1f'"supplied"$'\x1f'"$source"
+    fi
     # The builders run in a command substitution, so they append their own
     # provenance to the line rather than setting a variable that would be lost.
     printf '%s
 ' "$line"
+}
+
+# Rewrite ONCVPSP's positional records, ignoring comments. Section positions
+# follow the upstream atom/config, lmax, channel, local, projector and core
+# records. Preserve all unrelated lines, including test configurations.
+ib_oncv_overrides() {
+    local deck=$1 tmp=$1.options.$$
+    [ -n "${SPEC[lloc]:-}${SPEC[rcloc]:-}${SPEC[nlcc]:-}${SPEC[channel_radii]:-}" ] || return 0
+    awk -v lloc="${SPEC[lloc]:-}" -v rcloc="${SPEC[rcloc]:-}" -v nlcc="${SPEC[nlcc]:-}" -v radii="${SPEC[channel_radii]:-}" '
+        BEGIN { n=split(radii,a," "); for(i=1;i<=n;i++){split(a[i],v,":"); l=v[1]; if(l=="s")l=0; if(l=="p")l=1; if(l=="d")l=2; if(l=="f")l=3; gsub(/[dD]/,"e",v[2]);R[l]=v[2]} }
+        /^[[:space:]]*(#|$)/ {print; next}
+        {
+            row++
+            if(row==1){config=$3+$4; print; next}
+            if(row==config+2){lmax=$1; localrow=row+lmax+2; corerow=localrow+lmax+2; print; next}
+            if(localrow && row<localrow && row>config+2){
+                if($1 in R){$2=R[$1]; seen[$1]=1}
+                channel_rc[$1]=$2+0
+            }
+                if(row==localrow){
+                if(lloc!="")$1=lloc
+                if(($1<0 || $1>lmax) && $1!=4){bad=2;exit}
+                if(rcloc!=""){if($1!=4){bad=3;exit}; $3=rcloc}
+                local_rc=($1==4 ? $3+0 : channel_rc[$1])
+                for(l in channel_rc)if(channel_rc[l]<local_rc){bad=7;exit}
+            }
+            if(row==corerow){
+                if(nlcc=="off"){$0="0 0.0"}
+                if(nlcc=="on" && $1==0){$0="3 5.0 1.30"}
+            }
+            if(corerow && row==corerow+2){for(l in R)if(R[l]+0 >= $1+0){bad=6;exit}; if(rcloc!="" && rcloc+0 >= $1+0){bad=6;exit}}
+            print
+        }
+        END {if(bad)exit bad; for(l in R)if(!(l in seen))exit 4; if(!corerow || row<corerow+3)exit 5}
+    ' "$deck" > "$tmp"
+    local rc=$?
+    if [ "$rc" != 0 ]; then
+        rm -f "$tmp"
+        case $rc in
+            2) error "oncvpsp: lloc must be 0..lmax or 4 (independent local potential)" ;;
+            3) error "oncvpsp: rcloc requires lloc=4; it is unused for a channel local potential" ;;
+            4) error "oncvpsp: requested channel-rc is absent from the deck" ;;
+            6) error "oncvpsp: a radius reaches or exceeds the output grid (rlmax)" ;;
+            7) error "oncvpsp: the local-potential radius must not exceed any channel radius" ;;
+            *) error "oncvpsp: incomplete positional input; overrides were not applied" ;;
+        esac
+        return 1
+    fi
+    mv -f "$tmp" "$deck"
 }
 
 # ---------------------------------------------------------------------------
@@ -371,6 +565,10 @@ ib_oncv_xc_warn() {
 ib_oncv_find_deck() {
     local el=$1 z d f
     z=${EL_Z[$el]}
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        f=$(params_find "${SPEC[profile]:-sg15}" "$el") || return 1
+        printf 'supplied\t%s\n' "$f"; return 0
+    fi
     # 0. the library's own inputs, fetched by params.sh.  These are the real
     #    thing -- SG15's .dat decks, PseudoDojo's .in files -- so a run using
     #    them is a reproduction, not an approximation.
@@ -418,6 +616,10 @@ ib_build_oncvpsp() {
     out=$el
 
     if IFS=$'\t' read -r kind src < <(ib_oncv_find_deck "$el"); then
+        if [ -n "${SPEC[config]:-}" ]; then
+            error "oncvpsp: --config cannot rewrite a published deck ($src); supply the complete edited deck with --params."
+            return 1
+        fi
         # Reuse the published deck verbatim, changing only the output format.
         # Touching anything else would make the result something other than
         # what that deck describes.
@@ -738,8 +940,7 @@ ib_build_fhi98pp() {
 
     ini=""
     local d f
-    for d in "$root/bin/Elements/$scheme" "$root"/*/bin/Elements/"$scheme" \
-             "${PARAMS_DIR:-}"; do
+    for d in "${PARAMS_DIR:-}" "$root/bin/Elements/$scheme" "$root"/*/bin/Elements/"$scheme"; do
         [ -n "$d" ] && [ -d "$d" ] || continue
         for f in "$d/$z-$el:tm.ini" "$d/$z-$el:ham.ini" "$d/$z-$el.ini" "$d/$el.ini"; do
             [ -f "$f" ] && { ini=$f; break 2; }
@@ -827,6 +1028,10 @@ ib_build_opium() {
     deck=$outdir/$(lower "$el").param
 
     if IFS=$'\t' read -r kind src < <(ib_opium_find_deck "$el"); then
+        if [ -n "${SPEC[config]:-}" ]; then
+            error "opium: --config cannot rewrite a published deck ($src); supply the complete edited deck with --params."
+            return 1
+        fi
         # Reuse the published deck, retargeting only the exchange-correlation
         # and relativity sections -- those are the run's choice, everything
         # else is the library's.
@@ -858,7 +1063,7 @@ ib_build_opium() {
 # result as an ADPACK pseudopotential is exactly what this tool does not do.
 # ---------------------------------------------------------------------------
 ib_adpack_deck() {
-    local el=$1 d=$PF_DATA/params/adpack
+    local el=$1 d=${PARAMS_DIR:-$PF_DATA/params/adpack}
     [ -f "$d/${el}_VPS.inp" ] && { printf '%s\n' "$d/${el}_VPS.inp"; return 0; }
     return 1
 }

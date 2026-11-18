@@ -36,7 +36,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `report` | `[project]` | rebuild the reports of an existing project |
 | `list` | `<what>` | profiles \| functionals \| elements \| recipes \| sets |
 | `show` | `<profile>` | full description of a library profile |
-| `recipe` | `<element>` | print the ld1.x deck that would be generated |
+| `recipe` | `<element>` | print the selected engine's native input |
 | `recipe` | `save <name>` | save the current settings as a named recipe |
 | `recipe` | `load <name>` | show the command a saved recipe is equivalent to |
 | `recipe` | `list` | list saved recipes |
@@ -49,6 +49,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `xc` | `<sub>` | list \| add \| remove (functionals) |
 | `api` | `<method> <path>` | call the local API server (api --routes lists them) |
 | `optimise` | `-e EL [opts]` | sweep --rcut-scale and pick the softest radii that |
+| `design` | `protocol.json` | search candidates against reference data (Python 3.10+) |
 | `plot` | `<project>` | draw log derivatives and wavefunctions for a run |
 | `doctor` | -- | check the environment and the recipe database |
 | `advise` | `-e EL [opts]` | physics reasoning on which pseudopotential to choose |
@@ -62,6 +63,7 @@ is the same as `pseudoforge generate -e Si …`.
 
 | Flag | Takes a value | Sets |
 |---|---|---|
+| `-e`, `--elements`, `-t`, `--family`, `--type`, `-p`, `--profile`, `-x`, `--xc`, `--functional`, `-r`, `--rel`, `--relativity`, `--recipe`, `--variant`, `--upf`, `-o`, `--output`, `-j`, `--jobs`, `--author`, `--config`, `--core-hole`, `--zed`, `--zval`, `--nlcc`, `--rcore`, `--rho0`, `--augfun`, `--which-augfun`, `--rmatch`, `--lloc`, `--rcloc`, `--projector`, `--rcut-scale`, `--nc-form`, `--refit-cycles`, `--grid`, `--beta`, `--tr2`, `--plot-dir`, `--plot-format`, `--plot-bands`, `--plot-dos`, `--plot-rlderiv`, `--cutoffs`, `--cutoff-tol`, `--pw-template`, `--attempts`, `--engine`, `--source`, `--params`, `--mirror`, `--format`, `--formats`, `--show-citation` | no | `--` |
 | `-e`, `--elements` | yes | `CLI_ELEMENTS` |
 | `-t`, `--family`, `--type` | yes | `SPEC[family]` |
 | `-p`, `--profile` | yes | `SPEC[profile]` |
@@ -85,6 +87,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `--lloc` | yes | `SPEC[lloc]` |
 | `--rcloc` | yes | `SPEC[rcloc]` |
 | `--projector` | yes | `SPEC[extra_projectors]` |
+| `--channel-rc` | yes | `SPEC[channel_radii]` |
 | `--rcut-scale` | yes | `SPEC[rcut_scale]` |
 | `--nc-form` | yes | `SPEC[nc_form]` |
 | `--lsd` | no | `SPEC[lsd]` |

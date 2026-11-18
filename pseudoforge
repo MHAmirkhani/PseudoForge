@@ -83,6 +83,10 @@ case $cmd in
         shift; cmd_convert "$@" ;;
     optimise|optimize)
         shift; cmd_optimise "$@" ;;
+    design)
+        shift
+        have python3 || die "design requires Python 3.10 or newer; ordinary generation is available without Python"
+        exec python3 "$PF_ROOT/tools/pf_design.py" "$@" ;;
     doctor|check|check-env)
         shift; cmd_doctor "$@" ;;
     compare|diff)

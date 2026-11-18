@@ -2125,3 +2125,19 @@ main > *, .panel, .grid > * { min-width: 0; }
   background: var(--accent);
   color: var(--accent-fg);
 }
+.custom-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.custom-fields label, #design-app label { display: flex; flex-direction: column; gap: .45rem; }
+.custom-fields input, .custom-fields select, #design-app textarea {
+  width: 100%; min-width: 0; padding: .65rem; color: var(--fg);
+  background: var(--input-bg); border: 1px solid var(--line); border-radius: .4rem; font: inherit;
+}
+.custom-fields input[type="checkbox"] { width: 1.2rem; height: 1.2rem; }
+#design-app section { margin-top: 2rem; }
+#design-app textarea { font-family: var(--mono); margin: .5rem 0; }
+.table-scroll { max-width: 100%; overflow-x: auto; }
+#custom-command, #design-app pre { white-space: pre-wrap; overflow-wrap: anywhere; }

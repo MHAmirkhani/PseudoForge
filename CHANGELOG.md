@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — physics controls and reference-constrained design
+
+- CLI, terminal controls and the engine API share an explicit physics capability contract. Unsupported overrides fail; native previews apply the same changes as generation. ONCVPSP now supports independent channel radii, local potential settings and the NLCC switch; ld1 supports channel radii with augmentation radii.
+- Explicit native input directories take precedence over library inputs. Missing inputs, malformed values, incomplete arguments and invalid dry runs fail visibly. Rendered commands preserve literal shell characters.
+- Bound ONCVPSP ghosts are rejected before collection, including with optional tests disabled. Atomic validation quarantines ghost outputs and the native API excludes them. Reference-only ONCVPSP results are no longer graded as transferability tests. APE respects disabled automatic correction and retains successful retry inputs.
+- The optional `design` command performs an explicit grid search against cited reference measurements, selects on training structures and checks only that selection on held-out structures. Reports preserve failures, input snapshots, measurements and scope. The Si example computes its references with QE; it is a demonstration, not all-electron validation or evidence of an improved potential.
+- New Customize and Design web pages expose engine controls, export local protocols and inspect reports. Documentation describes supported controls, units, selection rules and scientific limitations.
+- Radius searches preserve existing output directories instead of deleting earlier projects.
+
 ## Version 1.3.7 — release audit and web usability
 
 - The browser picker preserves valid physics and format choices, restores bookmarked selections, distinguishes empty and unavailable stores, and gets copyable generation commands from the same validation as the CLI.

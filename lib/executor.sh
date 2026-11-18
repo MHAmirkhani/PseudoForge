@@ -188,6 +188,13 @@ exec_oncvpsp() {
 
     exec_run "$bin" "$wd" "$log" "${ONCVPSP_TIMEOUT:-1800}" "$deck"
     rc=$?
+    # A generator can exit zero and write a perfectly parseable file containing
+    # a bound ghost. Refuse it before collecting any UPF or psp8 variant, even
+    # when optional transferability tests are disabled.
+    if grep -qE 'GHOST\(-\)|bound ghost.*(found|detected)' "$log"; then
+        EXEC_MESSAGE="ONCVPSP reported a bound ghost state; output rejected (see the generation log)"
+        return 1
+    fi
 
     # ONCVPSP is the authority on whether it produced a pseudopotential, and it
     # says so by emitting one.  It also prints diagnostics with the word ERROR
@@ -588,19 +595,11 @@ generate_one_engine() {
     mkdir -p "$work" "$PROJECT_DIR/logs"
 
     if ! IFS=$'\x1f' read -r deck expected prov src < <(ib_build "$eng" "$el" "$PROJECT_DIR/inputs"); then
-        status=skip
+        status=fail
         message="${IB_MESSAGE:-no input parameters available for $el with $eng}"
     elif [ -z "${deck:-}" ]; then
-        status=skip
-        message="no input parameters available for $el with $eng"
-    elif [ -n "${SPEC[rcut_scale]:-}" ] \
-         && ! ib_scale_rc "$eng" "$deck" "${SPEC[rcut_scale]}" 2>"$work/rcs.err"; then
-        # The deck in inputs/ is what ran, so it is scaled in place and the
-        # record matches the run. A deck that cannot be scaled fails the
-        # element; it is never run unscaled under a -rc name.
         status=fail
-        message=$(head -1 "$work/rcs.err" | sed 's/^ERROR *//')
-        [ -n "$message" ] || message="could not apply --rcut-scale ${SPEC[rcut_scale]} to the $eng deck"
+        message="no input parameters available for $el with $eng"
     else
         local emsg enative ewarn enote
         if IFS=$'\x1f' read -r upf emsg enative ewarn enote                < <(exec_generate "$eng" "$el" "$deck" "$expected" "$work" "$log")            && [ -n "$upf" ]; then
@@ -1121,7 +1120,7 @@ exec_ape() {
     # no reason.  Only the element that actually fails gets the fallback, and
     # the report says it fired.
     # ------------------------------------------------------------------
-    if [ -z "$upf" ] && [ "${APE_NO_RETRY:-0}" != 1 ] \
+    if [ -z "$upf" ] && [ "${AUTOFIX_ENABLED:-1}" = 1 ] && [ "${APE_NO_RETRY:-0}" != 1 ] \
        && grep -qiE 'multiroot_solve_system|Error in subtoutine multiroot' "$log" 2>/dev/null; then
         local dl retry
         # the deepest pseudised d channel, if the deck has one
@@ -1171,7 +1170,12 @@ exec_ape() {
     # from ONCVPSP. If every channel ghosts, the element fails: a file with a
     # ghost in it is not a pseudopotential anyone should use.
     # ------------------------------------------------------------------
-    if [ -n "$upf" ] && [ "${APE_NO_RETRY:-0}" != 1 ] \
+    if [ -n "$upf" ] && { [ "${AUTOFIX_ENABLED:-1}" != 1 ] || [ "${APE_NO_RETRY:-0}" = 1 ]; } \
+       && grep -q 'Ghost state found' "$log"; then
+        EXEC_MESSAGE="APE reported a ghost state; output rejected and automatic physics changes are disabled"
+        printf '\n'; return 1
+    fi
+    if [ -n "$upf" ] && [ "${AUTOFIX_ENABLED:-1}" = 1 ] && [ "${APE_NO_RETRY:-0}" != 1 ] \
        && grep -q 'Ghost state found' "$log" 2>/dev/null; then
         local ll clean="" chans
         chans=$(awk '/%PPComponents/ { g = 1; next } g && /^%/ { exit }
@@ -1270,6 +1274,15 @@ exec_ape() {
             [ -n "$r" ] && sed -i -E "0,/relativistic=\"[^\"]*\"/s//relativistic=\"$r\"/" "$upf"
         else
             EXEC_MESSAGE="APE wrote UPF v1, which Quantum ESPRESSO 7.6's pw.x misreads (bulk Si 645 kbar against 25 from ONCVPSP), and upfconv.x could not rewrite it as v2"
+            printf '\n'; return 1
+        fi
+    fi
+    # Retrying can change the pseudised shells or local channel. Preserve both
+    # the requested input and the successful one in the project, before the
+    # private working directory is deleted by the caller.
+    if ! cmp -s "$deck" "$wd/inp.ape"; then
+        if ! cp -f "$deck" "$deck.requested" || ! cp -f "$wd/inp.ape" "$deck"; then
+            EXEC_MESSAGE="could not retain the successful APE input for reproducibility"
             printf '\n'; return 1
         fi
     fi

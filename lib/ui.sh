@@ -1000,28 +1000,51 @@ ui_advanced() {
         # Ok opens the highlighted setting; Cancel means "I am finished here"
         # and moves on, which is why this call returns 0 rather than 1.
         UI_OK_LABEL=Edit UI_CANCEL_LABEL=Done
+        local engine=${SPEC[engine]:-ld1} item key mode
+        local -a controls=()
+        while IFS='|' read -r item key label; do
+            mode=$(ib_option_mode "$engine" "$key")
+            [ "$mode" != unsupported ] || continue
+            if [ "${SPEC[family]:-nc}" = nc ] && [ "$key" = which_augfun ]; then continue; fi
+            if [ "${SPEC[family]:-nc}" != nc ] && [ "$key" = nc_form ]; then continue; fi
+            if [ "${SPEC[source]:-local}" = online ] && [ "$key" != author ] && [ "$key" != variant ]; then continue; fi
+            controls+=("$item" "$label [${SPEC[$key]:-default}]")
+        done <<'CONTROLS'
+config|config|Atomic configuration
+variant|variant|Library variant
+author|author|Author / provenance
+corehole|core_hole|Core hole
+zed|zed|Fractional nuclear charge
+zval|zval|Valence charge
+nlcc|nlcc|Nonlinear core correction
+augfun|which_augfun|Augmentation functions
+lloc|lloc|Local channel / radius
+proj|extra_projectors|Extra projectors
+rcut|rcut_scale|Scale all cutoff radii
+channels|channel_radii|Radii by angular channel
+grid|xmin|Radial grid
+scf|beta|SCF controls
+gipaw|gipaw|GIPAW reconstruction
+lsd|lsd|Spin-polarised generation
+ncform|nc_form|Norm-conserving form
+CONTROLS
+        controls+=(reset "Clear custom physics settings" valid "Validation and execution options")
         c=$(ui_menu "Advanced settings" \
-"\nEverything here maps onto a real ld1.x variable. Leave it alone to reproduce
-the library recipe exactly.\n" 26 18 \
-            config    "Atomic configuration      [${SPEC[config]:-recipe default}]" \
-            variant   "PSlibrary variant tag     [${SPEC[variant]:-auto}]" \
-            author    "Author string in the file [${SPEC[author]:-none}]" \
-            corehole  "Core hole (XPS/XAS)       [${SPEC[core_hole]:-none}]" \
-            zed       "Fractional nuclear charge [${SPEC[zed]:-recipe default}]" \
-            zval      "Valence charge zval       [${SPEC[zval]:-automatic}]" \
-            nlcc      "Nonlinear core correction [${SPEC[nlcc]:-recipe default}]" \
-            augfun    "Augmentation functions    [${SPEC[which_augfun]:-recipe default}]" \
-            lloc      "Local channel lloc/rcloc  [${SPEC[lloc]:-recipe default}]" \
-            proj      "Extra projectors          [${SPEC[extra_projectors]:-none}]" \
-            rcut      "Cut-off radius scaling    [${SPEC[rcut_scale]:-1.00}]" \
-            grid      "Radial grid               [${SPEC[xmin]:-default}]" \
-            scf       "SCF controls beta/tr2     [${SPEC[beta]:-default}]" \
-            gipaw     "GIPAW reconstruction      [$([ "${SPEC[gipaw]}" = 1 ] && echo on || echo off)]" \
-            lsd       "Spin-polarised generation [$([ "${SPEC[lsd]}" = 1 ] && echo on || echo off)]" \
-            ncform    "Norm-conserving form      [${SPEC[nc_form]:-separable}]" \
-            valid     "Validation and execution options" ) || return 0
+"\nOnly controls implemented for $engine are offered. Published decks may
+restrict configuration changes. Leave defaults to reproduce their inputs.\n" \
+26 18 "${controls[@]}") || return 0
 
         case $c in
+        reset)
+            while IFS= read -r key; do
+                case $key in author) ;; *) SPEC[$key]= ;; esac
+            done < <(ib_option_keys) ;;
+        channels)
+            SPEC[channel_radii]=$(ui_input "Channel radii (bohr)" \
+"Space-separated channel:radius pairs, e.g. s:1.7 p:1.8.
+ld1 also accepts channel:radius:augmentation-radius.
+These values override the corresponding radii after any global scaling." \
+14 74 "${SPEC[channel_radii]:-}") || true ;;
         variant)  SPEC[variant]=$(ui_input "PSlibrary variant tag" \
 "Pick a specific PSlibrary variant tag rather than the first that matches.
 
@@ -1064,7 +1087,7 @@ lanthanides and actinides, and for any spin-polarised calculation.\n" 16 4 \
                     ""    "Leave the recipe alone (recommended)" \
                     on    "Force NLCC on" \
                     off   "Force NLCC off") && SPEC[nlcc]=$v
-                  if [ "${SPEC[nlcc]}" = on ]; then
+                  if [ "${SPEC[nlcc]}" = on ] && [ "$engine" = ld1 ]; then
                       SPEC[rcore]=$(ui_input "NLCC core radius" \
 "rcore -- where the pseudo core charge is matched.
 Typically 0.7-1.5 bohr. Leave empty for the recipe default." 11 70 "${SPEC[rcore]}") || true
@@ -1091,7 +1114,7 @@ Leave empty for the recipe default." 11 70 "${SPEC[rmatch_augfun]}") ;;
 
 Leave empty for the recipe default." 15 74 "${SPEC[lloc]}") || true
                   SPEC[rcloc]=$(ui_input "Local channel radius" \
-"rcloc, in bohr. Only used when lloc = -1." 10 70 "${SPEC[rcloc]}") || true ;;
+"rcloc, in bohr. For ld1 use lloc=-1; for ONCVPSP use lloc=4." 10 70 "${SPEC[rcloc]}") || true ;;
         proj)     SPEC[extra_projectors]=$(ui_input "Extra projectors" \
 "Add a second projector in a channel by naming the shell and a reference
 energy in Ry, space separated:

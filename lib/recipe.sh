@@ -53,6 +53,7 @@ spec_init() {
     SPEC[beta]=             # SCF mixing factor
     SPEC[tr2]=              # SCF convergence threshold
     SPEC[rcut_scale]=       # multiply every rcut/rcutus by this factor
+    SPEC[channel_radii]=    # channel:radius[:augmentation-radius], in bohr
     SPEC[extra_projectors]= # "3D:0.5 4P:1.0" -> extra card lines
     SPEC[nc_form]=          # semilocal | separable (norm-conserving only)
     SPEC[formats]=upf
@@ -283,7 +284,9 @@ recipe_apply() {
     local deck=$1 el=$2
     local v cfg sh occ cards
 
-    [ -n "${SPEC[author]:-}" ] && nml_set "$deck" inputp author "'${SPEC[author]}'"
+    local author=${SPEC[author]:-}
+    author=${author//\'/\'\'}
+    [ -n "$author" ] && nml_set "$deck" inputp author "'$author'"
 
     # --- UPF output format -------------------------------------------------
     case ${SPEC[upf]:-2} in
@@ -314,8 +317,12 @@ recipe_apply() {
             error "$el: core-hole shell $sh is not present in configuration '$cfg'"
             return 1
         else
+            if ! awk -v o="$occ" 'BEGIN {exit !(o >= 1)}'; then
+                error "$el: --core-hole needs at least one electron in $sh (occupation $occ)"
+                return 1
+            fi
             cfg=$(cfg_set_occ "$cfg" "$sh" "$(awk -v o="$occ" 'BEGIN { printf "%g", o - 1 }')")
-            nml_set "$deck" inputp author "'${SPEC[author]} (core hole in $sh)'"
+            nml_set "$deck" inputp author "'$author (core hole in $sh)'"
             # No warning when zval is absent: ld1.x gets this right on its own.
             # A core hole leaves one fewer electron in the core, so ld1 computes
             # valence = Z - (core electrons remaining), which is one MORE than
@@ -370,6 +377,9 @@ recipe_apply() {
 
     # --- local channel -----------------------------------------------------
     [ -n "${SPEC[lloc]:-}" ]  && nml_set "$deck" inputp lloc  "${SPEC[lloc]}"
+    if [ -n "${SPEC[rcloc]:-}" ] && [ "$(nml_get "$deck" inputp lloc)" != -1 ]; then
+        error "ld1: --rcloc requires the independent local potential (lloc=-1)"; return 1
+    fi
     [ -n "${SPEC[rcloc]:-}" ] && nml_set "$deck" inputp rcloc "${SPEC[rcloc]}"
 
     # --- GIPAW reconstruction (NMR / EPR) ----------------------------------
@@ -384,11 +394,24 @@ recipe_apply() {
     done
 
     # --- card block: radii scaling and extra projectors --------------------
-    if [ -n "${SPEC[rcut_scale]:-}" ] || [ -n "${SPEC[extra_projectors]:-}" ]; then
+    if [ -n "${SPEC[rcut_scale]:-}${SPEC[channel_radii]:-}${SPEC[extra_projectors]:-}" ]; then
         cards=$(mktemp)
         nml_cards "$deck" > "$cards"
         if [ -n "${SPEC[rcut_scale]:-}" ]; then
             cards_scale_rcut "${SPEC[rcut_scale]}" < "$cards" | write_atomic "$cards"
+        fi
+        if [ -n "${SPEC[channel_radii]:-}" ]; then
+            local ctmp=$cards.channels
+            if ! awk -v radii="${SPEC[channel_radii]}" '
+                BEGIN {n=split(radii,a," ");for(i=1;i<=n;i++){split(a[i],v,":");l=v[1];if(l=="s")l=0;if(l=="p")l=1;if(l=="d")l=2;if(l=="f")l=3;gsub(/[dD]/,"e",v[2]);R[l]=v[2];gsub(/[dD]/,"e",v[3]);A[l]=(v[3]!=""?v[3]:v[2])}}
+                {if($3 in R){$6=R[$3];$7=A[$3];seen[$3]=1}; print}
+                END {for(l in R)if(!(l in seen))exit 1}
+            ' "$cards" > "$ctmp"; then
+                rm -f "$cards" "$ctmp"
+                error "ld1: requested channel-rc is absent from the wavefunction cards"
+                return 1
+            fi
+            mv -f "$ctmp" "$cards"
         fi
         # Read lloc from the deck's &inputp namelist: the value in SPEC is
         # what we asked for, but a template may set it and this deck is what
@@ -424,6 +447,12 @@ recipe_build() {
     # here rather than in the input builder because the ld1 engine reaches
     # generation through recipe_build directly, carrying its own auto-fix loop.
     local _libdeck
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        _libdeck=$(params_find "$prof" "$el") || {
+            RB_ERROR="no ld1 input for $el under explicit --params $PARAMS_DIR"; error "$RB_ERROR"; return 1;
+        }
+        case $_libdeck in *.in) ;; *) RB_ERROR="--params needs an ld1 .in file"; error "$RB_ERROR"; return 1 ;; esac
+    fi
     if _libdeck=$(params_find "$prof" "$el" 2>/dev/null) && [ -n "$_libdeck" ]; then
         case $_libdeck in
             *.in) recipe_adopt_deck "$_libdeck" "$el" "$outdir" && return 0 ;;
@@ -560,6 +589,10 @@ recipe_auto_suffix() {
     if [ -n "${SPEC[zval]:-}" ]; then v=${SPEC[zval]//./p}; s="$s-zv$v"; fi
     [ -n "${SPEC[config]:-}" ]     && s="$s-cfg"
     if [ -n "${SPEC[rcut_scale]:-}" ]; then v=${SPEC[rcut_scale]//./p}; s="$s-rc$v"; fi
+    if [ -n "${SPEC[channel_radii]:-}" ]; then
+        v=$(printf '%s' "${SPEC[channel_radii]}" | cksum | cut -d' ' -f1)
+        s="$s-cr$v"
+    fi
     [ -n "${SPEC[extra_projectors]// /}" ] && s="$s-xp"
     [ -n "${SPEC[which_augfun]:-}" ] && s="$s-${SPEC[which_augfun],,}"
     case ${SPEC[nlcc]:-} in
@@ -691,7 +724,7 @@ declare -gA SPEC_FLAG_BOOL=( [lsd]=--lsd [gipaw]=--gipaw )
 
 # Keys the command line expresses in a shape of their own: --projector repeats,
 # and --grid carries xmin, dx and rmax in one argument.
-declare -gA SPEC_FLAG_CUSTOM=( [extra_projectors]=1 [xmin]=1 [dx]=1 [rmax]=1 )
+declare -gA SPEC_FLAG_CUSTOM=( [extra_projectors]=1 [channel_radii]=1 [xmin]=1 [dx]=1 [rmax]=1 )
 
 # Keys a run computes for itself rather than a user choosing them.  Saved in
 # the file (so a reload reproduces the same file names) but never printed as a
@@ -757,14 +790,12 @@ spec_cmdline() {
             continue
         fi
         if [ -n "${SPEC_FLAG[$k]:-}" ]; then
-            case $v in
-                *[[:space:]]*) out="$out ${SPEC_FLAG[$k]} '$v'" ;;
-                *)             out="$out ${SPEC_FLAG[$k]} $v" ;;
-            esac
+            out="$out ${SPEC_FLAG[$k]} $(spec_shell_quote "$v")"
             continue
         fi
         case $k in
-            extra_projectors) for p in $v; do out="$out --projector $p"; done ;;
+            extra_projectors) for p in $v; do out="$out --projector $(spec_shell_quote "$p")"; done ;;
+            channel_radii) for p in $v; do out="$out --channel-rc $(spec_shell_quote "$p")"; done ;;
             xmin|dx|rmax)     ;;   # emitted together, below
             *)                miss="$miss $k" ;;
         esac
@@ -774,6 +805,10 @@ spec_cmdline() {
         out="$out --grid ${SPEC[xmin]:-}:${SPEC[dx]:-}:${SPEC[rmax]:-}"
 
     # Options outside SPEC that still change what comes out.
+    [ -z "${PARAMS_DIR:-}" ] || out="$out --params $(spec_shell_quote "$PARAMS_DIR")"
+    if [ "${GTH_REFIT:-0}" = 1 ]; then
+        out="$out --refit --refit-cycles $(spec_shell_quote "${GTH_CYCLES:-200}")"
+    fi
     [ "${RUN_LD1_TESTS:-1}" = 0 ]     && out="$out --no-test"
     [ "${RUN_CUTOFF_SCAN:-0}" = 1 ]   && out="$out --cutoff-scan"
     [ "${AUTOFIX_ENABLED:-1}" = 0 ]   && out="$out --no-autofix"
@@ -783,6 +818,17 @@ spec_cmdline() {
     [ -z "$miss" ] || \
         warn "no command-line flag for:$miss -- the saved recipe file carries them, this command does not"
     return 0
+}
+
+# A rendered command is pasted into a shell. Preserve arbitrary literal values,
+# including apostrophes, dollar substitutions and newlines.
+spec_shell_quote() {
+    case $1 in
+        ''|*[!a-zA-Z0-9_.,/:@%+=-]*)
+            local value=${1//\'/\'\\\'\'}
+            printf "'%s'" "$value" ;;
+        *) printf '%s' "$1" ;;
+    esac
 }
 
 # ---------------------------------------------------------------------------
@@ -881,6 +927,9 @@ rcp_save() {
         printf 'run.cutoff_tol=%s\n'   "${CUTOFF_TOL_MRY:-}"
         printf 'run.autofix=%s\n'      "${AUTOFIX_ENABLED:-1}"
         printf 'run.attempts=%s\n'     "${AUTOFIX_MAX_ATTEMPTS:-2}"
+        printf 'run.params=%s\n'       "${PARAMS_DIR:-}"
+        printf 'run.gth_refit=%s\n'    "${GTH_REFIT:-0}"
+        printf 'run.gth_cycles=%s\n'   "${GTH_CYCLES:-200}"
     } > "$f" || { error "cannot write $f"; return 1; }
     printf '%s\n' "$f"
 }
@@ -926,6 +975,9 @@ rcp_load() {
             run.cutoff_tol)   CUTOFF_TOL_MRY=$v ;;
             run.autofix)      AUTOFIX_ENABLED=$v ;;
             run.attempts)     AUTOFIX_MAX_ATTEMPTS=$v ;;
+            run.params)       PARAMS_DIR=$v ;;
+            run.gth_refit)    GTH_REFIT=$v ;;
+            run.gth_cycles)   GTH_CYCLES=$v; GTH_CYCLES_EXPLICIT=${GTH_REFIT:-0} ;;
             *)                bad="$bad $k" ;;
         esac
     done < "$f"

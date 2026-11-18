@@ -29,7 +29,7 @@ USAGE
     report [project]        rebuild the reports of an existing project
     list <what>             profiles | functionals | elements | recipes | sets
     show <profile>          full description of a library profile
-    recipe <element>        print the ld1.x deck that would be generated
+    recipe <element>        print the selected engine's native input
     recipe save <name>      save the current settings as a named recipe
     recipe load <name>      show the command a saved recipe is equivalent to
     recipe list             list saved recipes
@@ -43,6 +43,7 @@ USAGE
     api <method> <path>     call the local API server (api --routes lists them)
     optimise -e EL [opts]   sweep --rcut-scale and pick the softest radii that
                             still pass transferability (ld1 oncvpsp opium ape)
+    design protocol.json   search candidates against reference data (Python 3.10+)
     plot <project>          draw log derivatives and wavefunctions for a run
     doctor                  check the environment and the recipe database
     advise -e EL [opts]     physics reasoning on which pseudopotential to choose
@@ -58,6 +59,7 @@ ENGINE AND SOURCE
   --engine NAME               $(eng_list 2>/dev/null | paste -sd'|' - | sed 's/|/ | /g')
                               default: chosen from the profile and family
   --source local|online       generate here, or download a published file
+  --channel-rc L:R[:RAUG]      set one channel radius in bohr (ld1 / ONCVPSP)
   --params DIR                a library's own generator inputs, for a real
                               reproduction rather than PseudoForge's construction
   --mirror URL                override MIRROR_URL for this run
@@ -405,6 +407,11 @@ cli_parse() {
     cli_recipe_preload "$@"
     while [ $# -gt 0 ]; do
         case $1 in
+            -e|--elements|-t|--family|--type|-p|--profile|-x|--xc|--functional|-r|--rel|--relativity|--recipe|--variant|--upf|-o|--output|-j|--jobs|--author|--config|--core-hole|--zed|--zval|--nlcc|--rcore|--rho0|--augfun|--which-augfun|--rmatch|--lloc|--rcloc|--projector|--rcut-scale|--nc-form|--refit-cycles|--grid|--beta|--tr2|--plot-dir|--plot-format|--plot-bands|--plot-dos|--plot-rlderiv|--cutoffs|--cutoff-tol|--pw-template|--attempts|--engine|--source|--params|--mirror|--format|--formats|--show-citation)
+                [ $# -ge 2 ] && [ -n "$2" ] || die "missing argument for $1"
+                case $2 in --*) die "missing argument for $1 (got option '$2')" ;; esac ;;
+        esac
+        case $1 in
             advise|advisory) shift; cmd_advise "$@"; exit 0 ;;
             provenance) shift; cmd_provenance "$@"; exit 0 ;;
             element) shift; cmd_element "$@"; exit 0 ;;
@@ -447,13 +454,16 @@ cli_parse() {
             --lloc)         SPEC[lloc]=$2; shift 2 ;;
             --rcloc)        SPEC[rcloc]=$2; shift 2 ;;
             --projector)    SPEC[extra_projectors]="${SPEC[extra_projectors]} $2"; shift 2 ;;
+            --channel-rc)   [ $# -ge 2 ] && [ -n "$2" ] || die "missing argument for --channel-rc"
+                            SPEC[channel_radii]="${SPEC[channel_radii]} $2"; shift 2 ;;
             --rcut-scale)   SPEC[rcut_scale]=$2; shift 2 ;;
             --nc-form)      SPEC[nc_form]=$(lower "$2"); shift 2 ;;
             --lsd)          SPEC[lsd]=1; shift ;;
             --gipaw)        SPEC[gipaw]=1; shift ;;
             --refit)        GTH_REFIT=1; export GTH_REFIT; shift ;;
-            --refit-cycles) GTH_CYCLES=$2; export GTH_CYCLES; shift 2 ;;
+            --refit-cycles) GTH_CYCLES=$2; GTH_CYCLES_EXPLICIT=1; export GTH_CYCLES; shift 2 ;;
             --grid)         grid=$2
+                            [[ "$grid" =~ ^[^:]+:[^:]+:[^:]+$ ]] || die "--grid needs xmin:dx:rmax"
                             SPEC[xmin]=${grid%%:*}
                             SPEC[dx]=$(printf '%s' "$grid" | cut -d: -f2)
                             SPEC[rmax]=${grid##*:}
@@ -586,6 +596,7 @@ cli_check_spec() {
     # wins, but do not fall back to the default and quietly undo the user's
     # choice of "download" -- that turned every online run into a local one.
     SPEC[source]=${CLI_SOURCE:-${SPEC[source]:-${DEFAULT_SOURCE:-local}}}
+    ib_check_options "${SPEC[engine]}" || exit 1
 
     # Output formats are validated against the engine that will actually run,
     # so a request the engine cannot honour is refused here rather than
@@ -744,7 +755,7 @@ cmd_generate() {
 
     if [ "$CLI_DRYRUN" = 1 ]; then
         banner "Dry run -- writing decks only"
-        local _deck _out _prov _src
+        local _deck _out _prov _src failed=0
         for el in "${elements[@]}"; do
             # go through the same builder a real run would, so a dry run tells
             # you about the engine and the parameter source rather than only
@@ -755,10 +766,12 @@ cmd_generate() {
                 ok "$el  ->  ${_deck##*/}   [${_prov:-?}${_src:+: ${_src##*/}}]"
             else
                 warn "$el  no input available for ${SPEC[profile]}/${SPEC[family]} with ${SPEC[engine]}"
+                failed=$((failed + 1))
             fi
         done
         info "decks written to $PROJECT_DIR/inputs"
-        return 0
+        [ "$failed" -eq 0 ]
+        return $?
     fi
 
     deps_resolve_qe
@@ -895,9 +908,27 @@ cmd_recipe() {
     # under `set -u` a mistyped element crashed with "unbound variable"
     # instead of saying which element it did not know.
     el=$(el_canon "$el") || die "unknown element: $el"
+    [ -n "$CLI_ELEMENTS" ] || CLI_ELEMENTS=$el
     cli_check_spec
     local tmp; tmp=$(mktemp -d)
     local deck upf set tag
+    if [ "${SPEC[engine]}" != ld1 ]; then
+        local record
+        if ! record=$(ib_build "${SPEC[engine]}" "$el" "$tmp"); then
+            rm -rf "$tmp"
+            return 1
+        fi
+        IFS=$'\x1f' read -r deck upf set tag <<< "$record"
+        if [ -d "$deck" ]; then
+            info "${SPEC[engine]} uses an input directory; use generate --dry-run to retain all files"
+            find "$deck" -type f -print
+        else
+            info "$el: ${SPEC[engine]} input from $tag"
+            cat "$deck"
+        fi
+        rm -rf "$tmp"
+        return 0
+    fi
     if recipe_build "$el" "$tmp" >/dev/null; then
         deck=$RB_DECK upf=$RB_UPF set=$RB_SET tag=$RB_TAG
         printf '%s# %s: %s recipe from %s (variant %s)%s\n' \

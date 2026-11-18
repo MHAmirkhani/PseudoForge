@@ -4,11 +4,12 @@
 [![Live](https://img.shields.io/badge/live-pseudo.amirkhani.me-blue)](https://pseudo.amirkhani.me)
 
 A multi-engine pseudopotential generator, validator and reporting tool,
-written entirely in Bash. The command-line tool drives nine atomic codes
+with a Bash generation core. The command-line tool drives nine atomic codes
 — `ld1.x`, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, ADPACK —
 each for the families it generates, and `pw.x` for the cutoff convergence
-scan. It has no Python, no compiled parts of its own and no dependencies
-beyond coreutils and (optionally) `whiptail`.
+scan. Ordinary generation needs Bash and standard Unix utilities, plus the
+chosen atomic engine; the optional TUI uses `whiptail` or `dialog`. The web
+transport and reference-constrained design command use Python separately.
 
 ```
 pseudoforge generate -e Fe,Ni,Co -t paw -x pbe --cutoff-scan
@@ -46,6 +47,14 @@ giving up.
 transferability tests against the all-electron atom, and an optional `pw.x`
 kinetic-energy cutoff convergence scan. Results land in `summary.txt`,
 `summary.csv`, `summary.json` and a self-contained `summary.html`.
+
+**Designs against supplied reference data.** The optional `pseudoforge design`
+command evaluates an explicit candidate grid using common force, stress and
+relative-energy constraints. It selects using training structures, then checks
+the locked choice on held-out structures. It requires Python 3.10+ (standard
+library) and local Quantum ESPRESSO. See the [worked Si example](docs/how-to/reference-design.md).
+This is a constrained search workflow; broader benchmarks are required to
+establish improvements over published pseudopotentials.
 
 ---
 

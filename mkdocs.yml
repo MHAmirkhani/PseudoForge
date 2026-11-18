@@ -106,6 +106,7 @@ nav:
       - Plot the diagnostics: how-to/plot.md
       - Change the parameters: how-to/custom-parameters.md
       - Optimise the cut-off radii: how-to/optimise-radii.md
+      - Design against reference data: how-to/reference-design.md
       - Troubleshoot a failure: how-to/troubleshoot.md
       - Use the website: how-to/use-the-website.md
       - Deploy the website: how-to/deploy.md

@@ -236,7 +236,7 @@ http_h_engines() {
 http_engine_json() {
     local e=$1 avail=false
     eng_available "$e" 2>/dev/null && avail=true
-    printf '{"id":%s,"label":%s,"families":%s,"native_upf":%s,"licence":%s,"upstream":%s,"available":%s,"note":%s}\n' \
+    printf '{"id":%s,"label":%s,"families":%s,"native_upf":%s,"licence":%s,"upstream":%s,"available":%s,"note":%s,"controls":' \
         "$(http_json_str "$e")" \
         "$(http_json_str "${ENG_LABEL[$e]:-$e}")" \
         "$(http_json_str "${ENG_FAMILIES[$e]:-}")" \
@@ -245,6 +245,11 @@ http_engine_json() {
         "$(http_json_str "${ENG_UPSTREAM[$e]:-unrecorded}")" \
         "$avail" \
         "$(http_json_str "${ENG_NOTE[$e]:-}")"
+    local key
+    while IFS= read -r key; do
+        printf '{"key":%s,"mode":%s}\n' "$(http_json_str "$key")" "$(http_json_str "$(ib_option_mode "$e" "$key")")"
+    done < <(ib_option_keys) | http_json_array
+    printf '}\n'
 }
 
 http_h_engine() {
@@ -284,6 +289,10 @@ http_h_profiles() {
     local p gen
     for p in $(prof_list 2>/dev/null | sort); do
         if prof_is_generatable "$p" 2>/dev/null; then gen=true; else gen=false; fi
+        # A command-building server need not have the generators installed.
+        # Include native inputs from every adapter, rather than just profiles
+        # backed by the ld1 recipe database.
+        case $(params_kind "$p") in tarball|github|engine|builtin) gen=true ;; esac
         printf '{"id":%s,"label":%s,"families":%s,"generatable":%s}\n' \
             "$(http_json_str "$p")" \
             "$(http_json_str "${PROF_LABEL[$p]:-$p}")" \
@@ -499,6 +508,27 @@ http_h_build_command() {
     [ -n "$fmt" ] && args+=("--format" "$fmt")
     [ -n "$ecut" ] && args+=("--ecut" "$ecut")
     [ -n "$dual" ] && args+=("--dual" "$dual")
+    local key value flag part
+    while IFS= read -r key; do
+        value=$(http_query_param "$HTTP_QUERY" "$key")
+        [ -n "$value" ] || continue
+        case $key in
+            lsd|gipaw)
+                case $value in 1|true) args+=("--$key") ;; *) http_error 400 invalid_control "$key must be 1 or true"; return 0 ;; esac ;;
+            extra_projectors|channel_radii)
+                [ "$key" = extra_projectors ] && flag=--projector || flag=--channel-rc
+                for part in $value; do args+=("$flag" "$part"); done ;;
+            xmin|dx|rmax) ;; # combined below
+            *)
+                flag=${SPEC_FLAG[$key]:-}
+                [ -n "$flag" ] && args+=("$flag" "$value") ;;
+        esac
+    done < <(ib_option_keys)
+    local xmin dx rmax
+    xmin=$(http_query_param "$HTTP_QUERY" xmin)
+    dx=$(http_query_param "$HTTP_QUERY" dx)
+    rmax=$(http_query_param "$HTTP_QUERY" rmax)
+    if [ -n "$xmin$dx$rmax" ]; then args+=(--grid "$xmin:$dx:$rmax"); fi
 
     if ! build_command_for "${args[@]}"; then
         HTTP_STATUS=409
@@ -792,6 +822,7 @@ native_index_build() {   # native_index_build [dir] -- rescan and rewrite
                      ! -name '*.in' \
                      ! -name '*.out' \
                      ! -path '*/.rejected/*' \
+                     ! -path '*/rejected/*' \
                      ! -path '*/.stamps/*' \
                      ! -path '*/logs/*' \
                      ! -path '*/reports/*' \
@@ -845,7 +876,7 @@ http_h_native_list() {
             return s
         }
         BEGIN { printf "[" ; first = 1 }
-        !/^#/ && $1 !~ /_rejected_/ {
+        !/^#/ && $1 !~ /_rejected_/ && $10 !~ /(^|\/)\.?rejected\// {
             if (!first) printf ","
             first = 0
             printf "\n{\"id\":\"%s\",\"element\":\"%s\",\"xc\":\"%s\",\"family\":\"%s\",\"relativity\":\"%s\",\"engine\":\"%s\",\"format\":\"%s\",\"profile\":\"%s\",\"encoding\":\"%s\",\"size\":%s,\"sha256\":\"%s\",\"has_provenance\":%s}",
@@ -860,7 +891,7 @@ http_h_native_list() {
 http_h_native_one() {
     local idx line; idx=$(http_native_index)
     [ -f "$idx" ] || { http_error 503 native_index_unavailable "No native-file index on this server."; return 0; }
-    line=$(awk -F'\t' -v id="$HTTP_PARAM" '$1 == id { print; exit }' "$idx")
+    line=$(awk -F'\t' -v id="$HTTP_PARAM" '$1 == id && $10 !~ /(^|\/)\.?rejected\// && $1 !~ /_rejected_/ { print; exit }' "$idx")
     if [ -z "$line" ]; then
         http_error 404 not_found "No native file with id: $HTTP_PARAM"
         return 0
@@ -898,7 +929,7 @@ http_h_convert() {
 
     idx=$(http_native_index)
     [ -f "$idx" ] || { http_error 503 native_index_unavailable "No native-file index on this server."; return 0; }
-    line=$(awk -F'	' -v i="$id" '$1 == i { print; exit }' "$idx")
+    line=$(awk -F'	' -v i="$id" '$1 == i && $10 !~ /(^|\/)\.?rejected\// && $1 !~ /_rejected_/ { print; exit }' "$idx")
     [ -n "$line" ] || { http_error 404 not_found "No native file with id: $id"; return 0; }
 
     from=$(native_field format "$line")
@@ -985,7 +1016,7 @@ http_h_download() {
 
     idx=$(http_native_index)
     [ -f "$idx" ] || { http_error 503 native_index_unavailable "No native-file index on this server."; return 0; }
-    line=$(awk -F'	' -v i="$id" '$1 == i { print; exit }' "$idx")
+    line=$(awk -F'	' -v i="$id" '$1 == i && $10 !~ /(^|\/)\.?rejected\// && $1 !~ /_rejected_/ { print; exit }' "$idx")
     [ -n "$line" ] || { http_error 404 not_found "No file with id: $id"; return 0; }
     path=$PF_NATIVE_DIR/$(native_field path "$line")
     HTTP_STATUS=200

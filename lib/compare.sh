@@ -64,6 +64,11 @@ _compare_resolve_side() {
     fi
 
     if [ -n "$line" ]; then
+        if [ "$mode" = indexed ]; then
+            local indexed_path
+            indexed_path=$(printf '%s' "$line" | cut -f10)
+            case /$indexed_path in */rejected/*|*/.rejected/*) return 1 ;; esac
+        fi
         id=$(printf '%s' "$line" | cut -f1)
         el=$(printf '%s' "$line" | cut -f2)
         xc=$(printf '%s' "$line" | cut -f3)

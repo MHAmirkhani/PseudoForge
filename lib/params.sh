@@ -190,6 +190,15 @@ params_have() {
 # ---------------------------------------------------------------------------
 params_find() {
     local lib=$1 el=$2 d f z want ex
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        d=$PARAMS_DIR
+        for f in "$d/$el.dat" "$d/$el.in" "$d/$(lower "$el").param" "$d/${el}_VPS.inp" "$d/$el.ini"; do
+            [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
+        done
+        if [ -f "$d/$(lower "$el")_ps.adat" ]; then printf '%s\n' "$d"; return 0; fi
+        # An explicit path is authoritative; do not substitute bundled inputs.
+        return 1
+    fi
     d=$(params_dir "$lib")
     want=${SPEC[variant]:-}
     z=$(printf '%02d' "${EL_Z[$el]:-0}")

@@ -6,7 +6,7 @@ fitted to. `pseudoforge optimise` sweeps that trade for one element and picks,
 by a stated rule, from measurements the tool already makes.
 
 ```bash
-pseudoforge optimise -e Si -t nc -p pseudoforge-auto -x pbe --engine oncvpsp \
+pseudoforge optimise -e Si -t paw -p psl-high -x pbe --engine ld1 \
     --cutoff-scan --save-recipe si-soft
 ```
 
@@ -18,19 +18,12 @@ back what that run measured: whether it generated, its transferability verdict
 and largest eigenvalue error, and, with `--cutoff-scan`, the converged
 `ecutwfc`.
 
-Measured on Si, PBE, ONCVPSP, with `--cutoffs "12 15 18 21 24 27 30 35 40"`:
-
-| scale | verdict | max &#124;Δε&#124; (Ry) | ecutwfc (Ry) |
-|---|---|---|---|
-| 0.9 | good | 0.00234 | 21 |
-| 1.0 | good | 0.00173 | 18 |
-| **1.1** | good | **0.00119** | **15** |
-| 1.2 | good | 0.00314 | 15 |
-| 1.3 | marginal | 0.00524 | 12 |
-
-It chose **1.1**: softer than the default radii *and* more transferable. 1.2
-ties it on cutoff and loses on the error; 1.3 is softer still and falls below
-`good`.
+An atomic reference-configuration fit is not a transferability test. ONCVPSP
+decks without alternative configurations now report `no-data`; this command
+does not choose a radius from that fit alone. The earlier Si ONCVPSP example
+measured a fit and is not evidence of improved transferability.
+For cross-engine selection against common physical observables, use
+[reference-constrained design](reference-design.md).
 
 ## The rule
 
@@ -71,3 +64,5 @@ you nothing about softness: every rung will report the lowest value. Start low.
   criteria.
 - Transferability must be measured for the engine and profile you use. Where
   it is not, every rung is `no-data` and no choice is made.
+
+Output directories must be new or empty. Previous projects are never deleted.

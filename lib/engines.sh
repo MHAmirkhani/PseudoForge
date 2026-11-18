@@ -364,7 +364,11 @@ eng_binary_for_rel() {
             case $(rel_canon "$rel") in
                 nonrel) printf '%s/oncvpspnr.x\n' "$dir" ;;
                 full)   printf '%s/oncvpspr.x\n'  "$dir" ;;
-                *)      printf '%s/oncvpsp.x\n'   "$dir" ;;
+                *)
+                    case ${base##*/} in
+                        oncvpspnr.x|oncvpspr.x) printf '%s/oncvpsp.x\n' "$dir" ;;
+                        *) printf '%s\n' "$base" ;;
+                    esac ;;
             esac ;;
         *) printf '%s\n' "$base" ;;
     esac

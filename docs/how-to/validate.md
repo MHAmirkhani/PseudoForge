@@ -83,6 +83,12 @@ An `excellent` from one is not comparable with a `good` from another. That is
 why the method travels with the grade everywhere, including the report footer:
 `TRANSFER measured by: ld1 iswitch=2`.
 
+ONCVPSP agreement with its reference configuration alone is `no-data` for
+transferability, with the fit scope retained in the note. Bound ghosts fail
+generation before a UPF or psp8 is installed, even with `--no-test`. A ghost
+verdict from the optional atomic validators also fails the element and moves
+its output variants into `pseudos/rejected/`; generation exits nonzero.
+
 ### An empty column is an answer
 
 `-` means no test deck exists — PSlibrary ships them for its PAW and ultrasoft

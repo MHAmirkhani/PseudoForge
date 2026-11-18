@@ -181,7 +181,10 @@ if [ "$QUICK" = 0 ]; then
     echo "== generate: one element per engine =="
     declare -A eng_prof=(
         [ld1]=psl-high
-        [oncvpsp]=pseudodojo
+        # Use a known-compatible baseline. Some published inputs can produce
+        # a bound ghost with a particular generator build; that is now a
+        # diagnosed rejection, not a successful generation smoke test.
+        [oncvpsp]=sg15
         [opium]=opium
         [uspp]=gbrv
         [fhi98pp]=fhi
@@ -400,7 +403,7 @@ echo
 # ---------- augfun on PAW ----------
 if "$PSM" engines path atompaw >/dev/null 2>&1; then
     echo "== augfun on PAW =="
-    run "generate atompaw --augfun AE" \
+    run_expect_fail "generate atompaw --augfun AE (refused)" "does not implement 'which_augfun'" \
         "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/af-paw" --augfun AE -q
     echo
 else

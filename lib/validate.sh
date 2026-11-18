@@ -271,6 +271,7 @@ val_oncvpsp() {
     fi
 
     if [ "$nconf" -le 1 ]; then
+        [ "$VAL_VERDICT" = ghost ] || VAL_VERDICT=no-data
         VAL_NOTE="${VAL_NOTE:+$VAL_NOTE; }reference configuration only -- the deck defines no alternative configurations, so this checks the fit, not transferability"
     else
         VAL_NOTE="${VAL_NOTE:+$VAL_NOTE; }$nconf configurations"

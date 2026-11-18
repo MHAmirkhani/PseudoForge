@@ -84,6 +84,10 @@ cmd_optimise() {
     local -a pass=()
     while [ $# -gt 0 ]; do
         case $1 in
+            -e|--elements|--scales|--min-grade|-o|--output|--save-recipe)
+                [ $# -ge 2 ] && [ -n "$2" ] || die "missing argument for $1" ;;
+        esac
+        case $1 in
             -h|--help)
                 sed -n '/^# optimise.sh/,/^# ------/p' "$PF_LIB/optimise.sh" | sed '1d;$d' | sed 's/^# \{0,1\}//'
                 return 0 ;;
@@ -104,11 +108,15 @@ cmd_optimise() {
     case $min_grade in excellent|good|marginal|poor) ;;
         *) die "--min-grade must be excellent, good, marginal or poor" ;; esac
     local s
+    [ -n "$scales" ] || die "--scales must not be empty"
     for s in $scales; do
-        awk -v f="$s" 'BEGIN { exit !(f + 0 > 0) }' || die "--scales: '$s' is not a positive number"
+        [[ "$s" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]] && awk -v f="$s" 'BEGIN { exit !(f > 0 && f < 100) }' || die "--scales: '$s' is not a positive number below 100"
     done
 
     out=${out:-./optimise-$el}
+    if [ -e "$out" ] && { [ ! -d "$out" ] || [ -n "$(ls -A "$out")" ]; }; then
+        die "output already exists and is not empty: $out; choose a new directory"
+    fi
     mkdir -p "$out" || die "cannot create $out"
     local psm=$PF_ROOT/pseudoforge minrank; minrank=$(opt_grade_rank "$min_grade")
 
@@ -123,7 +131,6 @@ cmd_optimise() {
     printf '  %-6s %-8s %-10s %-11s %-8s %s\n' SCALE STATUS VERDICT 'MAX|dE|' ECUT FILE
     for s in $scales; do
         local proj=$out/rc-$s st verdict maxde ecut file
-        rm -rf "$proj"
         "$psm" generate -e "$el" "${pass[@]}" --rcut-scale "$s" -o "$proj" > "$out/rc-$s.log" 2>&1
         # An engine without --rcut-scale is refused by generate before it runs;
         # that is the same answer for every scale, so stop at the first.

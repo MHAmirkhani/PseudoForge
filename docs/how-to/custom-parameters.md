@@ -1,6 +1,8 @@
 # Change the parameters
 
-Every flag here modifies a published recipe. When you use one, the output is
+The controls depend on the selected engine. Unsupported overrides are refused
+before running a solver. Supported controls modify the native input; a dry run
+applies the same radius changes as real generation. When you use one, the output is
 **tagged** so it cannot be mistaken for the library's own file — `-rc1p05`,
 `-ch1s`, and so on — and the change is recorded in `PROVENANCE.txt`.
 
@@ -9,6 +11,41 @@ Start by looking at what you are changing:
 ```bash
 pseudoforge recipe Fe -t paw -p psl-high -x pbe
 ```
+
+The terminal advanced menu and the website custom-generation page use the
+engine contract exposed under `controls` in `GET /api/engines`. `native`
+identifies a mapped control, `construction` a control supported when constructing
+a new input, and `unsupported` a control that is refused. The server builds
+local commands; it does not run atomic calculations.
+
+| Engine | Advanced controls |
+| --- | --- |
+| ld1 | The controls documented below |
+| ONCVPSP | Global and per-channel radii, local channel/radius, NLCC switch; configuration in the synthesized-input path |
+| OPIUM | Global radius scale; configuration in the synthesized-input path |
+| AtomPAW | Configuration used to construct the input |
+| APE | Configuration and global radius scale |
+| fhi98PP | Spin-polarised reference switch |
+| GTH | Published variant and refit workflow |
+| USPP, ADPACK | Native supplied/published inputs; common advanced overrides are refused |
+
+Published ONCVPSP/OPIUM configurations are not silently overwritten or replaced
+by heuristic constructions. An explicit `--params` directory takes precedence
+over cached and bundled decks; a missing input fails rather than falling back.
+The current adapter adopts flat element-named inputs for ld1, ONCVPSP, OPIUM,
+USPP, fhi98PP and ADPACK; `--params` is refused for APE, AtomPAW and GTH.
+USPP needs both atomic and pseudo decks in that directory.
+Copyable commands and saved recipes preserve that input-directory path and GTH
+refit settings. The directory must remain available; a saved recipe does not
+archive its contents. Design runs separately snapshot their inputs.
+
+Physics overrides are refused with `--source online`, because downloading an
+existing file cannot apply them. Malformed and nonfinite numbers are refused.
+Invalid dry-run inputs return a nonzero exit status.
+
+With `--no-autofix`, APE cannot change the pseudised shells or local channel on
+retry. If automatic correction is enabled and succeeds, `inputs/` retains the
+successful input and its original `.requested` copy.
 
 ## Cutoff radii
 
@@ -39,6 +76,26 @@ pseudoforge generate ... --rcloc 1.6    # matching radius for the local channel
 `lloc = -1` generates the local potential from the pseudised all-electron
 potential rather than reusing a channel. It is often the cure for a ghost state,
 and it is what the auto-fix engine reaches for on a `chi` failure.
+
+## Radii by angular channel
+
+```bash
+pseudoforge generate -e Si -t paw -p psl-high --engine ld1 \
+  --channel-rc s:1.6:1.9 --dry-run -o ./si-input
+pseudoforge generate -e Si -t nc -p sg15 --engine oncvpsp \
+  --channel-rc s:1.9 --channel-rc p:2.0 --lloc 4 --rcloc 1.8 \
+  --dry-run -o ./si-oncv-input
+```
+
+Radii are in bohr. Channels accept `s`, `p`, `d`, `f` or `0..3`. ld1 accepts
+`channel:radius:augmentation-radius`; omitting the last value sets both radii.
+ONCVPSP accepts `channel:radius`. These apply after global scaling, to every
+projector of the selected channel. Duplicate and absent channels are refused.
+Output names carry a checksum tag; provenance keeps the requested values.
+
+In ONCVPSP, `lloc=4` selects an independent local potential; `--rcloc` requires
+that setting. ld1 uses `lloc=-1`. An ONCVPSP local radius larger than a channel
+radius, or an override reaching its output grid, is refused.
 
 ## The reference configuration
 

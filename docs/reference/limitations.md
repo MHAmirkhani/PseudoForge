@@ -189,6 +189,12 @@ pseudopotential library the field uses is built on GGA. See
 
 ## Flags with restricted scope
 
+All advanced controls are now checked against an engine-specific contract.
+See [custom parameters](../how-to/custom-parameters.md) for the current matrix.
+An option accepted by an upstream engine is not automatically mapped by this
+interface. Unsupported options, ignored download overrides, and custom inputs
+that cannot be adopted are refused explicitly.
+
 ### `--projector`
 
 **ld1.x only.** Only `recipe_apply` consumes `SPEC[extra_projectors]`,

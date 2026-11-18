@@ -238,6 +238,10 @@ generate_one() {
             break
         fi
         deck=$RB_DECK; upf=$RB_UPF; tag=$RB_TAG
+        [ -z "${PARAMS_DIR:-}" ] || tag=supplied
+        if ! ib_check_deck "$deck" ld1; then
+            status=fail; message="generated ld1 input failed validation"; break
+        fi
 
         # ---- run ld1.x ----------------------------------------------------
         ld1_run "$deck" "$log" "$work"
@@ -302,7 +306,7 @@ generate_one() {
     rm -rf "$work"
 
     state_record "$el" "${SPEC[family]}" "${SPEC[profile]}" "${SPEC[xc]}" "${SPEC[rel]}" \
-                 "${tag:-}" "${upf:-}" "$status" "$attempt" "$seconds" "$message"
+                 "$([ -n "${SPEC[tag_suffix]:-}" ] && printf pseudoforge || printf '%s' "${tag:-}")" "${upf:-}" "$status" "$attempt" "$seconds" "$message"
 
     case $status in
         ok)      ok      "$el  ->  ${upf}  ($(human_time "$seconds"))" ;;

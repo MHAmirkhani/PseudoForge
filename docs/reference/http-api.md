@@ -57,6 +57,11 @@ pseudoforge api POST /api/convert body.json
 None of these needs an engine, which is why they work on a server that has
 none.
 
+`GET /api/profiles` marks a profile `generatable` when a generation adapter
+and an input source exist, including non-ld1 sources. This is independent of
+whether its generator is installed on the web server; local engine availability
+is reported by the health endpoint.
+
 ### `GET /api/health`
 
 `doctor_checks`, as JSON. The same records the CLI prints and the wizard
@@ -88,6 +93,14 @@ deployment it is `false` for every engine — see
 [the engine pages](engines.md) for what each one does.
 
 An unknown name is `404` and lists the ones that exist.
+
+Engine objects also contain a `controls` array of `{"key":"...","mode":"..."}`.
+Modes are `native`, `construction`, `metadata`, or `unsupported`. These describe
+the current adapter, not every option supported by the upstream generator.
+The custom-generation page uses this contract. The build-command endpoint
+accepts the same specification keys in its query; the core validates their
+engine scope. `channel_radii` and `extra_projectors` contain space-separated
+entries; grid controls use all three of `xmin`, `dx`, and `rmax`.
 
 ### `GET /api/formats`
 
