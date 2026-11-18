@@ -49,14 +49,14 @@ MKEOF
 out=$(PF_ADPACK_SRC_OVERRIDE="$fake_src" PF_DRY_RUN=1 build_adpack 2>&1)
 rc=$?
 
-if [ "$rc" -eq 0 ] && printf '%s\n' "$out" | grep -q 'dry-run: ( cd .* && make -j.* )'; then
+if [ "$rc" -eq 0 ] && printf '%s\n' "$out" | grep -q 'dry-run: ( cd .* && make -B -j.* )'; then
     ok_ "dry-run: PF_DRY_RUN=1 prints make command and does not execute make"
 else
     bad_ "dry-run failed or did not print make command (rc=$rc)" "$out"
 fi
 
 # 2. patch verification: confirm sed rewrote CC and LIB lines
-if grep -q '^CC      = gcc -Dnoomp -std=c99 -O3$' "$fake_src/source/makefile" && \
+if grep -q '^CC      = gcc -Dnoomp -std=c99 -O3 -fcommon$' "$fake_src/source/makefile" && \
    grep -q '^LIB     = -lblas -llapack$' "$fake_src/source/makefile"; then
     ok_ "patch verification: rewrote CC and LIB lines in source/makefile"
 else

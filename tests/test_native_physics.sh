@@ -85,6 +85,8 @@ printf 'grid.num 20001\n' > "$tmp/adpack-overflow.inp"
 if physics_adpack_check "$tmp/adpack-overflow.inp" >/dev/null 2>&1; then bad 'unsafe raw ADPACK grid accepted'; else ok 'ADPACK raw inputs also enforce the native grid array limit'; fi
 printf 'GRID.NUM 20001\n' > "$tmp/adpack-overflow.inp"
 if physics_adpack_check "$tmp/adpack-overflow.inp" >/dev/null 2>&1; then bad 'uppercase ADPACK grid bypassed its limit'; else ok 'ADPACK array guard follows native case-insensitive keyword parsing'; fi
+printf 'grid.num 1\n' > "$tmp/adpack-overflow.inp"
+if physics_adpack_check "$tmp/adpack-overflow.inp" >/dev/null 2>&1; then bad 'ADPACK accepted a one-point radial grid'; else ok 'ADPACK radial spacing requires at least two grid points'; fi
 printf 'grid.num 20000\nscf.maxIter 2000\n' > "$tmp/adpack-limits.inp"
 physics_adpack_check "$tmp/adpack-limits.inp" && ok 'ADPACK accepts documented array boundaries' || bad 'ADPACK array boundaries'
 

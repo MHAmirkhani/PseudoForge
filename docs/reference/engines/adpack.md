@@ -16,6 +16,13 @@ Schlüter and MBK schemes.
 
 ADPACK is built from source like the other engines (`pseudoforge engines build adpack`). Released ADPACK source carries hardcoded paths to author-specific include and library paths in `source/makefile`; PseudoForge patches the makefile to use standard compiler flags and system BLAS/LAPACK (`-lblas -llapack`) before compiling.
 
+The build applies a versioned ADPACK 2.2 source patch with `patch` and
+recompiles every object, including objects included in the archive. The patch
+fixes the native radial-grid and SCF limit checks, returns a failure status on
+invalid parsed inputs, and declares the LAPACK `dstevx_` routine for modern
+C compilers. The bundled defaults and pseudization equations stay as upstream
+defines them.
+
 ```bash
 pseudoforge engines build adpack
 ```

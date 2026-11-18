@@ -111,14 +111,13 @@ physics_fhi_check() {
 }
 
 physics_adpack_check() {
-    # Released readfile.c accidentally compares ASIZE1 with SCF_MAX instead of
-    # Grid_Num. Check compiled 2.2 limits here even for complete supplied files.
+    # Also protect standalone upstream binaries without the readfile.c fix.
     awk '
-        BEGIN {limit["grid.num"]=20000;limit["scf.maxiter"]=2000}
+        BEGIN {minimum["grid.num"]=2;minimum["scf.maxiter"]=1;limit["grid.num"]=20000;limit["scf.maxiter"]=2000}
         tolower($1) in limit {
             key=tolower($1)
-            if(seen[key]++ || $2 !~ /^[0-9]+$/ || $2<1 || $2>limit[key]) {
-                print "ADPACK " $1 " must be an integer in 1.." limit[key] " (2.2 array limit)" > "/dev/stderr";bad=1
+            if(seen[key]++ || $2 !~ /^[0-9]+$/ || $2<minimum[key] || $2>limit[key]) {
+                print "ADPACK " $1 " must be an integer in " minimum[key] ".." limit[key] " (2.2 array limit)" > "/dev/stderr";bad=1
             }
         }
         END {exit bad}

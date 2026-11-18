@@ -32,10 +32,10 @@ build_detect_os() {
 # compiler and preprocessor, make, and reference BLAS/LAPACK.
 build_packages() {
     case $(build_detect_os) in
-        debian)      echo "gfortran gcc make libblas-dev liblapack-dev unzip tar gzip curl" ;;
-        rhel|fedora) echo "gcc-gfortran gcc make blas-devel lapack-devel unzip tar gzip curl" ;;
-        arch)        echo "gcc-fortran gcc make blas lapack unzip tar gzip curl" ;;
-        suse)        echo "gcc-fortran gcc make blas-devel lapack-devel unzip tar gzip curl" ;;
+        debian)      echo "gfortran gcc make libblas-dev liblapack-dev unzip tar gzip curl patch" ;;
+        rhel|fedora) echo "gcc-gfortran gcc make blas-devel lapack-devel unzip tar gzip curl patch" ;;
+        arch)        echo "gcc-fortran gcc make blas lapack unzip tar gzip curl patch" ;;
+        suse)        echo "gcc-fortran gcc make blas-devel lapack-devel unzip tar gzip curl patch" ;;
         macos)       echo "gcc make openblas unzip curl" ;;
         *)           echo "" ;;
     esac
@@ -56,7 +56,11 @@ build_install_command() {
 build_missing_tools() {
     local missing="" t
     for t in gfortran gcc make tar gzip curl; do have "$t" || missing="$missing $t"; done
-    have unzip || have bsdtar || missing="$missing unzip"
+    if [ "${1:-}" = adpack ]; then
+        have patch || missing="$missing patch"
+    else
+        have unzip || have bsdtar || missing="$missing unzip"
+    fi
     # cpp is only needed by ONCVPSP, but it comes with gcc everywhere
     build_have_lapack || missing="$missing lapack/blas"
     trim "$missing"
@@ -73,15 +77,15 @@ build_have_lapack() {
 }
 
 # ---------------------------------------------------------------------------
-# build_install_deps [--yes]
+# build_install_deps [--yes] [engine]
 #
 # Installs the build prerequisites through the system package manager.  This is
 # the one place PseudoForge asks for root, and it prints the exact command first so
 # nobody has to trust it blindly.
 # ---------------------------------------------------------------------------
 build_install_deps() {
-    local assume_yes=${1:-} missing cmd pkgs reply
-    missing=$(build_missing_tools)
+    local assume_yes=${1:-} eng=${2:-} missing cmd pkgs reply
+    missing=$(build_missing_tools "$eng")
     if [ -z "$missing" ]; then
         ok "build prerequisites are already present"
         return 0
@@ -126,7 +130,7 @@ build_install_deps() {
     esac
     # shellcheck disable=SC2086
     $cmd $pkgs || { error "package installation failed"; return 1; }
-    missing=$(build_missing_tools)
+    missing=$(build_missing_tools "$eng")
     if [ -n "$missing" ]; then
         error "build prerequisites are still missing: $missing"
         return 1
@@ -918,8 +922,7 @@ build_gsl() {
 }
 
 build_adpack() {
-    local src log prefix
-    prefix=$(eng_prefix)
+    local src log
     log=$(eng_builddir)/adpack-build.log
     mkdir -p "$(eng_builddir)"
 
@@ -940,7 +943,7 @@ build_adpack() {
     # place; it is in a build/ copy, not the repository.
     local mk="$src/source/makefile"
     sed -i \
-        -e 's|^CC.*=.*gcc.*-I/usr/local/include.*-I/home/ozaki/include|CC      = gcc -Dnoomp -std=c99 -O3|' \
+        -e 's|^CC.*=.*gcc.*-I/usr/local/include.*-I/home/ozaki/include|CC      = gcc -Dnoomp -std=c99 -O3 -fcommon|' \
         -e 's|^LIB.*=.*-L/home/ozaki/lib.*-latlas_p4.*-static|LIB     = -lblas -llapack|' \
         "$mk"
 
@@ -955,12 +958,27 @@ build_adpack() {
     }
 
     if [ "${PF_DRY_RUN:-0}" = 1 ]; then
-        info "dry-run: ( cd \"$src/source\" && make -j\"$(build_jobs)\" )"
+        info "dry-run: apply the ADPACK input bounds patch"
+        info "dry-run: ( cd \"$src/source\" && make -B -j\"$(build_jobs)\" )"
         return 0
     fi
 
+    local fix="$PF_ROOT/lib/patches/adpack/0001-check-radial-grid-and-scf-bounds.patch"
+    if ! have patch; then
+        error "adpack: install patch to apply the native input bounds fix"
+        return 1
+    fi
+    if patch -d "$src" -p1 -F0 --batch --forward --dry-run < "$fix" >/dev/null 2>&1; then
+        patch -d "$src" -p1 -F0 --batch --forward < "$fix" || return 1
+    elif ! patch -d "$src" -p1 -F0 --batch --reverse --dry-run < "$fix" >/dev/null 2>&1; then
+        error "adpack: cannot verify the input bounds fix against $src/source/readfile.c"
+        return 1
+    fi
+
     info "compiling adpack"
-    ( cd "$src/source" && make -j"$(build_jobs)" ) > "$log" 2>&1
+    # The upstream tarball contains object files and an executable. Build
+    # every object locally so the installed binary matches the patched source.
+    ( cd "$src/source" && make -B -j"$(build_jobs)" ) > "$log" 2>&1
     local rc=$?
     [ "$rc" -eq 0 ] || {
         error "adpack build failed -- see $log"
@@ -1098,8 +1116,8 @@ build_engine() {
     eng_exists "$eng" || { error "unknown engine '$eng'"; return 1; }
 
     banner "Building ${ENG_LABEL[$eng]}"
-    if [ -n "$(build_missing_tools)" ]; then
-        build_install_deps "$assume_yes" || return 1
+    if [ -n "$(build_missing_tools "$eng")" ]; then
+        build_install_deps "$assume_yes" "$eng" || return 1
     fi
 
     case $eng in

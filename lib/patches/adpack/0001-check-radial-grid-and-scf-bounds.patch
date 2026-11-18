@@ -1,0 +1,27 @@
+--- a/source/readfile.c
++++ b/source/readfile.c
+@@ -280,3 +280,3 @@
+-  if (ASIZE1<SCF_MAX){
+-    printf("\n**** Error message in the inputfile ****\n");
+-    printf("ASIZE1<grid.num\n");
++  if (Grid_Num<2 || ASIZE1<Grid_Num){
++    printf("\n**** Error message in the inputfile ****\n");
++    printf("grid.num must be in 2..%d\n",ASIZE1);
+@@ -292,3 +292,3 @@
+-  if (ASIZE10<SCF_MAX){
+-    printf("\n**** Error message in the inputfile ****\n");
+-    printf("ASIZE10<scf.maxIter\n");
++  if (SCF_MAX<1 || ASIZE10<SCF_MAX){
++    printf("\n**** Error message in the inputfile ****\n");
++    printf("scf.maxIter must be in 1..%d\n",ASIZE10);
+@@ -632 +632 @@
+-    exit(0);
++    exit(EXIT_FAILURE);
+--- a/source/FEMHF_All_Electron.c
++++ b/source/FEMHF_All_Electron.c
+@@ -122,0 +123,5 @@
++
++extern void dstevx_(char *JOBZ, char *RANGE, INTEGER *N, double *D, double *E,
++                    double *VL, double *VU, INTEGER *IL, INTEGER *IU, double *ABSTOL,
++                    INTEGER *M, double *W, double *Z, INTEGER *LDZ, double *WORK,
++                    INTEGER *IWORK, INTEGER *IFAIL, INTEGER *INFO);
