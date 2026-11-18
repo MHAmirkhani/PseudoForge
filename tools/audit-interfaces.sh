@@ -1181,7 +1181,7 @@ run_tui_refusal() {
             projector)   SPEC[extra_projectors]='d l=2' ;;
             upf1)        SPEC[upf]=1 ;;
             wrongfam)    SPEC[family]=paw; SPEC[engine]=oncvpsp ;;
-            rcutscale)   SPEC[family]=us; SPEC[engine]=uspp
+            rcutscale)   SPEC[family]=nc; SPEC[engine]=fhi98pp; SPEC[profile]=fhi; SPEC[xc]=pw
                          SPEC[rcut_scale]=1.10 ;;
             metagga)     SPEC[family]=paw; SPEC[engine]=atompaw
                          SPEC[xc]=tpss ;;
@@ -1239,7 +1239,7 @@ cli_refusal() {   # cli_refusal <tag> <args...>
 cli_refusal projector -p pseudoforge-auto --engine oncvpsp --projector 'd l=2'
 cli_refusal upf1      -p pseudoforge-auto --upf 1
 cli_refusal wrongfam  -p pseudoforge-auto --engine oncvpsp -t paw
-cli_refusal rcutscale -p pseudoforge-auto --engine uspp -t us --rcut-scale 1.10
+cli_refusal rcutscale -p fhi --engine fhi98pp -t nc -x pw --rcut-scale 1.10
 cli_refusal metagga   -p pseudoforge-auto --engine atompaw -t paw -x tpss
 # ---------------------------------------------------------------------------
 section "M. sub-subcommand --help"

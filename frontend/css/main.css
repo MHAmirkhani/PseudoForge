@@ -2132,6 +2132,7 @@ main > *, .panel, .grid > * { min-width: 0; }
   margin: 1.25rem 0;
 }
 .custom-fields label, #design-app label { display: flex; flex-direction: column; gap: .45rem; }
+.custom-fields [hidden] { display: none; }
 .custom-fields input, .custom-fields select, #design-app textarea {
   width: 100%; min-width: 0; padding: .65rem; color: var(--fg);
   background: var(--input-bg); border: 1px solid var(--line); border-radius: .4rem; font: inherit;

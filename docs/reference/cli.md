@@ -37,6 +37,8 @@ is the same as `pseudoforge generate -e Si …`.
 | `list` | `<what>` | profiles \| functionals \| elements \| recipes \| sets |
 | `show` | `<profile>` | full description of a library profile |
 | `recipe` | `<element>` | print the selected engine's native input |
+| `prepare` | `[opts] -o DIR` | prepare editable native inputs for any of the 9 engines |
+| `physics` | `[ENGINE]` | mapped controls, native options and units |
 | `recipe` | `save <name>` | save the current settings as a named recipe |
 | `recipe` | `load <name>` | show the command a saved recipe is equivalent to |
 | `recipe` | `list` | list saved recipes |
@@ -88,6 +90,7 @@ is the same as `pseudoforge generate -e Si …`.
 | `--rcloc` | yes | `SPEC[rcloc]` |
 | `--projector` | yes | `SPEC[extra_projectors]` |
 | `--channel-rc` | yes | `SPEC[channel_radii]` |
+| `--engine-option` | yes | `SPEC[engine_options]` |
 | `--rcut-scale` | yes | `SPEC[rcut_scale]` |
 | `--nc-form` | yes | `SPEC[nc_form]` |
 | `--lsd` | no | `SPEC[lsd]` |

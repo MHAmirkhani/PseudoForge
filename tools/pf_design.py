@@ -31,7 +31,7 @@ FLAGS = {
     "which_augfun": "--augfun", "rmatch_augfun": "--rmatch", "lloc": "--lloc",
     "rcloc": "--rcloc", "rcut_scale": "--rcut-scale", "nc_form": "--nc-form",
     "beta": "--beta", "tr2": "--tr2", "lsd": "--lsd", "gipaw": "--gipaw",
-    "extra_projectors": "--projector", "channel_radii": "--channel-rc",
+    "extra_projectors": "--projector", "channel_radii": "--channel-rc", "engine_options": "--engine-option",
 }
 METRICS = {"force_max_Ry_bohr", "stress_max_kbar", "relative_energy_Ry_atom"}
 NUMBER = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eEdD][-+]?\d+)?"
@@ -84,7 +84,7 @@ def option_args(options):
                 raise ValueError(f"{key} must be a boolean")
             if value:
                 result.append(FLAGS[key])
-        elif key in ("channel_radii", "extra_projectors"):
+        elif key in ("channel_radii", "extra_projectors", "engine_options"):
             if not isinstance(value, list) or not value or not all(isinstance(x, str) and x for x in value):
                 raise ValueError(f"{key} must be a nonempty list of strings")
             for entry in value:

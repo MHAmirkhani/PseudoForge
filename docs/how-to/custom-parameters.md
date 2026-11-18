@@ -22,19 +22,21 @@ local commands; it does not run atomic calculations.
 | --- | --- |
 | ld1 | The controls documented below |
 | ONCVPSP | Global and per-channel radii, local channel/radius, NLCC switch; configuration in the synthesized-input path |
-| OPIUM | Global radius scale; configuration in the synthesized-input path |
-| AtomPAW | Configuration used to construct the input |
-| APE | Configuration and global radius scale |
-| fhi98PP | Spin-polarised reference switch |
-| GTH | Published variant and refit workflow |
-| USPP, ADPACK | Native supplied/published inputs; common advanced overrides are refused |
+| OPIUM | Global/per-channel radii, construction method; configuration in the synthesized-input path |
+| AtomPAW | Configuration, coupled radius scaling, channel radii, compensation shape/local channel and existing additional-projector energies |
+| APE | Configuration, radii, local channel, NLCC, TM/Hamann method and numerical tolerances |
+| fhi98PP | Explicit channel radii, pseudocore/NLCC, construction method, spin switch with explicit spin occupations |
+| GTH | Published coefficients or a four-file refit with Gaussian radii, atomic reference radii, fit weights and free/fixed masks |
+| USPP | Matching/local/core/augmentation radii, NLCC, paired AE/PS SCF settings |
+| ADPACK | Matching/local radii, NLCC, radial grid, SCF, native pseudization/projector/core controls and ghost search |
 
 Published ONCVPSP/OPIUM configurations are not silently overwritten or replaced
 by heuristic constructions. An explicit `--params` directory takes precedence
 over cached and bundled decks; a missing input fails rather than falling back.
-The current adapter adopts flat element-named inputs for ld1, ONCVPSP, OPIUM,
-USPP, fhi98PP and ADPACK; `--params` is refused for APE, AtomPAW and GTH.
-USPP needs both atomic and pseudo decks in that directory.
+All nine adapters accept their prepared inputs with `--params`. USPP needs
+both atomic and pseudo decks; GTH fitting needs its four coupled input files.
+Use [Prepare, edit and generate](manual-generation.md) for the complete file
+matrix and a workflow that avoids applying an override twice.
 Copyable commands and saved recipes preserve that input-directory path and GTH
 refit settings. The directory must remain available; a saved recipe does not
 archive its contents. Design runs separately snapshot their inputs.
@@ -43,9 +45,16 @@ Physics overrides are refused with `--source online`, because downloading an
 existing file cannot apply them. Malformed and nonfinite numbers are refused.
 Invalid dry-run inputs return a nonzero exit status.
 
-With `--no-autofix`, APE cannot change the pseudised shells or local channel on
+With `--no-autofix`, APE and ADPACK cannot change physical input settings on
 retry. If automatic correction is enabled and succeeds, `inputs/` retains the
-successful input and its original `.requested` copy.
+successful input and its original `.requested` copy. `inputs.sha256` records
+the input files; check it from the project directory with `sha256sum -c`.
+
+Use `pseudoforge physics ENGINE` to inspect mapped controls and units. Repeat
+`--engine-option KEY=VALUE` for typed native controls; for example ONCVPSP's
+`--engine-option qcut.s=5.12`. These describe a verified adapter subset, not
+every setting in an upstream manual. Edit the complete native files for other
+settings, keeping counts, coupled records, XC and relativity consistent.
 
 ## Cutoff radii
 
@@ -89,8 +98,10 @@ pseudoforge generate -e Si -t nc -p sg15 --engine oncvpsp \
 
 Radii are in bohr. Channels accept `s`, `p`, `d`, `f` or `0..3`. ld1 accepts
 `channel:radius:augmentation-radius`; omitting the last value sets both radii.
-ONCVPSP accepts `channel:radius`. These apply after global scaling, to every
-projector of the selected channel. Duplicate and absent channels are refused.
+The other adapters accept `channel:radius`. These apply after global scaling,
+to every mapped projector of the selected channel. Their physical meaning
+depends on the generator: GTH uses Gaussian widths and requires `--refit`.
+Duplicate and absent channels are refused.
 Output names carry a checksum tag; provenance keeps the requested values.
 
 In ONCVPSP, `lloc=4` selects an independent local potential; `--rcloc` requires

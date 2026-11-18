@@ -51,16 +51,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   element.required = true; element.pattern = '[A-Z][a-z]?'; elementLabel.append(element); fields.append(elementLabel);
   const engine = select('custom-engine', 'Generator', engines.body);
   const family = select('custom-family', 'Formulation', [{id: 'nc'}, {id: 'us'}, {id: 'paw'}]);
-  const xc = select('custom-xc', 'Functional', functionals.body.filter(item => item.status !== 'proxy'));
+  const xc = select('custom-xc', 'Functional', functionals.body.filter(item => item.status !== 'proxy' || ['r2scan', 'r2scan-01'].includes(item.id)));
   xc.value = 'pbe';
   const relativity = select('custom-rel', 'Relativity', [{id: 'scalar'}, {id: 'nonrel'}, {id: 'full'}]);
   const profile = select('custom-profile', 'Parameter source', profiles.body.filter(item => item.generatable));
   profile.value = 'psl-high';
+  const format = select('custom-format', 'Output format', [{id: 'upf'}]);
+  const refitLabel = make('label', 'Fit GTH coefficients from atomic reference inputs');
+  const refit = make('input'); refit.type = 'checkbox'; refit.id = 'custom-refit'; refit.checked = true;
+  refitLabel.append(refit); fields.append(refitLabel);
   form.append(fields);
   const hint = make('p', 'Generation runs on your computer. This page builds a validated command; final deck checks happen locally.', 'hint');
   form.append(hint);
   const controls = make('div', '', 'custom-fields'); controls.id = 'physics-controls'; form.append(controls);
   const inputByKey = new Map();
+  const nativeByKey = new Map();
   const result = make('div'); result.id = 'custom-result'; result.setAttribute('aria-live', 'polite');
   const submit = make('button', 'Build command', 'btn primary'); submit.type = 'submit';
   form.append(submit); host.append(form, result);
@@ -68,17 +73,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   let previousEngine = '';
   const invalidate = () => { revision++; result.replaceChildren(); };
   const update = () => {
-    invalidate(); controls.replaceChildren(); inputByKey.clear();
+    invalidate(); controls.replaceChildren(); inputByKey.clear(); nativeByKey.clear();
     const selected = engines.body.find(item => item.id === engine.value);
+    const engineChanged = engine.value !== previousEngine;
+    refitLabel.hidden = engine.value !== 'gth';
+    const previousFormat = format.value;
+    format.replaceChildren();
+    for (const id of selected.formats || ['upf']) {
+      if (engine.value === 'gth' && refit.checked && id !== 'gth') continue;
+      const option = make('option', id); option.value = id; format.append(option);
+    }
+    if (Array.from(format.options).some(option => option.value === previousFormat)) format.value = previousFormat;
+    if (engineChanged) {
+      const preferred = {gth: 'gth', fhi98pp: 'cpi', adpack: 'openmx'}[engine.value] || 'upf';
+      if (Array.from(format.options).some(option => option.value === preferred)) format.value = preferred;
+    }
     if (engine.value !== previousEngine) {
       const defaults = {ld1: 'psl-high', oncvpsp: 'sg15', opium: 'opium', uspp: 'gbrv',
         fhi98pp: 'fhi', atompaw: 'atompaw', ape: 'pseudoforge-auto', adpack: 'adpack', gth: 'cp2k-gth'};
       profile.value = defaults[engine.value] || 'pseudoforge-auto'; previousEngine = engine.value;
     }
+    for (const option of profile.options) {
+      const source = profiles.body.find(item => item.id === option.value);
+      option.disabled = !!source.engine && source.engine !== engine.value && source.id !== 'pseudoforge-auto';
+    }
+    const source = profiles.body.find(item => item.id === profile.value);
+    if (source) {
+      for (const option of xc.options) {
+        const choices = (source.xc || '').split(/\s+/);
+        option.disabled = choices.length > 0 && choices[0] !== '' && !choices.includes('varies') && !choices.includes(option.value);
+        if (engine.value !== 'atompaw' && ['r2scan', 'r2scan-01'].includes(option.value)) option.disabled = true;
+      }
+      if (xc.selectedOptions[0].disabled) xc.value = Array.from(xc.options).find(option => !option.disabled)?.value || '';
+      for (const option of relativity.options) {
+        const choices = (source.relativity || '').split(/\s+/);
+        option.disabled = choices.length > 0 && choices[0] !== '' && !choices.includes('varies') && !choices.includes(option.value);
+        if (engine.value === 'atompaw' && xc.value.startsWith('r2scan') && option.value !== 'nonrel') option.disabled = true;
+      }
+      if (relativity.selectedOptions[0].disabled) relativity.value = Array.from(relativity.options).find(option => !option.disabled)?.value || '';
+    }
+    if (engine.value === 'atompaw' && xc.value.startsWith('r2scan')) {
+      for (const option of Array.from(format.options)) if (option.value === 'upf' || option.value === 'xml') option.remove();
+    }
     for (const option of family.options) option.disabled = !selected.families.split(' ').includes(option.value);
     if (family.selectedOptions[0].disabled) family.value = Array.from(family.options).find(option => !option.disabled).value;
     for (const control of selected.controls || []) {
       if (!labels[control.key] || control.mode === 'unsupported') continue;
+      if (engine.value === 'gth' && !refit.checked && ['rcloc', 'channel_radii', 'rcut_scale'].includes(control.key)) continue;
       if (family.value === 'nc' && ['which_augfun', 'rmatch_augfun'].includes(control.key)) continue;
       if (family.value !== 'nc' && control.key === 'nc_form') continue;
       const [text, type, sample] = labels[control.key];
@@ -93,18 +134,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (control.mode === 'construction') label.append(make('small', 'Applies to constructed inputs. Published decks require editing their native input.', 'hint'));
       label.append(input); controls.append(label); inputByKey.set(control.key, input);
     }
+    if (engine.value !== 'gth' || refit.checked) for (const item of selected.native_options || []) {
+      const label = make('label', item.description + (item.unit !== '-' ? ' (' + item.unit + ')' : ''));
+      const input = make(item.type === 'enum' ? 'select' : 'input');
+      input.id = 'native-' + item.key.replace(/[^A-Za-z0-9_-]/g, '-');
+      if (item.type === 'enum') {
+        for (const value of ['', ...item.minimum.split(',')]) {
+          const option = make('option', value || 'Keep source setting'); option.value = value; input.append(option);
+        }
+      } else { input.type = 'text'; input.inputMode = 'decimal'; input.placeholder = item.key; }
+      label.append(input, make('small', item.key, 'hint')); controls.append(label); nativeByKey.set(item.key, input);
+    }
   };
   engine.addEventListener('change', update); family.addEventListener('change', update);
+  profile.addEventListener('change', update); xc.addEventListener('change', update);
+  refit.addEventListener('change', update);
   form.addEventListener('input', invalidate);
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const token = ++revision;
     const query = new URLSearchParams({element: element.value, engine: engine.value, family: family.value,
-      xc: xc.value, relativity: relativity.value, profile: profile.value, format: 'upf'});
+      xc: xc.value, relativity: relativity.value, profile: profile.value, format: format.value});
+    if (engine.value === 'gth' && refit.checked) query.set('refit', '1');
     for (const [key, input] of inputByKey) {
       if (input.type === 'checkbox') { if (input.checked) query.set(key, '1'); }
       else if (input.value.trim()) query.set(key, input.value.trim());
     }
+    const options = Array.from(nativeByKey).filter(([, input]) => input.value.trim()).map(([key, input]) => key + '=' + input.value.trim());
+    if (options.length) query.set('engine_options', options.join(' '));
     result.replaceChildren(make('p', 'Checking physics choices…', 'loading'));
     const response = await API.buildCommand(query);
     if (token !== revision) return;
@@ -120,6 +177,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       catch (_) { copy.textContent = 'Select and copy the command above'; }
     });
     result.append(copy, make('p', 'Run with --dry-run first to inspect the exact native input before generation.', 'hint'));
+    const manualQuery = new URLSearchParams({element: element.value, engine: engine.value, family: family.value,
+      xc: xc.value, relativity: relativity.value, profile: profile.value, format: format.value,
+      params: './native-inputs/inputs', no_autofix: '1'});
+    if (engine.value === 'gth' && refit.checked) manualQuery.set('refit', '1');
+    const manual = await API.buildCommand(manualQuery);
+    if (token !== revision) return;
+    result.append(make('h2', 'Edit the complete native physics input'));
+    result.append(make('p', 'Prepare into a new directory, edit the native files, then generate into a separate project. The prepared files already contain the settings above; the second command preserves those files without applying them twice. Keep XC and relativity consistent with your choices.'));
+    if (manual.status === 200 && manual.body.command) {
+      const prepare = response.body.command.replace(/^pseudoforge generate\b/, 'pseudoforge prepare') + ' -o ./native-inputs';
+      const steps = make('pre', prepare + '\n\n# Edit files in ./native-inputs/inputs, then run:\n' + manual.body.command + ' -o ./manual-result');
+      steps.id = 'custom-manual-command'; result.append(steps);
+    } else result.append(make('p', 'Manual command could not be prepared: ' + (manual.body.reason || 'try again'), 'error'));
   });
   update();
 });

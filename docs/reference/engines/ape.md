@@ -163,3 +163,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 
 - [Limitations](../limitations.md#ape-no-gga-path-for-open-d-transition-metals) — the d-shell failure, and why APE is not in the store
 - [Upstream](../upstream.md#ape-gga-path-fails-for-open-d-transition-metals) — why this is documented and not reported
+
+## Manual physics controls
+
+Mapped component radii, local channel, NLCC, TM/Hamann construction and numerical tolerances supplement the full native input.
+
+Use `pseudoforge physics ape` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

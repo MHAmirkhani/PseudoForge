@@ -192,6 +192,35 @@ params_find() {
     local lib=$1 el=$2 d f z want ex
     if [ -n "${PARAMS_DIR:-}" ]; then
         d=$PARAMS_DIR
+        # Names emitted by prepare/--dry-run must be reusable without renaming.
+        case ${SPEC[engine]:-} in
+            ld1)
+                if [ ! -f "$d/$el.in" ]; then
+                    local -a matches=()
+                    mapfile -t matches < <(find "$d" -maxdepth 1 -type f -name "$el.*.in" -print | sort)
+                    if [ "${#matches[@]}" = 1 ]; then printf '%s\n' "${matches[0]}"; return 0; fi
+                    [ "${#matches[@]}" -le 1 ] || { error "multiple ld1 inputs for $el; select one as $el.in"; return 1; }
+                fi ;;
+            atompaw) f=$d/$el.atompaw.input ;;
+            ape) f=$d/$el.inp.ape ;;
+            adpack) f=$d/$el.adpack.inp ;;
+            gth)
+                if [ "${GTH_REFIT:-0}" = 1 ]; then
+                    for f in "$d/$el.gth-inputs" "$d/$el" "$d"; do
+                        [ -f "$f/atom/atom.dat" ] && { printf '%s\n' "$f"; return 0; }
+                    done
+                    return 1
+                fi
+                for f in "$d/$el.gth-source" "$d/$el.gth"; do
+                    [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
+                done
+                return 1 ;;
+            uspp)
+                if [ -f "$d/$el.ps.adat" ] && [ -f "$d/$el.ae.adat" ]; then printf '%s\n' "$d"; return 0; fi ;;
+        esac
+        case ${SPEC[engine]:-} in atompaw|ape|adpack)
+            [ -f "$f" ] && { printf '%s\n' "$f"; return 0; } ;;
+        esac
         for f in "$d/$el.dat" "$d/$el.in" "$d/$(lower "$el").param" "$d/${el}_VPS.inp" "$d/$el.ini"; do
             [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
         done

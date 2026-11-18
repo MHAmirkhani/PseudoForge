@@ -386,18 +386,16 @@ echo
 
 # ---------- rcut-scale refuse cases ----------
 echo "== --rcut-scale refused on engines that lack it =="
-run_expect_fail "generate uspp --rcut-scale (refused)" \
-    "--rcut-scale is not available with USPP" \
-    "$PSM" generate -e Si -t us -x pbe -p gbrv -o "$SCRATCH/rc-uspp" --rcut-scale 1.1 -q
+run "prepare uspp radius controls (dry-run)" \
+    "$PSM" generate -e Si -t us -x pbe -p gbrv --engine uspp -o "$SCRATCH/rc-uspp" --rcut-scale 1.01 --dry-run -q
 run_expect_fail "generate fhi98pp --rcut-scale (refused)" \
     "--rcut-scale is not available with fhi98PP" \
     "$PSM" generate -e Si -t nc -x pw -p fhi -o "$SCRATCH/rc-fhi" --rcut-scale 1.1 -q
 run_expect_fail "generate gth --rcut-scale (refused)" \
-    "--rcut-scale is not available with GTH" \
+    "GTH physics controls require --refit" \
     "$PSM" generate -e Si -t nc -x pbe -p cp2k-gth -o "$SCRATCH/rc-gth" --rcut-scale 1.1 -q
-run_expect_fail "generate atompaw --rcut-scale (refused)" \
-    "--rcut-scale is not available with AtomPAW" \
-    "$PSM" generate -e Si -t paw -x pbe -p atompaw -o "$SCRATCH/rc-atompaw" --rcut-scale 1.1 -q
+run "prepare atompaw radius controls (dry-run)" \
+    "$PSM" generate -e Si -t paw -x pbe -p atompaw --engine atompaw -o "$SCRATCH/rc-atompaw" --rcut-scale 1.02 --dry-run -q
 echo
 
 # ---------- augfun on PAW ----------

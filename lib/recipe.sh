@@ -54,6 +54,7 @@ spec_init() {
     SPEC[tr2]=              # SCF convergence threshold
     SPEC[rcut_scale]=       # multiply every rcut/rcutus by this factor
     SPEC[channel_radii]=    # channel:radius[:augmentation-radius], in bohr
+    SPEC[engine_options]=   # typed native KEY=VALUE controls, space-separated
     SPEC[extra_projectors]= # "3D:0.5 4P:1.0" -> extra card lines
     SPEC[nc_form]=          # semilocal | separable (norm-conserving only)
     SPEC[formats]=upf
@@ -434,6 +435,7 @@ recipe_apply() {
 # ---------------------------------------------------------------------------
 recipe_build() {
     local el=$1 outdir=$2
+    physics_source_check "$outdir" || { RB_ERROR="native source overlaps output inputs"; return 1; }
     local prof=${SPEC[profile]} fam=${SPEC[family]} xc=${SPEC[xc]} rel=${SPEC[rel]}
     local tpl deck fct gfun nrel upf
 
@@ -593,6 +595,10 @@ recipe_auto_suffix() {
         v=$(printf '%s' "${SPEC[channel_radii]}" | cksum | cut -d' ' -f1)
         s="$s-cr$v"
     fi
+    if [ -n "${SPEC[engine_options]:-}" ]; then
+        v=$(printf '%s' "${SPEC[engine_options]}" | cksum | cut -d' ' -f1)
+        s="$s-phys$v"
+    fi
     [ -n "${SPEC[extra_projectors]// /}" ] && s="$s-xp"
     [ -n "${SPEC[which_augfun]:-}" ] && s="$s-${SPEC[which_augfun],,}"
     case ${SPEC[nlcc]:-} in
@@ -724,7 +730,7 @@ declare -gA SPEC_FLAG_BOOL=( [lsd]=--lsd [gipaw]=--gipaw )
 
 # Keys the command line expresses in a shape of their own: --projector repeats,
 # and --grid carries xmin, dx and rmax in one argument.
-declare -gA SPEC_FLAG_CUSTOM=( [extra_projectors]=1 [channel_radii]=1 [xmin]=1 [dx]=1 [rmax]=1 )
+declare -gA SPEC_FLAG_CUSTOM=( [extra_projectors]=1 [channel_radii]=1 [engine_options]=1 [xmin]=1 [dx]=1 [rmax]=1 )
 
 # Keys a run computes for itself rather than a user choosing them.  Saved in
 # the file (so a reload reproduces the same file names) but never printed as a
@@ -796,6 +802,7 @@ spec_cmdline() {
         case $k in
             extra_projectors) for p in $v; do out="$out --projector $(spec_shell_quote "$p")"; done ;;
             channel_radii) for p in $v; do out="$out --channel-rc $(spec_shell_quote "$p")"; done ;;
+            engine_options) for p in $v; do out="$out --engine-option $(spec_shell_quote "$p")"; done ;;
             xmin|dx|rmax)     ;;   # emitted together, below
             *)                miss="$miss $k" ;;
         esac
@@ -997,3 +1004,7 @@ rcp_delete() {
     [ -f "$f" ] || { error "no such recipe: $1"; return 1; }
     rm -f "$f" && printf '%s\n' "$f"
 }
+
+# Native-source safety is also needed by direct ld1 recipe clients.
+# shellcheck source=/dev/null
+. "$PF_LIB/physics.sh"

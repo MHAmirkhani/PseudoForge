@@ -628,6 +628,7 @@ run_subsuite() {
 
 section "physics control effects"
 run_subsuite "physics control effects" bash "$HERE/test_physics_contract.sh"
+run_subsuite "native input round-trip and physics controls" bash "$HERE/test_native_physics.sh"
 
 section "reference-constrained design"
 run_subsuite "reference-constrained design" python3 "$HERE/test_design.py"

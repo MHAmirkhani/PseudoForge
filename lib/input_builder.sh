@@ -28,7 +28,7 @@ IB_SOURCE=
 # "construction" means that a published deck is not rewritten for this key;
 # the element-specific builder must refuse it if it finds such a deck.
 ib_option_keys() {
-    printf '%s\n' variant author config core_hole zed zval nlcc rcore rho0 channel_radii \
+    printf '%s\n' variant author config core_hole zed zval nlcc rcore rho0 channel_radii engine_options \
         which_augfun rmatch_augfun lloc rcloc rcut_scale nc_form beta tr2 \
         lsd gipaw extra_projectors xmin dx rmax
 }
@@ -37,6 +37,8 @@ ib_option_mode() {
     case $1:$2 in
         ld1:*) printf 'native' ;;
         *:author) printf 'metadata' ;;
+        *:engine_options) printf 'native' ;;
+        uspp:channel_radii|uspp:rcut_scale|uspp:rcloc|uspp:nlcc|uspp:rcore|fhi98pp:channel_radii|fhi98pp:rcore|fhi98pp:nlcc|opium:channel_radii|gth:channel_radii|gth:rcloc|gth:rcut_scale|atompaw:channel_radii|atompaw:rcut_scale|ape:channel_radii|ape:lloc|ape:nlcc|ape:rcore|adpack:channel_radii|adpack:rcut_scale|adpack:rcloc|adpack:nlcc|adpack:beta|adpack:tr2) printf 'native' ;;
         oncvpsp:config|opium:config) printf 'construction' ;;
         atompaw:config|ape:config|fhi98pp:lsd|gth:variant|oncvpsp:rcut_scale|oncvpsp:channel_radii|oncvpsp:lloc|oncvpsp:rcloc|oncvpsp:nlcc|opium:rcut_scale|ape:rcut_scale) printf 'native' ;;
         *) printf 'unsupported' ;;
@@ -50,6 +52,7 @@ ib_number() {
 
 ib_check_options() {
     local eng=$1 key value mode failed=0
+    physics_options_check "$eng" || return 1
     while IFS= read -r key; do
         value=${SPEC[$key]:-}
         [ -n "$value" ] || continue
@@ -100,11 +103,6 @@ ib_check_options() {
     fi
     if [ "${SPEC[nlcc]:-}" = off ] && [ -n "${SPEC[rcore]:-}${SPEC[rho0]:-}" ]; then
         error "rcore/rho0 cannot be combined with nlcc=off"; failed=1
-    fi
-    if [ -n "${PARAMS_DIR:-}" ]; then
-        case $eng in ape|atompaw|gth)
-            error "$eng does not implement --params; its current builder cannot adopt arbitrary native decks"; failed=1 ;;
-        esac
     fi
     if [ "${GTH_REFIT:-0}" = 1 ] && [ "$eng" != gth ]; then
         error "--refit is only available with gth"; failed=1
@@ -305,6 +303,7 @@ ib_check_valence() {
 ib_build() {
     local eng=$1 el=$2 outdir=$3
     IB_PROVENANCE=; IB_SOURCE=
+    physics_source_check "$outdir" || return 1
     ib_check_options "$eng" || return 1
     if [ -n "${PARAMS_DIR:-}" ]; then
         local supplied
@@ -312,7 +311,7 @@ ib_build() {
             error "no input for $el under explicit --params $PARAMS_DIR"; return 1;
         }
         case $eng:$supplied in
-            ld1:*.in|oncvpsp:*.dat|oncvpsp:*.in|opium:*.param|adpack:*.inp|fhi98pp:*.ini) ;;
+            ld1:*.in|oncvpsp:*.dat|oncvpsp:*.in|opium:*.param|adpack:*.inp|fhi98pp:*.ini|atompaw:*.input|ape:*.ape|gth:*) ;;
             uspp:*) [ -d "$supplied" ] || { error "USPP --params needs both atomic and pseudo decks"; return 1; } ;;
             *) error "--params does not contain a $eng input for $el"; return 1 ;;
         esac
@@ -338,12 +337,14 @@ ib_build() {
     # is the exact input used by a real run, rather than an unscaled template.
     local deck expected provenance source key overrides=""
     IFS=$'\x1f' read -r deck expected provenance source <<< "$line"
-    if [ "$eng" != ld1 ] && [ -n "${SPEC[rcut_scale]:-}" ]; then
+    if [[ "$eng" = oncvpsp || "$eng" = opium || "$eng" = ape ]] && [ -n "${SPEC[rcut_scale]:-}" ]; then
         ib_scale_rc "$eng" "$deck" "${SPEC[rcut_scale]}" || return 1
     fi
     if [ "$eng" = oncvpsp ]; then
         ib_oncv_overrides "$deck" || return 1
     fi
+    physics_apply "$eng" "$el" "$deck" || return 1
+    if [ "$eng" = adpack ]; then physics_adpack_check "$deck" || return 1; fi
     while IFS= read -r key; do
         [ "$key" = author ] || [ "$key" = variant ] || [ -z "${SPEC[$key]:-}" ] || overrides="$overrides $key"
     done < <(ib_option_keys)
@@ -906,12 +907,16 @@ ib_build_uspp() {
         return 1
     fi
 
-    ae=$(ls "$cand"/*_ae_*.adat 2>/dev/null | head -1)
-    ps=$(ls "$cand"/*_ps.adat 2>/dev/null | head -1)
+    if [ -f "$cand/$el.ae.adat" ] && [ -f "$cand/$el.ps.adat" ]; then
+        ae=$cand/$el.ae.adat; ps=$cand/$el.ps.adat
+    else
+        ae=$(find "$cand" -maxdepth 1 -iname "${el}_ae_*.adat" -print | sort | head -1)
+        ps=$(find "$cand" -maxdepth 1 -iname "${el}_ps.adat" -print | sort | head -1)
+    fi
     [ -n "$ae" ] && [ -n "$ps" ] || { error "$el: incomplete USPP deck in $cand"; return 1; }
 
-    cp -f "$ae" "$outdir/$el.ae.adat" || return 1
-    cp -f "$ps" "$outdir/$el.ps.adat" || return 1
+    physics_copy "$ae" "$outdir/$el.ae.adat" || return 1
+    physics_copy "$ps" "$outdir/$el.ps.adat" || return 1
 
     IB_PROVENANCE=vendor
     IB_SOURCE="USPP $cand"
@@ -956,7 +961,7 @@ ib_build_fhi98pp() {
         return 1
     fi
 
-    cp -f "$ini" "$outdir/$el.ini" || return 1
+    physics_copy "$ini" "$outdir/$el.ini" || return 1
 
     # fhipp.x takes its switches from fort.20 rather than the command line.
     #   TDOPSP  .t. = build a pseudopotential (rather than only the atom)
@@ -968,7 +973,13 @@ ib_build_fhi98pp() {
     if [ "$(rel_canon "${SPEC[rel]}")" = full ]; then
         warn "$el: fhi98PP has no fully-relativistic generator; using scalar-relativistic"
     fi
-    printf '.t. %s  : TDOPSP TNRL\n%s      : TSPIN\n' "$tnrl" "$tspin" > "$outdir/$el.fort20"
+    if [ -n "${PARAMS_DIR:-}" ] && [ -f "$PARAMS_DIR/$el.fort20" ]; then
+        physics_copy "$PARAMS_DIR/$el.fort20" "$outdir/$el.fort20" || return 1
+    else
+        printf '.t. %s  : TDOPSP TNRL\n%s      : TSPIN\n' "$tnrl" "$tspin" > "$outdir/$el.fort20"
+    fi
+    if [ "${SPEC[lsd]:-}" = 1 ]; then sed -i '2c\.t. : TSPIN' "$outdir/$el.fort20"; fi
+    physics_fhi_check "$el" "$outdir/$el.ini" "$outdir/$el.fort20" || return 1
 
     IB_PROVENANCE=vendor
     IB_SOURCE="fhi98PP $ini"
@@ -1064,14 +1075,15 @@ ib_build_opium() {
 # ---------------------------------------------------------------------------
 ib_adpack_deck() {
     local el=$1 d=${PARAMS_DIR:-$PF_DATA/params/adpack}
+    if [ -n "${PARAMS_DIR:-}" ]; then params_find "${SPEC[profile]}" "$el"; return $?; fi
     [ -f "$d/${el}_VPS.inp" ] && { printf '%s\n' "$d/${el}_VPS.inp"; return 0; }
     return 1
 }
 
 ib_adpack_xc() {
     case $(xc_generator "${SPEC[xc]}") in
-        pz|lda|pw|vwn) printf 'LDA\n' ;;
-        pbe|pbesol|revpbe|blyp|bp|pw91|wc) printf 'GGA\n' ;;
+        pz) printf 'LDA\n' ;;
+        pbe) printf 'GGA\n' ;;
         *) return 1 ;;
     esac
 }
@@ -1103,8 +1115,13 @@ ib_build_adpack() {
         *)      deck_rel=$eq ;;
     esac
     if [ "$deck_rel" != "$(rel_canon "${SPEC[rel]}")" ]; then
+        if [ -n "${PARAMS_DIR:-}" ]; then error "$el: native ADPACK eq.type=$eq does not match requested ${SPEC[rel]}; edit all coupled blocks or choose -r $deck_rel"; return 1; fi
         warn "$el: ADPACK ships this deck as $deck_rel ($eq); it is used as published."
         warn "  Its log-derivative and projector blocks are shaped for that solver."
+    fi
+
+    if [ "$(awk '$1=="AtomSpecies" {print $2;exit}' "$src")" != "${EL_Z[$el]}" ]; then
+        error "ADPACK native input is not for $el"; return 1
     fi
 
     deck=$outdir/$el.adpack.inp
@@ -1143,6 +1160,27 @@ ib_build_gth() {
 
     expected=$(exec_upf_name "$el"); expected=${expected%.UPF}.gth
 
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        inputs=$(params_find "${SPEC[profile]}" "$el") || return 1
+        if [ "${GTH_REFIT:-0}" = 1 ]; then
+            physics_gth_check "$inputs" "$el" || return 1
+            deck=$outdir/$el.gth-inputs
+            if [ "$(realpath "$inputs")" != "$(realpath -m "$deck")" ]; then
+                physics_gth_snapshot "$inputs" "$deck" || return 1
+            fi
+        else
+            deck=$outdir/$el.gth-source
+            physics_copy "$inputs" "$deck" || return 1
+            [ "$(awk 'NF && $1 !~ /^#/ {print $1; exit}' "$deck")" = "$el" ] || { error "GTH input is not for $el"; return 1; }
+            local native_xc
+            native_xc=$(awk 'NF && $1 !~ /^#/ {print toupper($2);exit}' "$deck")
+            case "$native_xc-" in "GTH-$(upper "$kw")-"*) ;; *) error "GTH coefficient header must explicitly match GTH-$(upper "$kw")"; return 1 ;; esac
+            [ "$(rel_canon "${SPEC[rel]}")" = scalar ] || { error "GTH coefficient tables do not encode a solver choice; use --refit with explicit atomic relativity for a nonrel construction"; return 1; }
+        fi
+        printf '%s\x1f%s\x1f%s\x1f%s\n' "$deck" "$expected" supplied "$inputs"
+        return 0
+    fi
+
     if [ "${GTH_REFIT:-0}" = 1 ]; then
         if ! inputs=$(gth_inputs "${SPEC[xc]}" "$el" "${SPEC[variant]:-}"); then
             IB_MESSAGE="no published GTH generation inputs for $el with $kw"
@@ -1152,7 +1190,7 @@ ib_build_gth() {
         # what it kept, not from what happened to be bundled at the time.
         deck=$outdir/$el.gth-inputs
         mkdir -p "$deck" || return 1
-        cp -r "$inputs"/. "$deck"/ 2>/dev/null || return 1
+        physics_gth_snapshot "$inputs" "$deck" || return 1
         # The starting parameters are the library's, but the coefficients that
         # come out of the fit are this tool's, and the PARAMS column describes
         # the file that was produced rather than what it was seeded from.
@@ -1218,7 +1256,6 @@ ib_atompaw_xc() {
     #
     # The unqualified name maps to eta=0.001, the tighter of the two.
     case $(xc_generator "${SPEC[xc]}") in
-        pz|lda)   printf 'LDA-PW\n' ;;
         pw)       printf 'LDA-PW\n' ;;
         pbe)      printf 'GGA-PBE\n' ;;
         pbesol)   printf 'GGA-PBESOL\n' ;;
@@ -1246,12 +1283,16 @@ ib_build_atompaw() {
 
     if ! xc=$(ib_atompaw_xc); then
         IB_MESSAGE="AtomPAW in this build offers LDA-PW, GGA-PBE and GGA-PBESOL; '$(xc_generator "${SPEC[xc]}")' is not among them"
+        error "$IB_MESSAGE"
         return 1
     fi
     rel=$(ib_atompaw_rel)
     z=${EL_Z[$el]}
     deck=$outdir/$el.atompaw.input
     upf=$(exec_upf_name "$el")
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        physics_adopt atompaw "$el" "$deck" "$upf"; return $?
+    fi
 
     rows=$(ib_shell_rows "$el" "${SPEC[config]:-${EL_CONFIG[$el]}}") || return 1
     [ -n "$rows" ] || { IB_MESSAGE="$el: no shell table"; return 1; }
@@ -1420,6 +1461,10 @@ ib_ape_waveeq() {
 ib_build_ape() {
     local el=$1 outdir=$2
     local deck z rows xc core rc_val upf
+
+    if [ -n "${PARAMS_DIR:-}" ]; then
+        physics_adopt ape "$el" "$outdir/$el.inp.ape" "$(exec_upf_name "$el")"; return $?
+    fi
 
     if ! xc=$(ib_ape_xc); then
         IB_MESSAGE="no libxc mapping for '$(xc_generator "${SPEC[xc]}")' in the APE builder"
@@ -1746,7 +1791,7 @@ ib_ld1_adopt() {
 # ib_rc_scalable <engine> -- succeeds when --rcut-scale is implemented.
 ib_rc_scalable() {
     case $1 in
-        ld1|oncvpsp|opium|ape) return 0 ;;
+        ld1|oncvpsp|opium|ape|uspp|adpack|atompaw|gth) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -1754,11 +1799,7 @@ ib_rc_scalable() {
 # ib_rc_refusal <engine> -- why it is not.
 ib_rc_refusal() {
     case $1 in
-        gth)     printf 'GTH copies published analytic coefficients; there are no cut-off radii to scale.\n' ;;
-        adpack)  printf 'ADPACK runs its published decks unmodified; changing their radii would issue a new construction under ADPACK'"'"'s name.\n' ;;
-        uspp)    printf 'not implemented for USPP: its deck carries radii for each beta, for the augmentation (rinner) and for the local channel, and scaling them together has not been verified here.\n' ;;
-        atompaw) printf 'not implemented for AtomPAW: r_paw and the shape-function and projector radii are coupled, and scaling them together has not been verified here.\n' ;;
-        fhi98pp) printf 'not implemented for fhi98PP: its radii sit in a positional control file whose layout has not been verified field by field here.\n' ;;
+        fhi98pp) printf 'fhi98PP computes implicit default radii internally; use explicit --channel-rc values instead.\n' ;;
         *)       printf 'not implemented for this engine.\n' ;;
     esac
 }
@@ -1779,29 +1820,7 @@ ib_scale_rc() {
     tmp=$deck.rcs.$$
     case $eng in
         oncvpsp)
-            awk -v f="$f" '
-                /^# *l, *rc, *ep/            { blk = 1; print; next }
-                /^# *lloc, *lpopt, *rc\(5\)/ { loc = 1; print; next }
-                /^# *rlmax/                  { rl = 1; print; next }
-                blk && /^#/                  { blk = 0 }
-                blk && NF >= 6 {
-                    $2 = sprintf("%.4f", $2 * f); n++
-                    if ($2 + 0 > rcmax) rcmax = $2 + 0
-                    printf "    %s\n", $0; next
-                }
-                loc && NF >= 4 {
-                    $3 = sprintf("%.4f", $3 * f); n++; loc = 0
-                    printf "    %s\n", $0; next
-                }
-                rl && NF >= 2 { rlmax = $1 + 0; rl = 0 }
-                { print }
-                END {
-                    if (n < 2) exit 2
-                    # ONCVPSP tabulates the pseudopotential out to rlmax; a
-                    # radius beyond it is not a softer construction, it is a
-                    # broken one. Refused, not "fixed" by moving rlmax.
-                    if (rlmax > 0 && rcmax >= rlmax) exit 3
-                }' "$deck" > "$tmp"
+            awk -v eng=oncv-scale -v scale="$f" -f "$PF_ROOT/tools/awk/native-controls.awk" "$deck" > "$tmp"
             ;;
         opium)
             awk -v f="$f" '
@@ -1838,3 +1857,8 @@ ib_scale_rc() {
         *) rm -f "$tmp"; error "--rcut-scale: could not rewrite $(basename "$deck")"; return 1 ;;
     esac
 }
+
+# Shared native-control adapters are loaded here so direct builder clients and
+# every interface use the same validation and transformations.
+# shellcheck source=/dev/null
+. "$PF_LIB/physics.sh"

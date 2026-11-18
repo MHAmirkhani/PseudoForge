@@ -56,8 +56,11 @@ you nothing about softness: every rung will report the lowest value. Start low.
 
 ## Limits, stated so they are not assumed
 
-- It works where `--rcut-scale` does: **ld1, oncvpsp, opium, ape**. Other
-  engines are refused with the same reason `generate` gives.
+- Radius mapping exists for eight engines (GTH needs `--refit`); fhi98PP
+  requires explicit channel radii instead. Selection additionally needs a
+  measured transferability grade. Radius support alone therefore does not
+  make every engine eligible for this command. Inspect `physics ENGINE` and
+  the [manual-input workflow](manual-generation.md).
 - All radii are scaled together, so the ratio between channels is the base
   recipe's. It does not optimise channels independently.
 - It does not fit a lattice constant. Transferability and cutoff are the

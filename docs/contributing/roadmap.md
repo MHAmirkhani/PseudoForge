@@ -9,8 +9,10 @@ than left as an open item.
 status here cannot quietly stop being true. It exists because this page was, for
 a while, wrong in four places at once.
 
-**Version 1.3.2 · GPL-2.0-or-later · Mohammad H. Amirkhani · DOI not yet
-minted**
+**Development roadmap · GPL-2.0-or-later · Mohammad H. Amirkhani**
+
+Adapter coverage below describes available construction paths, not a guarantee
+of convergence, ghost absence or transferability for arbitrary parameters.
 
 ---
 
@@ -23,16 +25,17 @@ minted**
 | 3 | Formulation | NC / US / PAW | **solved** |
 | 4 | Core–valence partition | which electrons are valence, semicore, core | **solved** — including core holes (`--core-hole`) |
 | 5 | Pseudisation scheme | TM, BHS, Kerker, RRKJ, ONCV, Vanderbilt, GTH | **solved** for plane-wave families |
-| 6 | Key parameters | `rc`, `lloc`, `config`, pseudisation energies | **solved** for the four engines with `--rcut-scale` — `pseudoforge optimise` sweeps the radii and picks by measured transferability and cutoff. Channels are scaled together. See §4 |
+| 6 | Key parameters | `rc`, `lloc`, `config`, pseudisation energies | All nine engines accept complete native inputs; eight map global radii and fhi98PP maps explicit channel radii. Typed controls preserve native meanings. `optimise` additionally requires a measured transferability grade |
 | 7 | NLCC | nonlinear core correction | **solved** |
-| 8 | Validation | log derivatives, ghosts, transferability | **solved** — per-engine, `lib/validate.sh` |
+| 8 | Validation | log derivatives, ghosts, transferability | Engine-specific diagnostics in `lib/validate.sh`; incomplete ghost searches are warnings. Independent material/property validation is still required |
 | 9 | Format conversion | UPF, psp8, fhi, GTH, OpenMX, … | **solved** — `lib/convert.sh`, 13 declared paths: 4 exact, each proven by bulk-Si energies in `pw.x`; 9 refused, each with a reason taken from upstream source. See §4 |
 
 ---
 
 ## 2. Current state
 
-**Nine engines**, four interfaces, 922 tests across 39 suites.
+**Nine engines**, four interfaces. A historical milestone reported 922 tests
+across 39 suites; current totals and skips are measured by the full test run.
 
 | engine | families | notes |
 |---|---|---|
@@ -151,18 +154,22 @@ transferability at least `--min-grade`, then the lowest converged cutoff — or,
 without a cutoff scan, the largest passing scale. `no-data` is never eligible.
 [How-to](../how-to/optimise-radii.md).
 
-On Si PBE with ONCVPSP it chose scale 1.1: 15 Ry and max |Δε| 0.00119 Ry,
-against the default radii's 18 Ry and 0.00173 — softer *and* more transferable.
+An earlier Si PBE example chose scale 1.1 and reported 15 Ry and an atomic
+eigenvalue residual. Those reference-configuration residuals were not
+transferability measurements; that example cannot establish improved
+transferability. Such ONCVPSP runs now report `no-data` and are ineligible.
 
 Building it found that `--rcut-scale`, which it rests on, was applied by ld1
 alone: six engines ignored it, and four of them still named their output
-`-rc1p2`. It now works on ld1, oncvpsp, opium and ape, and is refused with a
-reason elsewhere.
+`-rc1p2`. The current mapped path scales radii on eight engines; GTH requires
+fitting and fhi98PP needs explicit channel radii instead.
 
 **What is still open**, as limits rather than bugs: all radii are scaled
-together, so channels are not optimised independently; a lattice constant is
-not fitted; and uspp, atompaw and fhi98pp have no `--rcut-scale`, because
-scaling their coupled radii has not been verified.
+together in this particular command; a lattice constant is not fitted; and
+selection needs a valid transferability measurement. See the
+[manual workflow](../how-to/manual-generation.md) for independent channel and
+native controls. The [research proposal](engine-portfolio.md) describes a
+future adaptive cross-engine optimizer; it is not implemented by this sweep.
 
 ### 3.3 Engine citations *(resolved — no unverified engine citations)*
 

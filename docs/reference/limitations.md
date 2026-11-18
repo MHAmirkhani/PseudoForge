@@ -209,10 +209,28 @@ ERROR --projector is only available with ld1.x in this build.
 
 ### `--rcut-scale`
 
-**ld1, oncvpsp, opium, ape.** Refused on every other engine before
-anything runs. In earlier versions it was accepted by all of them,
-applied by one, and still stamped `-rc<f>` into the file name of
-the rest.
+Mapped for **ld1, oncvpsp, uspp, opium, gth, atompaw, ape and adpack**.
+GTH requires `--refit`; its Gaussian widths differ physically from matching
+radii. fhi98PP computes implicit defaults internally, so global scaling is
+refused there; use explicit `--channel-rc` values. See the
+[manual-input workflow](../how-to/manual-generation.md) for native meanings
+and coupled settings. A mapped control does not guarantee a physically viable
+parameter value: the native solver can still reject it.
+
+### Complete native inputs
+
+All nine engines support `prepare` and `--params`. Typed controls cover the
+catalogued subset; arbitrary upstream input grammars are not normalized.
+AtomPAW's typed radius adapter requires the prepared VANDERBILT layout and
+adopted inputs need explicit matching XC/relativity headers. APE inputs need
+the explicit functional pair. Edit other layouts directly and consult the
+native engine manual. Custom GTH runs currently deliver `gth` only: unchanged
+published CPMD/ABINIT files cannot represent a custom fit.
+
+Generation success and checksums do not establish transferability. An
+incomplete native ghost search is reported as a warning, not a certificate of
+ghost absence. Cross-engine solid-state comparison in `design` currently
+requires QE-readable UPF output; it does not evaluate all nine formats.
 
 ### `--upf 1`
 

@@ -105,6 +105,7 @@ nav:
       - Save and share a recipe: how-to/write-a-recipe.md
       - Plot the diagnostics: how-to/plot.md
       - Change the parameters: how-to/custom-parameters.md
+      - Prepare and edit native inputs: how-to/manual-generation.md
       - Optimise the cut-off radii: how-to/optimise-radii.md
       - Design against reference data: how-to/reference-design.md
       - Troubleshoot a failure: how-to/troubleshoot.md
@@ -161,4 +162,5 @@ nav:
       - Adding a test: contributing/adding-a-test.md
       - Writing documentation: contributing/writing-docs.md
       - Roadmap: contributing/roadmap.md
+      - Engine-portfolio research proposal: contributing/engine-portfolio.md
       - Changelog: contributing/changelog.md

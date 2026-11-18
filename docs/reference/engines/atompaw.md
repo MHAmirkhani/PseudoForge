@@ -43,6 +43,8 @@ r2SCAN datasets are in the native store under
 `atompaw/paw/r2scan/nonrel/pseudos/`, alongside every element the
 ground-state configuration table covers. The store also carries
 `pbe`, `pbesol` and `pw` for both scalar and non-relativistic runs.
+PZ LDA is not an alias for the native PW LDA implementation. An explicit PZ
+request is refused rather than generating a PW dataset under a PZ name.
 
 ### Constraint 1: non-relativistic only
 
@@ -162,3 +164,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Limitations](../limitations.md#atompaw-diracrelativistic-incomplete) — the meta-GGA constraints, in one place
 - [Upstream](../upstream.md#atompaw-typelda-on-meta-gga-output) — the `type="LDA"` defect, and why it is not filed
 - [The native store](../store.md) — the r2SCAN PAW datasets shipped with PseudoForge
+
+## Manual physics controls
+
+Mapped coupled radius scaling, per-channel matching radii, compensation shape/local channel and energies of existing additional projectors supplement the full native reference configuration.
+
+Use `pseudoforge physics atompaw` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

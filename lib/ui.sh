@@ -761,15 +761,28 @@ ui_pick_engine() {
     # Keep the requested library independent of engine navigation. The auto
     # profile already resolves published inputs or a custom deck per element.
     if [ "${TUI_NO_AUTOSKIP:-0}" != 1 ] && [ "$n" -eq 1 ]; then
-        SPEC[engine]=${items[0]}
+        ui_set_engine "${items[0]}"
         return 3
     fi
 
     UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
     c=$(ui_menu "Engine" \
 "\nSelect the atomic code to generate $(upper "$fam") with $(upper "$(xc_qe_string "$xc")").\n" 19 6 "${menu_items[@]}") || return $?
-    SPEC[engine]=$c
+    ui_set_engine "$c"
     return 0
+}
+
+ui_set_engine() {
+    # Inputs and typed controls belong to their generator. Going back to select
+    # another engine must not carry a GTH fit or an unrelated native file into it.
+    if [ -n "${SPEC[engine]:-}" ] && [ "${SPEC[engine]}" != "$1" ]; then
+        SPEC[engine_options]=
+        PARAMS_DIR=
+        SPEC[formats]=
+        GTH_REFIT=0
+        GTH_CYCLES_EXPLICIT=0
+    fi
+    SPEC[engine]=$1
 }
 
 # Why a library is not in the generatable list -- the honest, specific reason.
@@ -1028,13 +1041,40 @@ gipaw|gipaw|GIPAW reconstruction
 lsd|lsd|Spin-polarised generation
 ncform|nc_form|Norm-conserving form
 CONTROLS
-        controls+=(reset "Clear custom physics settings" valid "Validation and execution options")
+        [ "$engine" != gth ] || controls+=(gthfit "GTH: refit or reproduce coefficients")
+        controls+=(engineopts "Native physics controls and units" native "Prepare / edit complete native inputs" params "Use an existing native-input directory" reset "Clear override controls" valid "Validation and execution options")
         c=$(ui_menu "Advanced settings" \
 "\nOnly controls implemented for $engine are offered. Published decks may
 restrict configuration changes. Leave defaults to reproduce their inputs.\n" \
 26 18 "${controls[@]}") || return 0
 
         case $c in
+        gthfit)
+            if ui_yesno "GTH refit" "Re-solve the atom and fit new coefficients?
+This enables fixed Gaussian radii and native fit weights. Fitted data currently
+use the GTH/CP2K format; published CPMD/ABINIT variants are different data."; then
+                GTH_REFIT=1; SPEC[formats]=gth
+                GTH_CYCLES=$(ui_input "GTH fitting cycles" "Positive integer; a limited iteration count is not a proof of a converged fit." 10 78 "${GTH_CYCLES:-200}") || GTH_CYCLES=200
+                GTH_CYCLES_EXPLICIT=1
+            else GTH_REFIT=0; GTH_CYCLES_EXPLICIT=0; fi ;;
+        engineopts)
+            local schema_file
+            schema_file=$(mktemp)
+            cmd_physics "$engine" > "$schema_file"
+            ui_text "Native physics controls -- $engine" "$schema_file" 26 96
+            rm -f "$schema_file"
+            SPEC[engine_options]=$(ui_input "Native physics controls" \
+"Space-separated KEY=VALUE entries from the preceding list.
+Every key and value is checked before any generator runs.
+For complete reference configurations, semicore choices or coupled blocks,
+use Prepare / edit complete native inputs instead." 15 84 "${SPEC[engine_options]:-}") || true ;;
+        native) ui_prepare_native ;;
+        params)
+            v=$(ui_input "Native input directory" "Directory containing prepared or supplied inputs for $engine.
+The source must be separate from the output project." 12 80 "${PARAMS_DIR:-}") && {
+                if [ -z "$v" ] || [ -d "$v" ]; then PARAMS_DIR=$v
+                else ui_msg "Not a directory" "$v" 10 72; fi
+            } ;;
         reset)
             while IFS= read -r key; do
                 case $key in author) ;; *) SPEC[$key]= ;; esac
@@ -1164,6 +1204,32 @@ still spin-independent -- this only changes the reference atom."; then
     done
 }
 
+ui_prepare_native() {
+    local dir old_output=${CLI_OUTPUT:-} editor_line file choice
+    dir=$(ui_input "Prepare native inputs" "Choose a new directory for editable inputs.
+No generator runs during preparation. Afterwards you can edit the full native
+configuration, core/valence partition, projectors and engine-specific physics." \
+        15 86 "$OUTPUT_BASE_DIR/manual-${SPEC[engine]:-ld1}") || return 0
+    CLI_OUTPUT=$dir
+    if ! cmd_prepare; then
+        CLI_OUTPUT=$old_output; CLI_DRYRUN=0
+        ui_msg "Preparation failed" "Some inputs could not be prepared. Inspect the diagnostics; no generator was run." 12 82
+        return 0
+    fi
+    CLI_OUTPUT=$old_output
+    local -a files=() edit_cmd=()
+    while IFS= read -r -d '' file; do files+=("${file#"$PARAMS_DIR"/}" "$file"); done < <(find "$PARAMS_DIR" -type f -print0 | sort -z)
+    editor_line=${VISUAL:-${EDITOR:-vi}}
+    read -r -a edit_cmd <<< "$editor_line"
+    while choice=$(ui_menu "Edit native inputs" "Choose a file to edit. Done returns to review.
+The common XC/relativity choices must match your native input.
+Automatic physics correction is disabled for this manual run." 24 14 "${files[@]}"); do
+        [ -n "$choice" ] || break
+        clear
+        "${edit_cmd[@]}" "$PARAMS_DIR/$choice" || ui_msg "Editor failed" "Set EDITOR or VISUAL to an installed editor command." 10 78
+    done
+}
+
 ui_validation_settings() {
     local c v
     while : ; do
@@ -1224,7 +1290,9 @@ ui_review_and_run() {
         printf '  family       %s\n' "$(upper "${SPEC[family]}")"
         printf '  functional   %s\n' "$(xc_explain "${SPEC[xc]}")"
         printf '  relativity   %s\n' "$(rel_label "${SPEC[rel]}")"
-        printf '  UPF format   v%s\n' "${SPEC[upf]}"
+        printf '  formats      %s\n' "${SPEC[formats]:-upf}"
+        case " ${SPEC[formats]:-upf} " in *" upf "*) printf '  UPF format   v%s\n' "${SPEC[upf]}" ;; esac
+        [ -z "${PARAMS_DIR:-}" ] || printf '  native input %s\n' "$PARAMS_DIR"
         printf '  source       %s\n' \
             "$([ "${SPEC[source]:-local}" = online ] \
                 && echo 'download (official source, then mirror)' \

@@ -7,7 +7,7 @@ Schlüter and MBK schemes.
 |---|---|
 | **Families** | NC |
 | **Relativity** | as the shipped deck specifies — **not retargetable**, see below |
-| **Functionals** | LDA, GGA; `xc.type` is retargeted, nothing else is |
+| **Functionals** | PZ LDA and PBE GGA; other native functionals are refused |
 | **Native output** | OpenMX `.vps` and `.pao` — **no UPF** |
 | **Licence** | GPL-2.0-or-later |
 | **Upstream** | <http://www.openmx-square.org/adpack/adpack.html> |
@@ -27,16 +27,19 @@ Alternatively, if you already have it compiled elsewhere, set `ADPACK_BIN` in `~
 ADPACK_BIN="/path/to/adpack"
 ```
 
-## Coverage: 29 elements, no fallback
+## Coverage: 29 bundled elements and supplied native inputs
 
 PseudoForge ships the 29 per-element decks the distribution provides under
 `work/` — the author's radii, reference configurations and schemes,
-unmodified — and runs ADPACK on them.
+unchanged unless the user requests controls or a recorded automatic correction.
+Use `physics adpack` for mapped channel/local radii, NLCC, grid, SCF, native
+construction/projector settings and ghost search. Complete edited inputs are
+accepted through [the manual workflow](../../how-to/manual-generation.md).
 
 **There is no synthesised fallback for other elements.** An ADPACK deck fixes
 the scheme, the local channel and per-channel radii that were chosen by hand.
-Inventing them for a 30th element would mean issuing a PseudoForge construction
-under ADPACK's name.
+For another element, provide a complete native input with `--params`; its
+nuclear charge and coupled solver blocks must match the request.
 
 ## No UPF, and no conversion to one
 
@@ -76,8 +79,11 @@ ulimit -s unlimited      # the unpatched build then runs to completion
 and ADPACK stops with `Format error for log.deri.R`, pointing at a block nobody
 touched.
 
-So **only `xc.type` is retargeted.** The deck's own solver is used, and a
-mismatch with what the run asked for is reported rather than hidden.
+The adapter therefore does not retarget the solver keyword alone. To use a
+different solver, edit all coupled blocks in the prepared input and import it
+with a matching `-r` choice. A supplied-input mismatch is refused. `xc.type`
+can be retargeted between native PZ and PBE; PW LDA and PBEsol are not aliases
+for these functionals.
 
 ## Tellurium
 
@@ -97,6 +103,11 @@ distribution, which a test asserts. The scale that succeeded is recorded as
 `autofix.rc_scale` in `PROVENANCE.txt` and carried in the report, because a
 wider radius is a softer pseudopotential — a real change to the physics, not a
 build fix.
+
+`--no-autofix` disables this retry. If a retry succeeds, project inputs retain
+both the requested and successful versions and their checksums. A native
+bound-ghost detection rejects the output even with optional testing disabled;
+a nonconverged ghost search warns that absence of ghosts is not established.
 
 !!! note "Why a retry and not a rule"
     28 of the 29 elements build with the published radii and never reach the

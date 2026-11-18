@@ -68,7 +68,7 @@ refused "an element range"               "one element at a time" -e 1-36 -t nc
 refused "--rcut-scale given by hand"     "sets --rcut-scale itself" -e Si --rcut-scale 1.2
 refused "an unknown grade"               "min-grade must be"     -e Si --min-grade great
 refused "a non-numeric scale"            "not a positive number" -e Si --scales 1.0,x
-refused "an engine without --rcut-scale" "honours --rcut-scale"  -e Si -t us -p pseudoforge-auto -x pbe --engine uspp --scales 1.0
+refused "an engine without explicit base radii" "honours --rcut-scale" -e Si -t nc -p fhi -x pw --engine fhi98pp --scales 1.0
 "$PSM" optimise --help >/dev/null 2>&1 && ok_ "--help exits 0" || bad_ "--help fails"
 
 printf '\n%s== a real sweep%s\n' "$DIM" "$RESET"

@@ -51,10 +51,12 @@ A candidate describes `id`, `engine`, `family`, `profile`, `ecutwfc`, `ecutrho`,
 and `options`. The supported option keys follow the shared physics specification:
 `config`, `core_hole`, `zed`, `zval`, `nlcc`, `rcore`, `rho0`, `which_augfun`,
 `rmatch_augfun`, `lloc`, `rcloc`, `rcut_scale`, `nc_form`, `beta`, `tr2`, `lsd`,
-`gipaw`, `extra_projectors`, and `channel_radii`.
+`gipaw`, `extra_projectors`, `channel_radii`, and `engine_options`.
 
 Boolean flags use JSON booleans. `extra_projectors` and `channel_radii` use lists
-of strings, such as `{"channel_radii": ["s:1.7", "p:1.8"]}`. Other values are
+of strings, such as `{"channel_radii": ["s:1.7", "p:1.8"]}`.
+`engine_options` is also a list, for example `["qcut.s=5.12", "nbas.s=8"]`;
+the same typed native catalogue validates it. Other values are
 scalars. An optional `grid` maps option keys to lists of alternative values;
 their Cartesian product is expanded, up to 256 candidates. A key cannot be in
 both `options` and `grid`. Unsupported engine controls are refused by the same
@@ -86,6 +88,12 @@ difference is subtracted from the candidate's energy difference before division
 by atom count. Training and test anchors cannot cross splits.
 
 ## QE templates and mixtures
+
+This evaluator requires QE-readable UPFs. Native-input preparation supports
+all nine generators, but this command does not compare GTH/CP2K or
+ADPACK/OpenMX outputs. Additional consumer backends and independent reference
+benchmarks are research work; see the
+[engine-portfolio research proposal](../contributing/engine-portfolio.md).
 
 Templates must request a single-point `calculation='scf'`, declare matching
 `nat`, `ntyp`, `ATOMIC_SPECIES` and `ATOMIC_POSITIONS`, and contain:

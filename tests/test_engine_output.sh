@@ -43,20 +43,25 @@ have_engine() { "$PSM" engines path "$1" >/dev/null 2>&1; }
 # ---------------------------------------------------------------------------
 printf '\n%s== --rcut-scale: applied where implemented, refused where not%s\n' "$DIM" "$RESET"
 
-for e in ld1 oncvpsp opium ape; do
+for e in ld1 oncvpsp opium ape uspp atompaw gth adpack; do
     ib_rc_scalable "$e" && ok_ "$e is declared scalable" || bad_ "$e is not declared scalable"
 done
-for e in uspp atompaw fhi98pp gth adpack; do
-    if ib_rc_scalable "$e"; then
-        bad_ "$e claims --rcut-scale support" "it has no implementation"
-    else
-        r=$(ib_rc_refusal "$e")
-        [ -n "$r" ] && ok_ "$e is refused, with a reason" || bad_ "$e is refused with no reason"
-    fi
-done
+if ib_rc_scalable fhi98pp; then
+    bad_ 'fhi98pp claims --rcut-scale support' 'its base radii are implicit'
+else
+    r=$(ib_rc_refusal fhi98pp)
+    [ -n "$r" ] && ok_ 'fhi98pp is refused, with a reason' || bad_ 'fhi98pp is refused with no reason'
+fi
 
 # The scaling itself, on the real deck shapes, without running an engine.
 cat > "$TMP/oncv.dat" <<'EOF'
+Si 14 3 2 4 upf
+1 0 2
+2 0 2
+2 1 6
+3 0 2
+3 1 2
+1
 # l, rc, ep, ncon, nbas, qcut  (lmax+1 lines, l's must be in order)
     0    2.70    0.00    5    8    5.00
     1    2.70    0.00    5    8    5.00
@@ -64,17 +69,22 @@ cat > "$TMP/oncv.dat" <<'EOF'
 # LOCAL POTENTIAL
 # lloc, lpopt, rc(5), dvloc0
     4    5    2.7  0.0
+0 2 1.0
+1 2 1.0
+0 0
+-2 2 0.02
 #
 # OUTPUT GRID
 # rlmax, drl
     5.0  0.01
+0
 EOF
 cp "$TMP/oncv.dat" "$TMP/oncv2.dat"
 if ib_scale_rc oncvpsp "$TMP/oncv.dat" 1.2 2>/dev/null; then
     got=$(awk '/^# *l, *rc/ { g = 1; next } g && NF >= 6 { print $2; exit }' "$TMP/oncv.dat")
-    [ "$got" = 3.2400 ] && ok_ "oncvpsp: rc 2.70 x 1.2 = $got" || bad_ "oncvpsp: rc scaled to '$got', not 3.2400"
+    awk -v v="$got" 'BEGIN{exit !(v==3.24)}' && ok_ "oncvpsp: rc 2.70 x 1.2 = $got" || bad_ "oncvpsp: incorrect channel radius $got"
     got=$(awk '/rc\(5\)/ { g = 1; next } g && NF >= 4 { print $3; exit }' "$TMP/oncv.dat")
-    [ "$got" = 3.2400 ] && ok_ "oncvpsp: rc(5) of the local potential scaled too" || bad_ "oncvpsp: rc(5) is '$got'"
+    awk -v v="$got" 'BEGIN{exit !(v==3.24)}' && ok_ "oncvpsp: rc(5) of the local potential scaled too" || bad_ "oncvpsp: rc(5) is '$got'"
 else
     bad_ "oncvpsp deck could not be scaled"
 fi
@@ -104,14 +114,14 @@ else
 fi
 
 # Refused up front, before any engine runs, and nothing named -rc is written.
-out=$("$PSM" generate -e Si -t us -p pseudoforge-auto -x pbe --engine uspp \
-        --rcut-scale 1.2 -o "$TMP/uspp" 2>&1); rc=$?
+out=$("$PSM" generate -e Si -t nc -p fhi -x pw --engine fhi98pp \
+        --rcut-scale 1.2 -o "$TMP/fhi" 2>&1); rc=$?
 if [ "$rc" != 0 ] && printf '%s' "$out" | grep -q 'not available with'; then
-    ok_ "uspp --rcut-scale is refused before running"
+    ok_ "fhi98PP implicit-radius scaling is refused before running"
 else
-    bad_ "uspp --rcut-scale was not refused (exit $rc)"
+    bad_ "fhi98PP implicit-radius scaling was not refused (exit $rc)"
 fi
-n=$(ls "$TMP"/uspp/pseudos/*rc1p2* 2>/dev/null | wc -l)
+n=$(ls "$TMP"/fhi/pseudos/*rc1p2* 2>/dev/null | wc -l)
 [ "$n" = 0 ] && ok_ "  and no file carrying -rc1p2 was written" || bad_ "  $n file(s) named -rc1p2 exist"
 
 # End to end on an engine that has it, when that engine is built.

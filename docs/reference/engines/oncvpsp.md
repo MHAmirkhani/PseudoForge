@@ -133,3 +133,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Coverage](../coverage.md) — which elements ONCVPSP covers
 - [Limitations](../limitations.md#psml) — why PSML is not in the format registry
 - [The native store](../store.md) — the ONCVPSP psp8 and UPF files shipped with PseudoForge
+
+## Manual physics controls
+
+Per-channel optimization basis, continuity, kinetic cutoff and projector controls are catalogued by `pseudoforge physics oncvpsp`.
+
+Use `pseudoforge physics oncvpsp` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

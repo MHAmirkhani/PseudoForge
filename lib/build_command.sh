@@ -29,6 +29,7 @@ build_command_for() {
         pf_metadata_load 2>/dev/null || true
         pf_formats_load 2>/dev/null || true
         spec_init
+        BUILD_COMMAND_ONLY=1
         cli_parse "$@"
         [ -n "$CLI_ELEMENTS" ] || die "no elements given: use -e/--elements (pseudoforge help)"
         local -a elements=()

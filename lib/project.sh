@@ -1,4 +1,15 @@
 # shellcheck shell=bash
+
+# Portable checksums for the actual native inputs retained by every engine,
+# including requested/successful inputs when automatic correction was enabled.
+project_hash_inputs() {
+    local f
+    (
+        cd "$PROJECT_DIR" || exit 1
+        while IFS= read -r -d '' f; do sha256sum "$f" || exit 1; done \
+            < <(find inputs -type f -print0 | sort -z)
+    ) > "$PROJECT_DIR/inputs.sha256.tmp" && mv -f "$PROJECT_DIR/inputs.sha256.tmp" "$PROJECT_DIR/inputs.sha256"
+}
 # ---------------------------------------------------------------------------
 # project.sh -- the on-disk layout of a PseudoForge run, and its state database.
 #

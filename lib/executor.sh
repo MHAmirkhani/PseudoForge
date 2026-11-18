@@ -904,10 +904,8 @@ exec_gth() {
     out=$wd/$(exec_upf_name "$el"); out=${out%.UPF}.$ext
 
     if [ "${GTH_REFIT:-0}" = 1 ]; then
-        inputs=$(gth_inputs "${SPEC[xc]}" "$el") || {
-            EXEC_MESSAGE="no published GTH generation inputs for $el with $kw"
-            printf '\n'; return 1
-        }
+        inputs=$deck
+        physics_gth_check "$inputs" "$el" || { EXEC_MESSAGE="invalid prepared GTH inputs"; printf '\n'; return 1; }
         psp=$(gth_run_fit "$wd/fit" "$el" "$inputs" "${GTH_CYCLES:-200}") || {
             EXEC_MESSAGE="the GTH fit failed for $el"; printf '\n'; return 1
         }
@@ -918,13 +916,11 @@ exec_gth() {
         EXEC_NOTE="refitted here (penalty $(gth_final_penalty "$wd/fit/psp/fit.log")); not the published coefficients"
         cp -f "$wd/fit/psp/fit.log" "$log" 2>/dev/null
     else
-        tbl=$(gth_table cp2k "${SPEC[xc]}" "$el" "${SPEC[variant]:-}") || {
-            EXEC_MESSAGE="no published GTH table for $el with $kw"
-            printf '\n'; return 1
-        }
+        tbl=$deck
         sed '/^$/d' "$tbl" > "$out" || { printf '\n'; return 1; }
         EXEC_NATIVE=$out
         EXEC_NOTE="published CP2K coefficients, copied exactly ($(basename "$tbl"))"
+        [ -z "${PARAMS_DIR:-}" ] || EXEC_NOTE="supplied CP2K coefficient block, copied without fitting ($(basename "$tbl"))"
         printf 'GTH: %s written from %s\n' "$el" "$tbl" > "$log"
     fi
 
@@ -1402,7 +1398,7 @@ exec_adpack() {
     # physics, not a build fix, and it is reported as one rather than folded
     # into a success.
     # ------------------------------------------------------------------
-    if [ -z "$vps" ] && [ "${ADPACK_NO_RETRY:-0}" != 1 ] \
+    if [ -z "$vps" ] && [ "${AUTOFIX_ENABLED:-1}" = 1 ] && [ "${ADPACK_NO_RETRY:-0}" != 1 ] \
        && grep -qiE 'Failure in searching of an appropriate c2|Please check cutoff radii' "$log" 2>/dev/null; then
         local scale tried=""
         # Always scale from the pristine deck.  Scaling the working copy again
@@ -1447,6 +1443,18 @@ exec_adpack() {
         printf '\n'; return 1
     fi
 
+    if grep -qiE 'ghost states? (is|are) found UNDER correct eigenstates' "$log"; then
+        EXEC_MESSAGE="ADPACK reported a bound ghost below the reference eigenstates; output rejected"
+        printf '\n'; return 1
+    fi
+    if grep -qi 'no convergence.*in ghost.c' "$log"; then
+        EXEC_WARNING_EXTRA="Native ghost search did not converge for some states; ghost absence has not been established."
+    elif grep -qiE 'ghost like states? (is|are) found ABOVE' "$log"; then
+        EXEC_WARNING_EXTRA="Native analysis reports ghost-like states above reference levels; inspect the energy window before using unoccupied states."
+    fi
+    if [ -n "${EXEC_AUTOFIX:-}" ] && ! cmp -s "$deck" "$wd/$base"; then
+        cp -f "$deck" "$deck.requested" && cp -f "$wd/$base" "$deck" || { EXEC_MESSAGE="could not retain successful ADPACK input"; printf '\n'; return 1; }
+    fi
     out=$wd/$(exec_upf_name "$el"); out=${out%.UPF}.vps
     mv -f "$vps" "$out" 2>/dev/null || out=$vps
     EXEC_NATIVE=$out

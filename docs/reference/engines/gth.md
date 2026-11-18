@@ -101,3 +101,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Coverage](../coverage.md) — which elements GTH covers
 - [Limitations](../limitations.md#conversions-that-do-not-exist) — why `gth → upf` is refused on physics, not on tooling
 - [The native store](../store.md) — the GTH, CP2K, CPMD and ABINIT files shipped with PseudoForge
+
+## Manual physics controls
+
+Custom fitting executes the edited four-file snapshot. Gaussian radii, atomic reference radii, weights and fixed/free masks are mapped. Custom runs deliver `gth` only; published format variants are not substitutes for a new fit.
+
+Use `pseudoforge physics gth` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

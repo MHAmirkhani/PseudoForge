@@ -102,6 +102,20 @@ accepts the same specification keys in its query; the core validates their
 engine scope. `channel_radii` and `extra_projectors` contain space-separated
 entries; grid controls use all three of `xmin`, `dx`, and `rmax`.
 
+Objects also return `native_inputs: true`, a `formats` list, and
+`native_options`: typed descriptors containing `key`, `type`, `minimum`,
+`maximum`, `unit` and `description`. For enum controls the minimum field contains
+the comma-separated permitted values. These are the mapped adapter subset;
+complete prepared native inputs expose additional upstream settings. Consult
+[manual generation](../how-to/manual-generation.md) for coupled records and
+physical meanings. Registered formats are not necessarily readable by QE.
+
+`GET /api/build-command` also accepts `engine_options` (space-separated
+`KEY=VALUE` entries), `params`, `refit`, `refit_cycles` and `no_autofix`.
+`params` is an opaque local directory path in the rendered command: the public
+server does not read it, check its existence, or run a generator. Actual local
+generation validates the directory and native inputs.
+
 ### `GET /api/formats`
 
 Both halves of the format question: what can be written, and what can be
@@ -119,6 +133,9 @@ converted into what.
 The library, functional and element registries. `xc` carries `status`, which is
 `native` or `proxy` — a meta-GGA served through a proxy is a real thing to know
 before downloading it.
+
+Profile objects include `engine`, `xc` and `relativity` metadata so clients
+can filter published source profiles for the selected physics.
 
 ### `GET /api/native` · `GET /api/native/:id`
 

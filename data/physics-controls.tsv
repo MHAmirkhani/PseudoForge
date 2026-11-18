@@ -1,0 +1,53 @@
+# engine	key	type	minimum-or-enum	maximum	unit	description
+oncvpsp	qcut.s	positive	0	1000	bohr^-1	Residual kinetic energy optimization wavevector (s)
+oncvpsp	ncon.s	integer	3	5	count	Continuity constraints (s)
+oncvpsp	nbas.s	integer	5	10	count	Optimization basis size (s; coupled to ncon and nproj)
+oncvpsp	nproj.s	integer	1	2	count	Vanderbilt projectors (s)
+oncvpsp	debl.s	positive	0	100	Ha	Projector energy separation (s)
+oncvpsp	qcut.p	positive	0	1000	bohr^-1	Residual kinetic energy optimization wavevector (p)
+oncvpsp	ncon.p	integer	3	5	count	Continuity constraints (p)
+oncvpsp	nbas.p	integer	5	10	count	Optimization basis size (p; coupled to ncon and nproj)
+oncvpsp	nproj.p	integer	1	2	count	Vanderbilt projectors (p)
+oncvpsp	debl.p	positive	0	100	Ha	Projector energy separation (p)
+oncvpsp	qcut.d	positive	0	1000	bohr^-1	Residual kinetic energy optimization wavevector (d)
+oncvpsp	ncon.d	integer	3	5	count	Continuity constraints (d)
+oncvpsp	nbas.d	integer	5	10	count	Optimization basis size (d; coupled to ncon and nproj)
+oncvpsp	nproj.d	integer	1	2	count	Vanderbilt projectors (d)
+oncvpsp	debl.d	positive	0	100	Ha	Projector energy separation (d)
+oncvpsp	qcut.f	positive	0	1000	bohr^-1	Residual kinetic energy optimization wavevector (f)
+oncvpsp	ncon.f	integer	3	5	count	Continuity constraints (f)
+oncvpsp	nbas.f	integer	5	10	count	Optimization basis size (f; coupled to ncon and nproj)
+oncvpsp	nproj.f	integer	1	2	count	Vanderbilt projectors (f)
+oncvpsp	debl.f	positive	0	100	Ha	Projector energy separation (f)
+oncvpsp	dvloc0	number	-100	100	Ha	Independent local potential shift (lloc=4)
+uspp	rinner	positive	0	100	bohr	Inner augmentation-charge pseudization radius
+uspp	thresh	positive	0	1	native	Atomic SCF threshold in paired AE and pseudo inputs
+uspp	tol	positive	0	1	native	Atomic SCF tolerance in paired AE and pseudo inputs
+uspp	damp	positive	0	1	fraction	Atomic SCF damping in paired AE and pseudo inputs
+fhi98pp	scheme	enum	tm,ham	-	-	Troullier-Martins or Hamann pseudization
+opium	method	enum	opt,kerker,rrkj	-	-	Native pseudization construction
+gth	atom.rcov	positive	0	100	bohr	Atomic covalent reference radius
+gth	atom.rprb	positive	0	200	bohr	Atomic confinement/probe radius
+gth	atom.rmax	positive	0	1000	bohr	Atomic radial domain
+gth	fit.eigenvalue_weight	positive	0	1000000	factor	Multiply reference eigenvalue weights
+gth	fit.charge_weight	positive	0	1000000	factor	Multiply reference integrated-charge weights
+gth	fit.rloc_free	enum	0,1	-	boolean	Allow local Gaussian radius to change during fitting
+gth	fit.radius_free	enum	0,1	-	boolean	Allow projector radii to change during fitting
+atompaw	paw.shape	enum	Besselshape,SINC2	-	-	Compensation-charge shape
+atompaw	paw.local_channel	integer	0	4	l	Local-potential construction channel
+atompaw	paw.projector_energy	number	-100	100	native-energy	Energy of existing unbound projector states
+ape	PPCalculationTolerance	positive	0	1	native	Pseudopotential construction tolerance
+ape	EigenSolverTolerance	positive	0	1	native	Atomic eigensolver tolerance
+ape	ODEIntTolerance	positive	0	1	native	Radial ODE integration tolerance
+ape	scheme	enum	tm,ham	-	-	Pseudization method for each existing component
+adpack	grid.num	integer	100	20000	points	Logarithmic radial grid points (ADPACK 2.2 array limit)
+adpack	grid.xmin	number	-30	0	log(bohr)	Logarithmic lower radial boundary
+adpack	grid.xmax	number	0	10	log(bohr)	Logarithmic upper radial boundary
+adpack	scf.maxIter	integer	1	2000	iterations	Maximum atomic SCF iterations (ADPACK 2.2 array limit)
+adpack	scf.Mixing.Type	enum	Simple,GR-Pulay,Pulay	-	-	Atomic density mixing algorithm
+adpack	vps.type	enum	BHS,TM,MBK	-	-	Pseudization construction (native coupled blocks retained)
+adpack	Blochl.projector.num	integer	1	10	count	Projector expansion order
+adpack	local.type	enum	simple,polynomial	-	-	Local-potential construction
+adpack	ghost.check	enum	on,off	-	-	Native ghost-state search
+adpack	pcc.ratio	positive	0	1000	ratio	Core to valence density matching ratio
+adpack	pcc.ratio.origin	positive	0	1000	ratio	Partial-core density origin ratio

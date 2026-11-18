@@ -81,6 +81,10 @@ case $cmd in
         shift; cmd_engines "$@" ;;
     convert)
         shift; cmd_convert "$@" ;;
+    physics)
+        shift; cmd_physics "$@" ;;
+    prepare)
+        shift; cli_parse "$@"; cmd_prepare ;;
     optimise|optimize)
         shift; cmd_optimise "$@" ;;
     design)

@@ -84,3 +84,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Coverage](../coverage.md) — which elements USPP covers
 - [Limitations](../limitations.md#conversions-that-do-not-exist) — why the USPP-to-UPF path is not a conversion but a rewrite
 - [The native store](../store.md) — the `.van` and `.uspp` files shipped with PseudoForge
+
+## Manual physics controls
+
+Mapped controls preserve fixed-width records and keep AE/PS SCF settings coupled; channel, local, augmentation and partial-core radii are available.
+
+Use `pseudoforge physics uspp` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

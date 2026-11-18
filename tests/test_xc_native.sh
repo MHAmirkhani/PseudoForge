@@ -22,7 +22,7 @@ SPEC[engine]=atompaw
 
 printf '\n%s== xc_engine_native for AtomPAW%s\n' "$DIM" "$RESET"
 
-for fn in pz lda pw pbe pbesol r2scan r2scan-01; do
+for fn in pw pbe pbesol r2scan r2scan-01; do
     if xc_engine_native "$fn" atompaw; then
         ok_ "xc_engine_native $fn atompaw is true"
     else
@@ -30,7 +30,7 @@ for fn in pz lda pw pbe pbesol r2scan r2scan-01; do
     fi
 done
 
-for fn in scan tpss m06l pbe0 hse06 rvv10 vdw-df2; do
+for fn in pz lda scan tpss m06l pbe0 hse06 rvv10 vdw-df2; do
     if xc_engine_native "$fn" atompaw; then
         bad_ "xc_engine_native $fn atompaw was true (should be false)"
     else

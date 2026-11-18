@@ -127,3 +127,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Limitations](../limitations.md#opium-d-shell-writers-crash-upstream) — the d-shell writers, and what the local patch does
 - [Upstream](../upstream.md#opium-six-writers-crash-on-d-shell-elements) — the issue, the pull request, and how to tell if the patch is still needed
 - [The native store](../store.md) — the OPIUM files shipped with PseudoForge
+
+## Manual physics controls
+
+Mapped per-channel radii and construction-method controls supplement the complete native input.
+
+Use `pseudoforge physics opium` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

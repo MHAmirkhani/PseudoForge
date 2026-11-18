@@ -2,6 +2,12 @@
 
 ## Unreleased — physics controls and reference-constrained design
 
+- All nine generators now prepare and adopt complete native inputs through one manual workflow. A shared typed catalogue adds 52 native expert controls; channel radii, coupled scaling, local/core and numerical settings are mapped where applicable. CLI, terminal advanced controls, the engine API and Customize expose the same capabilities and native formats.
+- GTH fitting executes the edited four-file snapshot and keeps atomic/fit radii coupled. Explicit Gaussian radii fix their fit masks unless freed. Custom runs refuse unrelated published format variants. USPP preserves fixed-width records and updates both AE/PS SCF stages. ADPACK refuses unsupported native XC mappings, respects disabled correction and rejects detected bound ghosts.
+- Native-source identity and source/output overlap checks prevent mislabeled or self-overwritten inputs. Project input checksums cover requested and executed retry files. Changing the terminal engine clears generator-specific input state. Browser command rendering accepts local input paths without reading server files.
+- Preparation and command rendering validate the adapter without requiring a solver installation. Rendering performs no input download. Native ADPACK grid/SCF limits prevent array overflow, and ONCVPSP basis-size checks include continuity and projector-count coupling.
+- AtomPAW no longer treats PZ LDA as an alias for its native PW LDA implementation, including when adopting complete inputs.
+- The manual-generation guide and engine-portfolio research proposal distinguish implemented controls from proposed optimization and independent physical validation.
 - CLI, terminal controls and the engine API share an explicit physics capability contract. Unsupported overrides fail; native previews apply the same changes as generation. ONCVPSP now supports independent channel radii, local potential settings and the NLCC switch; ld1 supports channel radii with augmentation radii.
 - Explicit native input directories take precedence over library inputs. Missing inputs, malformed values, incomplete arguments and invalid dry runs fail visibly. Rendered commands preserve literal shell characters.
 - Bound ONCVPSP ghosts are rejected before collection, including with optional tests disabled. Atomic validation quarantines ghost outputs and the native API excludes them. Reference-only ONCVPSP results are no longer graded as transferability tests. APE respects disabled automatic correction and retains successful retry inputs.

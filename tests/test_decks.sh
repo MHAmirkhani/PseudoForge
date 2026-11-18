@@ -100,7 +100,7 @@ Si|oncvpsp|nc|pbe|scalar|sg15
 Si|opium|nc|pbe|scalar|pseudoforge-auto
 Si|ape|nc|pz|scalar|pseudoforge-auto
 Ti|ape|nc|pz|scalar|pseudoforge-auto
-Li|atompaw|paw|pz|nonrel|pseudoforge-auto
+Li|atompaw|paw|pw|nonrel|pseudoforge-auto
 Li|atompaw|paw|r2scan|nonrel|pseudoforge-auto
 Ti|adpack|nc|pz|full|adpack
 Si|gth|nc|pbe|scalar|cp2k-gth

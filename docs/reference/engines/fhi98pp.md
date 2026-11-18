@@ -94,3 +94,12 @@ See the [HTTP API reference](../http-api.md). On the public server
 - [Coverage](../coverage.md) — which elements fhi98PP covers
 - [Limitations](../limitations.md#conversions-that-do-not-exist) — why `fhi → upf` is not a conversion
 - [The native store](../store.md) — the `.cpi` files shipped with PseudoForge
+
+## Manual physics controls
+
+Set explicit channel radii, pseudocore/NLCC or TM/Hamann construction; global scaling of implicit defaults is refused.
+
+Use `pseudoforge physics fhi98pp` for the current catalogue and units.
+[Prepare, edit and import native inputs](../../how-to/manual-generation.md)
+for settings beyond that catalogue. Native solvers can reject physically or
+numerically unsuitable values even when their syntax is valid.

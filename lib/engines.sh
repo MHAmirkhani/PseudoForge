@@ -265,17 +265,19 @@ eng_compatible() {
                 esac ;;
             nonrel)
                 case $eng in
-                    adpack) return 1 ;;
+                    adpack) [ -n "${PARAMS_DIR:-}" ] || return 1 ;;
                 esac ;;
             scalar)
                 case $eng in
-                    adpack) return 1 ;;
+                    adpack) [ -n "${PARAMS_DIR:-}" ] || return 1 ;;
                 esac ;;
         esac
     fi
 
     if [ -n "$xc" ]; then
         case $eng in
+            atompaw)
+                case $xc in pz|lda) return 1 ;; esac ;;
             adpack)
                 case $xc in
                     pz|pbe) ;;
@@ -302,7 +304,7 @@ eng_compatible() {
                 esac ;;
             fhi98pp)
                 case $xc in
-                    pz|pbe) ;;
+                    pz|pbe|pw) ;;
                     *) return 1 ;;
                 esac ;;
         esac

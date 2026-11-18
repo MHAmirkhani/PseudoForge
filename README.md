@@ -38,6 +38,15 @@ reconstruction, UPF v2 — all from menus or command-line flags, all mapped
 onto real `ld1.x` variables. Anything you do not touch stays byte-identical to
 the library recipe.
 
+**Exposes complete native inputs for all nine engines.** `pseudoforge prepare`
+creates an editable snapshot; `generate --params` adopts it into a separate
+project. `pseudoforge physics ENGINE` lists common and typed native controls
+with units. CLI, terminal advanced menus and the Customize page share the
+catalogue. Coupled inputs and generator-specific meanings are documented in
+the [manual-generation guide](docs/how-to/manual-generation.md); input hashes
+record the retained native files. A successful solve still needs
+independent accuracy and transferability checks.
+
 **Runs the whole periodic table without babysitting.** Parallel execution,
 resume, per-element failure isolation, and an auto-fix engine that retries a
 failed element with a documented, physically motivated relaxation instead of

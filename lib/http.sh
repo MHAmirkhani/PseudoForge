@@ -249,6 +249,25 @@ http_engine_json() {
     while IFS= read -r key; do
         printf '{"key":%s,"mode":%s}\n' "$(http_json_str "$key")" "$(http_json_str "$(ib_option_mode "$e" "$key")")"
     done < <(ib_option_keys) | http_json_array
+    printf ',"native_inputs":true,"formats":'
+    fmt_for_engine "$e" | while IFS= read -r key; do http_json_str "$key"; printf '\n'; done | http_json_array
+    printf ',"native_options":'
+    awk -F'\t' -v engine="$e" '
+        function esc(s, i,c,r){
+            r="\""
+            for(i=1;i<=length(s);i++){
+                c=substr(s,i,1)
+                if(c=="\\" || c=="\"")r=r "\\" c
+                else if(c=="\r")r=r "\\r"
+                else if(c=="\n")r=r "\\n"
+                else r=r c
+            }
+            return r "\""
+        }
+        BEGIN{printf "["}
+        $1==engine {if(n++)printf ",";printf "{\"key\":%s,\"type\":%s,\"minimum\":%s,\"maximum\":%s,\"unit\":%s,\"description\":%s}",esc($2),esc($3),esc($4),esc($5),esc($6),esc($7)}
+        END{printf "]"}
+    ' "$PF_DATA/physics-controls.tsv"
     printf '}\n'
 }
 
@@ -293,11 +312,12 @@ http_h_profiles() {
         # Include native inputs from every adapter, rather than just profiles
         # backed by the ld1 recipe database.
         case $(params_kind "$p") in tarball|github|engine|builtin) gen=true ;; esac
-        printf '{"id":%s,"label":%s,"families":%s,"generatable":%s}\n' \
+        printf '{"id":%s,"label":%s,"families":%s,"generatable":%s,"engine":%s,"xc":%s,"relativity":%s}\n' \
             "$(http_json_str "$p")" \
             "$(http_json_str "${PROF_LABEL[$p]:-$p}")" \
             "$(http_json_str "${PROF_FAMILIES[$p]:-}")" \
-            "$gen"
+            "$gen" "$(http_json_str "${PROF_ENGINE[$p]:-}")" \
+            "$(http_json_str "${PROF_XC[$p]:-}")" "$(http_json_str "${PROF_REL[$p]:-}")"
     done | http_json_array
     printf '\n'
 }
@@ -515,8 +535,8 @@ http_h_build_command() {
         case $key in
             lsd|gipaw)
                 case $value in 1|true) args+=("--$key") ;; *) http_error 400 invalid_control "$key must be 1 or true"; return 0 ;; esac ;;
-            extra_projectors|channel_radii)
-                [ "$key" = extra_projectors ] && flag=--projector || flag=--channel-rc
+            extra_projectors|channel_radii|engine_options)
+                case $key in extra_projectors) flag=--projector ;; channel_radii) flag=--channel-rc ;; engine_options) flag=--engine-option ;; esac
                 for part in $value; do args+=("$flag" "$part"); done ;;
             xmin|dx|rmax) ;; # combined below
             *)
@@ -529,6 +549,17 @@ http_h_build_command() {
     dx=$(http_query_param "$HTTP_QUERY" dx)
     rmax=$(http_query_param "$HTTP_QUERY" rmax)
     if [ -n "$xmin$dx$rmax" ]; then args+=(--grid "$xmin:$dx:$rmax"); fi
+    for key in params refit_cycles; do
+        value=$(http_query_param "$HTTP_QUERY" "$key")
+        [ -n "$value" ] || continue
+        case $key in params) args+=(--params "$value") ;; refit_cycles) args+=(--refit-cycles "$value") ;; esac
+    done
+    for key in refit no_autofix; do
+        value=$(http_query_param "$HTTP_QUERY" "$key")
+        [ -n "$value" ] || continue
+        case $value in 1|true) ;; *) http_error 400 invalid_control "$key must be 1 or true"; return 0 ;; esac
+        case $key in refit) args+=(--refit) ;; no_autofix) args+=(--no-autofix) ;; esac
+    done
 
     if ! build_command_for "${args[@]}"; then
         HTTP_STATUS=409

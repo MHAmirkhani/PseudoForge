@@ -104,10 +104,15 @@ else
 fi
 
 printf '\n%s== functional mapping%s\n' "$DIM" "$RESET"
-for pair in "pz:LDA" "pw:LDA" "pbe:GGA" "pbesol:GGA"; do
+for pair in "pz:LDA" "pbe:GGA"; do
     SPEC[xc]=${pair%%:*}
     got=$(ib_adpack_xc 2>/dev/null)
     [ "$got" = "${pair#*:}" ] && ok_ "${pair%%:*} -> ${pair#*:}" || bad_ "${pair%%:*} -> '$got'"
+done
+for unsupported in pw pbesol; do
+    SPEC[xc]=$unsupported
+    if ib_adpack_xc >/dev/null 2>&1; then bad "$unsupported silently mapped to another functional"
+    else ok "$unsupported is refused instead of being relabelled PZ/PBE"; fi
 done
 # A meta-GGA request is proxied to PBE, as it is for every engine except
 # AtomPAW, and lands on ADPACK's GGA.  What matters is that the substitution is
@@ -201,14 +206,15 @@ else
     skip_ "adpack-modern patch not present"
 fi
 
-printf '\n%s== build refusal%s\n' "$DIM" "$RESET"
-build_out=$(build_engine adpack 2>&1 || true)
-printf '%s\n' "$build_out" | grep -q 'installed externally' \
-    && ok_ "pf build adpack reports external install" \
-    || bad_ "pf build adpack did not report external install" "$build_out"
-printf '%s\n' "$build_out" | grep -q 'no build recipe for' \
-    && bad_ "pf build adpack fell through to 'no build recipe'" "$build_out" \
-    || ok_ "pf build adpack does not say 'no build recipe'"
+printf '\n%s== build dispatch%s\n' "$DIM" "$RESET"
+# ADPACK now has a source build. Test dispatch without an installer/network
+# side effect; test_build_adpack.sh covers the source and compilation patch.
+build_missing_tools() { :; }
+build_adpack() { printf 'build\n' >> "$TMP/build-events"; }
+build_verify() { [ "$1" = adpack ] && printf 'verify\n' >> "$TMP/build-events"; }
+if build_engine adpack >/dev/null 2>&1; then ok_ 'ADPACK source build dispatch succeeds'
+else bad_ 'ADPACK source build dispatch'; fi
+[ "$(tr '\n' ' ' < "$TMP/build-events")" = 'build verify ' ] && ok_ 'source build is followed by engine verification' || bad_ 'ADPACK build or verification was skipped'
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \

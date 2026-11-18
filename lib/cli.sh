@@ -30,6 +30,8 @@ USAGE
     list <what>             profiles | functionals | elements | recipes | sets
     show <profile>          full description of a library profile
     recipe <element>        print the selected engine's native input
+    prepare [opts] -o DIR   prepare editable native inputs for any of the 9 engines
+    physics [ENGINE]       mapped controls, native options and units
     recipe save <name>      save the current settings as a named recipe
     recipe load <name>      show the command a saved recipe is equivalent to
     recipe list             list saved recipes
@@ -59,7 +61,8 @@ ENGINE AND SOURCE
   --engine NAME               $(eng_list 2>/dev/null | paste -sd'|' - | sed 's/|/ | /g')
                               default: chosen from the profile and family
   --source local|online       generate here, or download a published file
-  --channel-rc L:R[:RAUG]      set one channel radius in bohr (ld1 / ONCVPSP)
+  --channel-rc L:R[:RAUG]      set a native channel radius in bohr (physics ENGINE)
+  --engine-option KEY=VALUE   repeat a typed native physics control (physics ENGINE)
   --params DIR                a library's own generator inputs, for a real
                               reproduction rather than PseudoForge's construction
   --mirror URL                override MIRROR_URL for this run
@@ -93,8 +96,8 @@ PHYSICS OPTIONS
         --lloc L            local channel (-1 = all-electron potential)
         --rcloc VALUE       local channel cut-off radius
         --projector S:E     extra projector, e.g. 3D:0.5 (repeatable)
-        --rcut-scale F      scale every cut-off radius by F (ld1, oncvpsp, opium, ape;
-                            refused with the reason for the other engines)
+        --rcut-scale F      scale mapped radii (all except fhi98PP; GTH needs --refit)
+                            native definitions differ: inspect physics ENGINE
         --nc-form FORM      separable (default) or semilocal, NC only
         --lsd               spin-polarised generation
         --gipaw             write GIPAW reconstruction data (NMR/EPR)
@@ -158,7 +161,8 @@ HELPEOF
 cli_help_for() {
     local sub=$1
     case $sub in
-        generate|wizard) cli_usage ;;
+        generate|wizard|prepare) cli_usage ;;
+        physics) cmd_physics --help ;;
         version) printf 'usage: pseudoforge version\n\nPrint the version, the copyright and the author.\n' ;;
         help)    cli_usage ;;
         validate) cat <<'EOF'
@@ -456,6 +460,8 @@ cli_parse() {
             --projector)    SPEC[extra_projectors]="${SPEC[extra_projectors]} $2"; shift 2 ;;
             --channel-rc)   [ $# -ge 2 ] && [ -n "$2" ] || die "missing argument for --channel-rc"
                             SPEC[channel_radii]="${SPEC[channel_radii]} $2"; shift 2 ;;
+            --engine-option) [ $# -ge 2 ] && [ -n "$2" ] || die "missing argument for --engine-option"
+                            SPEC[engine_options]="${SPEC[engine_options]} $2"; shift 2 ;;
             --rcut-scale)   SPEC[rcut_scale]=$2; shift 2 ;;
             --nc-form)      SPEC[nc_form]=$(lower "$2"); shift 2 ;;
             --lsd)          SPEC[lsd]=1; shift ;;
@@ -499,7 +505,8 @@ cli_parse() {
                                 *) die "--source takes 'local' or 'online'" ;;
                             esac ;;
             --params)   PARAMS_DIR=$2; shift 2
-                            [ -d "$PARAMS_DIR" ] || die "--params: not a directory: $PARAMS_DIR" ;;
+                            case $PARAMS_DIR in *$'\n'*|*$'\r'*) die "--params path must be a single line" ;; esac
+                            [ "${BUILD_COMMAND_ONLY:-0}" = 1 ] || [ -d "$PARAMS_DIR" ] || die "--params: not a directory: $PARAMS_DIR" ;;
             --mirror)   MIRROR_URL=$2; shift 2 ;;
             --format|--formats) CLI_FORMATS=$2; shift 2 ;;
             --attribution)  CLI_ATTRIBUTION=1; shift ;;
@@ -547,8 +554,8 @@ cli_check_spec() {
     # not, and so `-p gbrv -x pz` ran GBRV's PBE decks and wrote the result
     # as "Ag.pz-...". The first full build of the native store did that 1,493
     # times across six profiles. Refused here, with the reason the wizard gives.
-    if ! prof_supports_xc "${SPEC[profile]}" "${SPEC[xc]}" \
-       || ! prof_supports_rel "${SPEC[profile]}" "${SPEC[rel]}"; then
+    if [ -z "${PARAMS_DIR:-}" ] && { ! prof_supports_xc "${SPEC[profile]}" "${SPEC[xc]}" \
+       || ! prof_supports_rel "${SPEC[profile]}" "${SPEC[rel]}"; }; then
         die "profile '${SPEC[profile]}' has $(prof_incompatible_reason "${SPEC[profile]}" "${SPEC[family]}" "${SPEC[xc]}" "${SPEC[rel]}")
   Its inputs produce functional(s): ${PROF_XC[${SPEC[profile]}]:-any}; relativity: ${PROF_REL[${SPEC[profile]}]:-any}.
   For another combination, use -p pseudoforge-auto (PseudoForge's own construction)."
@@ -633,6 +640,13 @@ cli_check_spec() {
         SPEC[formats]=${DEFAULT_FORMATS:-upf}
     fi
 
+    if [ "${SPEC[engine]}" = gth ] && { [ "${GTH_REFIT:-0}" = 1 ] || [ -n "${PARAMS_DIR:-}" ]; }; then
+        if [ -n "${CLI_FORMATS:-}" ] && [ "${SPEC[formats]}" != gth ]; then
+            die "custom GTH inputs and refits currently write --format gth; copying published CPMD/ABINIT variants would give different coefficients"
+        fi
+        SPEC[formats]=gth
+    fi
+
     # --rcut-scale is refused here, before any engine runs, for engines where
     # it is not implemented -- it used to be accepted by all of them, applied
     # by one, and still stamped "-rc<f>" into the file name of the rest.
@@ -642,7 +656,7 @@ cli_check_spec() {
         if ! ib_rc_scalable "${SPEC[engine]:-ld1}"; then
             error "--rcut-scale is not available with ${ENG_LABEL[${SPEC[engine]}]:-${SPEC[engine]}}:"
             error "  $(ib_rc_refusal "${SPEC[engine]}")"
-            error "  It works with: ld1, oncvpsp, opium, ape."
+            error "  Inspect supported controls with: pseudoforge physics ${SPEC[engine]}"
             exit 1
         fi
     fi
@@ -682,7 +696,16 @@ cli_check_spec() {
     # but the result is labelled as PseudoForge's own and never as theirs.
     if [ "${SPEC[source]}" != online ]; then
         local _eng=${SPEC[engine]}
-        if ! prof_can_generate "${SPEC[profile]}" "${SPEC[family]}"; then
+        local _adapter_preview=0
+        if [ "${CLI_DRYRUN:-0}" = 1 ] || [ "${BUILD_COMMAND_ONLY:-0}" = 1 ]; then
+            # Preparing files and rendering commands do not execute a solver.
+            # Keep adapter/family validation without requiring its binary.
+            case $(params_kind "${SPEC[profile]}") in
+                tarball|github|engine|builtin)
+                    eng_supports_family "$_eng" "${SPEC[family]}" && _adapter_preview=1 ;;
+            esac
+        fi
+        if [ "$_adapter_preview" = 0 ] && ! prof_can_generate "${SPEC[profile]}" "${SPEC[family]}"; then
             if ! eng_available "$_eng"; then
                 error "'${SPEC[profile]}' (${PROF_LABEL[${SPEC[profile]}]}) needs ${ENG_LABEL[$_eng]}, which is not installed."
                 error "    pseudoforge engines build $_eng"
@@ -700,7 +723,7 @@ cli_check_spec() {
         # the run is a reproduction; without them it would be PseudoForge's own
         # construction wearing somebody else's name, which we refuse to do
         # silently.
-        if [ -z "${PARAMS_DIR:-}" ] && ! prof_has_params "${SPEC[profile]}"; then
+        if [ "${BUILD_COMMAND_ONLY:-0}" != 1 ] && [ -z "${PARAMS_DIR:-}" ] && ! prof_has_params "${SPEC[profile]}"; then
             case $(params_kind "${SPEC[profile]}") in
                 tarball|github)
                     info "${PROF_LABEL[${SPEC[profile]}]}: fetching the published generation inputs"
@@ -744,6 +767,7 @@ cmd_generate() {
     [ ${#elements[@]} -gt 0 ] || die "element selection '$CLI_ELEMENTS' matched nothing"
 
     local dir=${CLI_OUTPUT:-$OUTPUT_BASE_DIR/$(project_default_name)}
+    physics_source_check "$dir/inputs" || return 1
     project_init "$dir"
     project_write_manifest "${elements[*]}"
 
@@ -769,7 +793,8 @@ cmd_generate() {
                 failed=$((failed + 1))
             fi
         done
-        info "decks written to $PROJECT_DIR/inputs"
+        project_hash_inputs || return 1
+        info "decks written to $PROJECT_DIR/inputs (checksums: inputs.sha256)"
         [ "$failed" -eq 0 ]
         return $?
     fi
@@ -794,6 +819,7 @@ cmd_generate() {
     # Before any test: a file must say it is what it is labelled.
     label_verify_batch "${elements[@]}"
     validate_batch "${elements[@]}"
+    project_hash_inputs || return 1
 
     # attribution travels with the files, not with the project directory: these
     # end up in the same folder people copy into their pseudo_dir
