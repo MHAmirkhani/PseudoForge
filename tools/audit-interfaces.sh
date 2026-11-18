@@ -37,8 +37,12 @@ export LD1_BIN=${LD1_BIN:-$ROOT/tests/mock/ld1.x}
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
-export PF_RC="${PF_RC_AUDIT:-$TMP/audit-rc}"
-: > "$PF_RC"
+export PF_RC="$TMP/audit-rc"
+if [ -n "${PF_RC_AUDIT:-}" ]; then
+    cp -- "$PF_RC_AUDIT" "$PF_RC" || exit 1
+else
+    : > "$PF_RC"
+fi
 exec < /dev/null
 
 GREEN=$'\033[32m'; RED=$'\033[31m'; YELLOW=$'\033[33m'; DIM=$'\033[2m'; RESET=$'\033[0m'

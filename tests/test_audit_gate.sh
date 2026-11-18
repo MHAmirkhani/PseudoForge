@@ -40,13 +40,21 @@ else
     bad_ "audit.sh --quick failed or hung when ~/.pseudoforgerc points LD1_BIN to /nonexistent (rc=$rc1)" "$out1"
 fi
 
-# 2. Run tools/audit.sh --quick < /dev/null
-out2=$(timeout -s KILL 300 bash "$ROOT/tools/audit.sh" --quick < /dev/null 2>&1)
+# 2. A dedicated audit config is honored without editing the supplied file.
+printf 'MAX_PARALLEL_JOBS=1\n' > "$TMP/configured.rc"
+cp "$TMP/configured.rc" "$TMP/original.rc"
+out2=$(PF_RC_AUDIT="$TMP/configured.rc" timeout -s KILL 300 bash "$ROOT/tools/audit.sh" --quick < /dev/null 2>&1)
 rc2=$?
 if [ "$rc2" -eq 0 ]; then
     ok_ "audit.sh --quick < /dev/null completes and exits 0"
 else
     bad_ "audit.sh --quick < /dev/null failed or hung (rc=$rc2)" "$out2"
+fi
+if cmp -s "$TMP/configured.rc" "$TMP/original.rc" &&
+    grep -Eq '^PASS[[:space:]]+config --show.*MAX_PARALLEL_JOBS[[:space:]]+1([[:space:]]|$)' "$TMP/AUDIT-raw.tsv"; then
+    ok_ "a supplied audit configuration is used without modifying it"
+else
+    bad_ "the explicit audit configuration was edited or ignored"
 fi
 
 # 3. Verify 'generate an element a profile does not cover' appears in AUDIT-raw.tsv

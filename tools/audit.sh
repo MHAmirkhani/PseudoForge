@@ -5,6 +5,7 @@
 # and any produced files.  Produces AUDIT.md and AUDIT-raw.tsv.
 #
 # Usage:  tools/audit.sh [--quick]      --quick: skip engine-dependent tests
+# PF_RC_AUDIT can point to a dedicated config for real engine paths.
 
 set -uo pipefail
 
@@ -27,8 +28,12 @@ trap 'rm -rf "$SCRATCH" "$TMP"' EXIT
 # - exec </dev/null closes the other half: any subprocess that reads
 #   stdin and finds the terminal instead of EOF waits at a prompt
 #   forever. The audit should fail such a test, not hang on it.
-export PF_RC="${PF_RC_AUDIT:-$TMP/audit-rc}"
-: > "$PF_RC"
+export PF_RC="$TMP/audit-rc"
+if [ -n "${PF_RC_AUDIT:-}" ]; then
+    cp -- "$PF_RC_AUDIT" "$PF_RC" || exit 1
+else
+    : > "$PF_RC"
+fi
 exec < /dev/null
 
 REPORT_DIR=${PF_AUDIT_OUTPUT_DIR:-$ROOT}
@@ -172,8 +177,7 @@ echo
 
 # ---------- generate for each engine ----------
 # NOTE FOR MAINTAINERS:
-# Full mode exercises generation across all supported engines (ld1, oncvpsp,
-# opium, uspp, fhi98pp, gth, atompaw, adpack).
+# Full mode exercises generation across all nine supported engines.
 # --quick legitimately skips these engine-dependent runs to save execution
 # time, but gate verification MUST run in full mode so any engine regressions
 # or interactive hangs are caught.
@@ -190,6 +194,7 @@ if [ "$QUICK" = 0 ]; then
         [fhi98pp]=fhi
         [gth]=cp2k-gth
         [atompaw]=atompaw
+        [ape]=pseudoforge-auto
         [adpack]=adpack
     )
     declare -A eng_fam=(
@@ -200,6 +205,7 @@ if [ "$QUICK" = 0 ]; then
         [fhi98pp]=nc
         [gth]=nc
         [atompaw]=paw
+        [ape]=nc
         [adpack]=nc
     )
     declare -A eng_xc=(
@@ -210,6 +216,7 @@ if [ "$QUICK" = 0 ]; then
         [fhi98pp]=pw
         [gth]=pbe
         [atompaw]=pbe
+        [ape]=pbe
         [adpack]=pz
     )
     declare -A eng_el=(
@@ -220,6 +227,7 @@ if [ "$QUICK" = 0 ]; then
         [fhi98pp]=Si
         [gth]=Si
         [atompaw]=Si
+        [ape]=Si
         [adpack]=Na
     )
     # Engines that only have one relativity mode need it stated.
@@ -231,9 +239,10 @@ if [ "$QUICK" = 0 ]; then
         [fhi98pp]=scalar
         [gth]=scalar
         [atompaw]=scalar
+        [ape]=scalar
         [adpack]=full
     )
-    for eng in ld1 oncvpsp opium uspp fhi98pp gth atompaw adpack; do
+    for eng in ld1 oncvpsp opium uspp fhi98pp gth atompaw ape adpack; do
         if ! "$PSM" engines path "$eng" >/dev/null 2>&1; then
             printf '  %-4s  %-45s (%s not installed)\n' SKIP "generate $eng" "$eng"
             printf 'SKIP\tgenerate %s\t0\t%s missing\n' "$eng" "$eng" >> "$RAW"
@@ -245,7 +254,7 @@ if [ "$QUICK" = 0 ]; then
         run "generate $eng" \
             "$PSM" generate -e "${eng_el[$eng]}" -t "${eng_fam[$eng]}" \
                 -x "${eng_xc[$eng]}" -r "${eng_rel[$eng]}" \
-                -p "${eng_prof[$eng]}" \
+                -p "${eng_prof[$eng]}" --engine "$eng" \
                 -o "$d" -q
     done
     echo
@@ -614,7 +623,7 @@ echo "raw:   $RAW"
     echo
     echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     if [ "$QUICK" = 1 ]; then
-        echo "Mode: Quick (--quick: skips engine-dependent generation tests for 8 engines: ld1, oncvpsp, opium, uspp, fhi98pp, gth, atompaw, adpack)"
+        echo "Mode: Quick (--quick: skips engine-dependent generation tests for nine engines)"
     else
         echo "Mode: Full (all subcommands and engine generation tests)"
     fi
