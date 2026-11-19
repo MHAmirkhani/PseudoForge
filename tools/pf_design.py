@@ -240,15 +240,19 @@ def load_protocol(path):
     cases = protocol.get("benchmarks")
     if not isinstance(cases, list) or not 2 <= len(cases) <= 200:
         raise ValueError("provide 2..200 benchmark cases with train and test splits")
-    case_ids, environments = set(), {}
+    case_ids, environments, groups = set(), {}, {}
     for case in cases:
-        keys(case, {"id", "split", "input", "reference", "tolerances", "relative_to"}, "benchmark")
+        keys(case, {"id", "split", "group", "input", "reference", "tolerances", "relative_to"}, "benchmark")
         name = identifier(case.get("id"), "benchmark id")
         if name in case_ids:
             raise ValueError("benchmark ids must be unique")
         case_ids.add(name)
         if case.get("split") not in ("train", "test"):
             raise ValueError("benchmark split must be train or test")
+        if "group" in case:
+            group = identifier(case["group"], "benchmark group")
+            if groups.setdefault(group, case["split"]) != case["split"]:
+                raise ValueError(f"benchmark group {group} appears in both train and test splits")
         if not isinstance(case.get("input"), str):
             raise ValueError("benchmark input must be a local template path")
         file = (path.parent / case["input"]).resolve(strict=True)
@@ -331,6 +335,8 @@ def load_protocol(path):
             anchor = by_id.get(case["relative_to"])
             if not anchor or anchor is case or anchor["split"] != case["split"] or anchor["composition"] != case["composition"]:
                 raise ValueError("energy anchor must be a different case with the same composition and split")
+            if case.get("group") != anchor.get("group"):
+                raise ValueError("energy anchor must belong to the same declared benchmark group")
             finite(anchor["reference"].get("energy_Ry"), "anchor reference energy")
     if {c["split"] for c in cases} != {"train", "test"}:
         raise ValueError("both train and held-out test cases are required")
@@ -458,8 +464,11 @@ def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index
                 errors[metric] = max(errors[metric], value)
         ratio = max(errors[key] / case["tolerances"][key] for key in errors)
         worst = max(worst, ratio)
-        evaluated.append({"id": case["id"], "errors": errors, "tolerances": case["tolerances"],
-                          "passes": ratio <= 1.0, "measurements": all_measurements[case["id"]]})
+        entry = {"id": case["id"], "errors": errors, "tolerances": case["tolerances"],
+                 "passes": ratio <= 1.0, "measurements": all_measurements[case["id"]]}
+        if "group" in case:
+            entry["group"] = case["group"]
+        evaluated.append(entry)
     return {"cases": evaluated, "cost_seconds": sum(elapsed), "worst_normalized_error": worst,
             "passes": worst <= 1.0}
 

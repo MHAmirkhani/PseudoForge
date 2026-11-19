@@ -65,7 +65,7 @@ def main():
             (args.output / filename).write_text(cubic_qe_input(ibrav, alat, None, sites, "Ti", MASSES))
             energy = eos_energy(volume, fit["min_volume"], fit["bulk_modulus_ev_ang3"], fit["bulk_deriv"])
             cases.append({
-                "id": case_id, "split": split, "input": filename, "relative_to": f"{family}-{other}",
+                "id": case_id, "split": split, "group": family, "input": filename, "relative_to": f"{family}-{other}",
                 "reference": {"source": f"Bosoni et al., doi:10.1038/s42254-023-00655-3, {key}; SHA-256 {checksum}",
                               "kind": "all-electron", "xc": "pbe", "relativity": "scalar",
                               "energy_Ry": energy / RY_EV},

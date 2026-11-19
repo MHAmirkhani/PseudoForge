@@ -45,7 +45,10 @@ unchanged; the program does not try alternatives until the test set passes.
 A protocol is JSON with `schema_version: 1`, `element`, native `xc`, `relativity`,
 `candidates`, and `benchmarks`. Unknown and duplicate keys are rejected.
 Paths are relative to the protocol file. There must be both `train` and `test`
-cases. Identical input templates in both splits are refused.
+cases. Identical input templates in both splits are refused. For scientific
+benchmarks, give each case a `group` for its structural family or material.
+The runner refuses a declared group in both splits and energy anchors from
+different groups. Group labels should follow the protocol's physical design.
 
 A candidate describes `id`, `engine`, `family`, `profile`, `ecutwfc`, `ecutrho`,
 and `options`. The supported option keys follow the shared physics specification:

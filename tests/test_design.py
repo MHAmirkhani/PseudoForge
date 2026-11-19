@@ -119,6 +119,14 @@ class DesignTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "same composition and split"):
             self.load()
 
+    def test_declared_group_cannot_leak_across_splits(self):
+        self.protocol["benchmarks"][0]["group"] = "diamond"
+        self.protocol["benchmarks"][1]["group"] = "diamond"
+        with self.assertRaisesRegex(ValueError, "group diamond appears in both"):
+            self.load()
+        self.protocol["benchmarks"][1]["group"] = "fluorite"
+        self.load()
+
     def test_energy_gauge_cancels_in_relative_energy(self):
         case = {"id": "b", "relative_to": "a", "composition": ["Si", "Si"], "tolerances": {"relative_energy_Ry_atom": 0.01}, "reference": {"energy_Ry": -8}}
         anchor = {"reference": {"energy_Ry": -10}}
