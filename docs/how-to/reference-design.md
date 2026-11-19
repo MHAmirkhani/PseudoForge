@@ -168,6 +168,12 @@ uses the median base-setting simulation time, while the complete generation
 and training trial elapsed times are recorded separately. A pass establishes
 stability across the declared levels and structures.
 
+The report also records OS-reported CPU time for local child processes in
+each generation and training trial, including completed failed attempts.
+Held-out CPU and elapsed time are recorded separately. Remote workers,
+protocol setup, and optimizer overhead are outside these counters. Measured
+child CPU time and allocated core-hours describe different costs.
+
 Every generation runs with `--no-autofix`; the search must evaluate the requested
 parameters. A bound ghost detected by ONCVPSP is refused even with optional
 tests off. Engine-specific atomic grades are retained as diagnostics, never

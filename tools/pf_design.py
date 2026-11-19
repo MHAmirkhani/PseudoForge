@@ -17,6 +17,7 @@ import platform
 from pathlib import Path
 import random
 import re
+import resource
 import shlex
 import shutil
 import signal
@@ -397,6 +398,11 @@ def write_json(path, value):
     temporary.replace(path)
 
 
+def child_cpu_seconds():
+    usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return usage.ru_utime + usage.ru_stime
+
+
 def execute(command, directory, logfile, env, timeout, stdin=None):
     started = time.perf_counter()
     with logfile.open("wb") as log:
@@ -620,15 +626,23 @@ def main(argv=None):
     env.setdefault("OMPI_MCA_btl", "^uct")
     train = [case for case in protocol["benchmarks"] if case["split"] == "train"]
     heldout = [case for case in protocol["benchmarks"] if case["split"] == "test"]
+    report["resource_accounting"] = {
+        "scope": "elapsed time and CPU time reported by the OS for reaped local child processes",
+        "generation_cpu_seconds": 0.0, "training_trial_cpu_seconds": 0.0,
+        "training_trial_wall_seconds": 0.0,
+    }
+    accounting = report["resource_accounting"]
     for candidate, command in trials:
         item = {"id": candidate["id"], "candidate": candidate, "status": "failed"}
         project = output / candidate["id"]
         started = time.perf_counter()
+        cpu_started = child_cpu_seconds()
         try:
             try:
                 execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env, protocol["timeout_seconds"])
             finally:
                 item["generation_wall_seconds"] = time.perf_counter() - started
+                item["generation_cpu_seconds"] = child_cpu_seconds() - cpu_started
             for symbol, file in protocol["fixed_pseudos"].items():
                 shutil.copyfile(file, project / "pseudos" / (symbol + ".fixed.UPF"))
             # The generated UPF is selected independently of fixed species.
@@ -637,6 +651,10 @@ def main(argv=None):
         except (ValueError, OSError) as exc:
             item["error"] = str(exc)
         item["trial_wall_seconds"] = time.perf_counter() - started
+        item["trial_cpu_seconds"] = child_cpu_seconds() - cpu_started
+        accounting["generation_cpu_seconds"] += item["generation_cpu_seconds"]
+        accounting["training_trial_cpu_seconds"] += item["trial_cpu_seconds"]
+        accounting["training_trial_wall_seconds"] += item["trial_wall_seconds"]
         report["results"].append(item)
         write_json(output / "report.json", report)
         print(candidate["id"], item["status"], flush=True)
@@ -650,11 +668,16 @@ def main(argv=None):
         report["selected"] = winner["id"]
         # Commit the decision to disk before opening any held-out calculation.
         write_json(output / "report.json", report)
+        started = time.perf_counter()
+        cpu_started = child_cpu_seconds()
         try:
             report["test"] = evaluate(protocol, winner["candidate"], output / winner["id"], heldout, pw, env)
             report["meets_reference_constraints"] = report["test"]["passes"] and "synthetic-test" not in report["reference_kinds"]
         except (ValueError, OSError) as exc:
             report["test"] = {"passes": False, "error": str(exc)}
+        finally:
+            accounting["heldout_cpu_seconds"] = child_cpu_seconds() - cpu_started
+            accounting["heldout_wall_seconds"] = time.perf_counter() - started
     write_json(output / "report.json", report)
     print(f"Selected using training data: {report['selected'] or 'none'}; report: {output / 'report.json'}")
     return 0 if report["meets_reference_constraints"] else 2

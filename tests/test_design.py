@@ -231,6 +231,10 @@ JOB DONE.
         self.assertFalse(report["test"]["passes"])
         self.assertFalse(report["meets_reference_constraints"])
         self.assertEqual(report["reference_kinds"], ["synthetic-test"])
+        usage = report["resource_accounting"]
+        self.assertGreater(usage["heldout_cpu_seconds"], 0)
+        self.assertGreater(usage["generation_cpu_seconds"], 0)
+        self.assertGreaterEqual(usage["training_trial_cpu_seconds"], usage["generation_cpu_seconds"])
         second = subprocess.run(command, env=env, text=True, capture_output=True, timeout=30)
         self.assertNotEqual(second.returncode, 0)
         self.assertIn("existing runs are never removed", second.stderr)
