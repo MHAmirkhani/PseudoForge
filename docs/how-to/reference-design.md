@@ -78,6 +78,22 @@ Use `"strategy": "uniform"` for seed-controlled round-robin allocation
 across distinct engine/formulation pairs. The runner skips exhausted pairs
 and continues with the remaining candidates.
 
+Use `"strategy": "adaptive"` to update allocation from completed training
+trials. The scheduler tries each available engine/formulation pair once when
+the budget permits. It then uses an upper confidence bound on the observed
+feasibility and error score, normalized by the square root of relative median
+trial CPU cost. Candidate order within each pair is seeded. The report records
+each decision and the scores used. An adaptive `--plan` shows a uniform
+preview because no training observations exist yet.
+
+Any of the three seeded strategies can set `"training_wall_seconds"` alongside
+`"max_trials"`. The clock starts before the first training trial. Running
+commands receive the remaining time, and a trial interrupted at the deadline
+is charged to the budget. Held-out verification starts after the selection
+and is recorded separately. For reproducible performance comparisons, use
+the same resources, settings and budget across strategies. A serial local
+elapsed-time budget is distinct from a scheduler's allocated core-hours.
+
 Every benchmark has an `id`, `split`, local `input` template, `reference` and
 `tolerances`. A reference contains:
 

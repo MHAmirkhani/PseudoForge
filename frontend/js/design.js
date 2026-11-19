@@ -56,6 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const report = JSON.parse(text);
     if (!report || report.schema_version !== 1 || !Array.isArray(report.results)) throw new Error('This is not a PseudoForge design report.');
     view.append(make('p', 'Selected from training cases: ' + (report.selected || 'none')));
+    if (report.search && typeof report.search.strategy === 'string') {
+      const details = make('details');
+      details.append(make('summary', 'Search allocation and budget'));
+      const search = report.search;
+      details.append(make('p', 'Strategy: ' + search.strategy));
+      if (Number.isFinite(search.training_wall_seconds)) details.append(make('p', 'Training budget: ' + search.training_wall_seconds + ' s'));
+      const cpu = report.resource_accounting?.training_trial_cpu_seconds;
+      if (Number.isFinite(cpu)) details.append(make('p', 'Measured training CPU time: ' + cpu.toFixed(2) + ' s'));
+      if (typeof search.stop_reason === 'string') details.append(make('p', search.stop_reason));
+      const order = make('ol');
+      for (const id of Array.isArray(search.trial_order) ? search.trial_order : []) {
+        if (typeof id === 'string') order.append(make('li', id));
+      }
+      if (order.childElementCount) details.append(order);
+      view.append(details);
+    }
     const verified = report.meets_reference_constraints === true;
     view.append(make('p', verified ? 'The selected candidate meets the supplied reference constraints.' : 'The report does not establish that the selected candidate meets the reference constraints.', verified ? 'success' : 'hint'));
     view.append(make('p', report.verification_scope || 'Results apply only to the supplied structures, references and tolerances.', 'hint'));

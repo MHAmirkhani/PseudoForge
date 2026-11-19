@@ -221,13 +221,15 @@ def load_protocol(path):
     convergence_settings(protocol)
     if "search" in protocol:
         search = protocol["search"]
-        keys(search, {"strategy", "seed", "max_trials"}, "search")
-        if search.get("strategy") not in ("random", "uniform"):
-            raise ValueError("search strategy must be random or uniform")
+        keys(search, {"strategy", "seed", "max_trials", "training_wall_seconds"}, "search")
+        if search.get("strategy") not in ("random", "uniform", "adaptive"):
+            raise ValueError("search strategy must be random, uniform or adaptive")
         if type(search.get("seed")) is not int or not 0 <= search["seed"] < 2**64:
             raise ValueError("seeded search requires an unsigned 64-bit seed")
         if type(search.get("max_trials")) is not int or not 1 <= search["max_trials"] <= len(expanded):
             raise ValueError("max_trials must be between 1 and the expanded candidate count")
+        if "training_wall_seconds" in search:
+            finite(search["training_wall_seconds"], "training wall budget", positive=True)
     fixed = protocol.get("fixed_pseudos", {})
     if not isinstance(fixed, dict):
         raise ValueError("fixed_pseudos must map symbols to local UPF paths")
@@ -404,27 +406,40 @@ def child_cpu_seconds():
     return usage.ru_utime + usage.ru_stime
 
 
-def execute(command, directory, logfile, env, timeout, stdin=None):
+def execute(command, directory, logfile, env, timeout, stdin=None, *, deadline=None):
+    remaining = timeout if deadline is None else min(timeout, deadline - time.monotonic())
+    if remaining <= 0:
+        raise ValueError("training wall budget exhausted before starting the command")
     started = time.perf_counter()
     with logfile.open("wb") as log:
         process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         try:
-            process.communicate(input=stdin, timeout=timeout)
+            process.communicate(input=stdin, timeout=remaining)
         except subprocess.TimeoutExpired as exc:
-            os.killpg(process.pid, signal.SIGTERM)
+            # Kill the deadline-limited group immediately. Ordinary per-command
+            # timeouts still give the executable a chance to shut down cleanly.
+            deadline_limited = remaining < timeout
+            try:
+                os.killpg(process.pid, signal.SIGKILL if deadline_limited else signal.SIGTERM)
+            except ProcessLookupError:
+                pass
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
                 process.wait()
-            raise ValueError(f"command timed out; see {logfile}") from exc
+            reason = "training wall budget exhausted" if deadline_limited else "command timed out"
+            raise ValueError(f"{reason}; see {logfile}") from exc
     if process.returncode:
         raise ValueError(f"command exited {process.returncode}; see {logfile}")
     return time.perf_counter() - started
 
 
-def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index=0):
+def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index=0, deadline=None):
     # Every repeat has a distinct scratch directory. No candidate benefits
     # from another candidate's wavefunctions or a previous test's restart.
     by_id = {case["id"]: case for case in cases}
@@ -455,7 +470,8 @@ def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index
                 raise ValueError("unresolved input template token")
             (folder / "input.in").write_text(rendered)
             logfile = folder / "output.out"
-            durations.append(execute([pw], folder, logfile, env, protocol["timeout_seconds"], rendered.encode()))
+            durations.append(execute([pw], folder, logfile, env, protocol["timeout_seconds"],
+                                     rendered.encode(), deadline=deadline))
             measurements.append(parse_qe(logfile.read_text(errors="replace"), len(case["composition"])))
         # Single-point calculations must be reproducible within their own
         # stated tolerances; use the worst error over repeats, never the best.
@@ -499,8 +515,8 @@ def numerical_drift(cases, earlier, later, fraction):
     return {"changes": errors, "worst_normalized_drift": worst, "passes": worst <= 1}
 
 
-def evaluate(protocol, candidate, project, cases, pw, env):
-    result = run_cases(protocol, candidate, project, cases, pw, env)
+def evaluate(protocol, candidate, project, cases, pw, env, *, deadline=None):
+    result = run_cases(protocol, candidate, project, cases, pw, env, deadline=deadline)
     if "convergence" not in protocol:
         return result
     check = protocol["convergence"]
@@ -510,7 +526,8 @@ def evaluate(protocol, candidate, project, cases, pw, env):
     previous = result
     for index, settings in enumerate(check["levels"], start=1):
         try:
-            assessed = run_cases(protocol, candidate, project, cases, pw, env, level=settings, index=index)
+            assessed = run_cases(protocol, candidate, project, cases, pw, env, level=settings,
+                                 index=index, deadline=deadline)
             fraction = check["tolerance_fraction"]
             entry = {"settings": settings, "assessment": assessed,
                      "from_previous": numerical_drift(cases, previous, assessed, fraction),
@@ -561,6 +578,47 @@ def order_trials(trials, search):
         if arm:
             active.append(arm)
     return selected
+
+
+def adaptive_trials(trials, search, results, decisions):
+    """Sample every arm once when budget permits, then use cost-aware UCB."""
+    arms = defaultdict(deque)
+    costs = defaultdict(list)
+    rewards = defaultdict(list)
+    seeded = order_trials(trials, {**search, "strategy": "random", "max_trials": len(trials)})
+    for candidate, command in seeded:
+        arms[candidate["engine"], candidate["family"]].append((candidate, command))
+    for index in range(search["max_trials"]):
+        untried = [arm for arm in arms if not rewards[arm]]
+        if untried:
+            arm = untried[0]
+            reason = {"stage": "initial exploration"}
+        else:
+            typical_cost = statistics.median(cost for values in costs.values() for cost in values)
+            scores = {
+                arm: (statistics.mean(rewards[arm]) + math.sqrt(2 * math.log(index) / len(rewards[arm])))
+                     / math.sqrt(statistics.median(costs[arm]) / typical_cost)
+                for arm in arms
+            }
+            arm = max(scores, key=scores.get)
+            reason = {"stage": "cost-aware UCB",
+                      "scores": [{"engine": key[0], "family": key[1], "score": value}
+                                 for key, value in scores.items()]}
+        candidate, command = arms[arm].popleft()
+        if not arms[arm]:
+            del arms[arm]
+        decisions.append({"id": candidate["id"], "engine": arm[0], "family": arm[1], **reason})
+        yield candidate, command
+        trial = results[-1]
+        assessment = trial.get("training", {})
+        # Stable feasible trials earn [0.5, 1]; other measured trials earn
+        # less than 0.5. Failed generation or evaluation earns zero.
+        error = assessment.get("worst_normalized_error")
+        reward = 0.0 if error is None else 0.49 / (1 + error)
+        if assessment.get("passes"):
+            reward = 1 - 0.5 * error
+        rewards[arm].append(reward)
+        costs[arm].append(max(0.001, trial["trial_cpu_seconds"]))
 
 
 def main(argv=None):
@@ -627,21 +685,32 @@ def main(argv=None):
               "fixed_pseudos": {el: {"path": file, "sha256": digest(file)} for el, file in protocol["fixed_pseudos"].items()}}
     trials = list(zip(protocol["candidates"], commands))
     search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
-    trials = order_trials(trials, search)
-    report["search"] = {**search, "trial_order": [candidate["id"] for candidate, _ in trials],
-                        "candidate_count": len(commands)}
+    adaptive = search["strategy"] == "adaptive"
+    decisions = []
+    if adaptive and not args.plan:
+        schedule = adaptive_trials(trials, search, report["results"], decisions)
+    else:
+        schedule = order_trials(trials, {**search, "strategy": "uniform"} if adaptive else search)
+    report["search"] = {**search, "trial_order": [], "candidate_count": len(commands)}
+    if adaptive and not args.plan:
+        report["search"]["decisions"] = decisions
+    elif not adaptive:
+        report["search"]["planned_order"] = [candidate["id"] for candidate, _ in schedule]
     write_json(output / "report.json", report)
     if args.plan:
         env = dict(os.environ)
         previews = []
-        for candidate, command in trials:
+        for candidate, command in schedule:
             preview = output / "previews" / candidate["id"]
             command = command[:-1] + [str(preview), "--dry-run"]
             execute(command, ROOT, output / (candidate["id"] + ".preview.log"), env, protocol["timeout_seconds"])
             previews.append({"id": candidate["id"], "project": str(preview)})
+        report["search"]["trial_order"] = [preview["id"] for preview in previews]
+        if adaptive:
+            report["search"]["preview_schedule"] = "uniform preview; actual allocation depends on training results"
         report["previews"] = previews
         write_json(output / "report.json", report)
-        print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; planned trials: {len(trials)}; report: {output / 'report.json'}")
+        print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; planned trials: {len(previews)}; report: {output / 'report.json'}")
         return 0
     pw = shutil.which(args.pw)
     if not pw:
@@ -657,21 +726,31 @@ def main(argv=None):
         "training_trial_wall_seconds": 0.0,
     }
     accounting = report["resource_accounting"]
-    for candidate, command in trials:
+    budget = search.get("training_wall_seconds")
+    deadline = None if budget is None else time.monotonic() + budget
+    for candidate, command in schedule:
+        if deadline is not None and time.monotonic() >= deadline:
+            if adaptive:
+                decisions.pop()
+            break
+        report["search"]["trial_order"].append(candidate["id"])
+        report["search"]["active_trial"] = candidate["id"]
+        write_json(output / "report.json", report)
         item = {"id": candidate["id"], "candidate": candidate, "status": "failed"}
         project = output / candidate["id"]
         started = time.perf_counter()
         cpu_started = child_cpu_seconds()
         try:
             try:
-                execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env, protocol["timeout_seconds"])
+                execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env,
+                        protocol["timeout_seconds"], deadline=deadline)
             finally:
                 item["generation_wall_seconds"] = time.perf_counter() - started
                 item["generation_cpu_seconds"] = child_cpu_seconds() - cpu_started
             for symbol, file in protocol["fixed_pseudos"].items():
                 shutil.copyfile(file, project / "pseudos" / (symbol + ".fixed.UPF"))
             # The generated UPF is selected independently of fixed species.
-            item["training"] = evaluate(protocol, candidate, project, train, pw, env)
+            item["training"] = evaluate(protocol, candidate, project, train, pw, env, deadline=deadline)
             item["status"] = "evaluated"
         except (ValueError, OSError) as exc:
             item["error"] = str(exc)
@@ -681,8 +760,11 @@ def main(argv=None):
         accounting["training_trial_cpu_seconds"] += item["trial_cpu_seconds"]
         accounting["training_trial_wall_seconds"] += item["trial_wall_seconds"]
         report["results"].append(item)
+        del report["search"]["active_trial"]
         write_json(output / "report.json", report)
         print(candidate["id"], item["status"], flush=True)
+    if deadline is not None and time.monotonic() >= deadline:
+        report["search"]["stop_reason"] = "training wall budget exhausted"
     report["pareto"] = pareto(report["results"])
     feasible = [item for item in report["results"] if item.get("training", {}).get("passes")]
     if feasible:

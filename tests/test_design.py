@@ -102,6 +102,30 @@ class DesignTests(unittest.TestCase):
         self.assertEqual(len({candidate["id"] for candidate, _ in ordered}), 6)
         self.assertEqual(ordered, design.order_trials(list(reversed(trials)), spec))
 
+    def test_adaptive_search_uses_completed_results_and_keeps_failures(self):
+        trials = [({"id": f"{engine}-{i}", "engine": engine, "family": "nc"}, [])
+                  for engine in ("ld1", "oncvpsp") for i in range(3)]
+        results, decisions = [], []
+        schedule = design.adaptive_trials(trials, {"seed": 5, "max_trials": 4}, results, decisions)
+        for candidate, _ in schedule:
+            if candidate["engine"] == "oncvpsp":
+                results.append({"training": {"passes": True, "worst_normalized_error": 0.2},
+                                "trial_cpu_seconds": 2})
+            else:
+                results.append({"status": "failed", "trial_cpu_seconds": 12})
+        self.assertEqual({value["engine"] for value in decisions[:2]}, {"oncvpsp", "ld1"})
+        self.assertEqual(decisions[2]["engine"], "oncvpsp")
+        self.assertEqual(decisions[2]["stage"], "cost-aware UCB")
+        self.assertEqual(len({decision["id"] for decision in decisions}), 4)
+
+    def test_command_uses_remaining_training_budget(self):
+        import time
+        start = time.monotonic()
+        with self.assertRaisesRegex(ValueError, "training wall budget exhausted"):
+            design.execute(["sleep", "10"], self.root, self.root / "timeout.log", os.environ,
+                           30, deadline=start + 0.15)
+        self.assertLess(time.monotonic() - start, 5)
+
     def test_missing_reference_or_mismatched_theory_is_refused(self):
         for change in ({"source": ""}, {"xc": "pz"}, {"relativity": "full"}, {"forces_Ry_bohr": [[0, 0]]}):
             with self.subTest(change=change):

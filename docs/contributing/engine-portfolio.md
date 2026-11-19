@@ -4,10 +4,11 @@ Status: **proposal, not an implemented optimizer or a demonstrated advantage**.
 Literature checked on 18 November 2026. The implemented foundation is the
 [nine-engine manual workflow](../how-to/manual-generation.md), its typed
 controls, input snapshots and failure reporting. The current `design` command
-evaluates a finite grid, a seeded random subset or uniform allocation across
-engine/formulation pairs through QE, with optional
-cutoff/k-mesh stability checks and declared structural-family splits. The
-adaptive portfolio scheduler and CP2K/OpenMX evaluation remain proposed.
+evaluates a finite grid through QE, with random, uniform and cost-aware UCB
+allocation over engine/formulation pairs. It supports optional cutoff/k-mesh
+stability checks, declared structural-family splits and a local training
+time budget. Conditional Bayesian parameter proposals, CP2K/OpenMX
+evaluation and a measured advantage of adaptive allocation remain open.
 
 ## What is already established
 
