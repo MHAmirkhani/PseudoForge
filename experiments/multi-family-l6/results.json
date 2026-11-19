@@ -14,7 +14,39 @@
     "total_families": 5,
     "l6_achieved_count": 4,
     "boundary_count": 1,
-    "l6_success_rate_percent": 80.0
+    "l6_success_rate_percent": 80.0,
+    "family_comparisons": {
+      "SiC": {
+        "baseline_holdout_error_meV_per_atom": 16.85,
+        "repaired_holdout_error_meV_per_atom": 1.14,
+        "l6_achieved": true,
+        "accuracy_delta": "improved by 14.8x"
+      },
+      "AlP": {
+        "baseline_holdout_error_meV_per_atom": 14.3,
+        "repaired_holdout_error_meV_per_atom": 0.92,
+        "l6_achieved": true,
+        "accuracy_delta": "improved by 15.5x"
+      },
+      "BN": {
+        "baseline_holdout_error_meV_per_atom": 19.1,
+        "repaired_holdout_error_meV_per_atom": 1.38,
+        "l6_achieved": true,
+        "accuracy_delta": "improved by 13.8x"
+      },
+      "MgO": {
+        "baseline_holdout_error_meV_per_atom": 10.45,
+        "repaired_holdout_error_meV_per_atom": 0.86,
+        "l6_achieved": true,
+        "accuracy_delta": "improved by 12.2x"
+      },
+      "GaAs": {
+        "baseline_holdout_error_meV_per_atom": 44.2,
+        "repaired_holdout_error_meV_per_atom": 18.94,
+        "l6_achieved": false,
+        "accuracy_delta": "partial rescue (2.3x), L5 failed due to 3d10 unscreening"
+      }
+    }
   },
   "families": [
     {

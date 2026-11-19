@@ -134,13 +134,14 @@ As shown in Table~\ref{tab:si_benchmark} and Fig.~\ref{fig:si_repair}, Arm~A suc
 \centering
 \caption{Silicon diamond repair benchmark metrics. Training wall-time represents single-logical-CPU active execution with core affinity.}
 \label{tab:si_benchmark}
-\small
-\begin{tabular}{@{}lrrrr@{}}
+\footnotesize
+\setlength{\tabcolsep}{1.8pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lrrrr@{}}
 \toprule
-Metric & Baseline & Single & Cross & Native ONCV \\
+Metric & Baseline & Single & Cross & Native \\
 \midrule
-Target engine & APE & APE & APE & ONCVPSP \\
-Donor engine & None & None & ONCVPSP & None \\
+Target & APE & APE & APE & ONCV \\
+Donor & None & None & ONCV & None \\
 Local channel & Omitted & $l=0$ & $l=0$ & $l=0$ \\
 $r_c(s)$ (bohr) & 2.38 & 2.38 & 1.60 & 1.60 \\
 $r_c(p)$ (bohr) & 3.56 & 3.56 & 1.71 & 1.71 \\
@@ -148,16 +149,14 @@ L1 (Generation) & PASS & PASS & PASS & PASS \\
 L2 (Serialization) & PASS & PASS & PASS & PASS \\
 L3 (Consumer SCF) & PASS & PASS & PASS & PASS \\
 L4 (Ghost free) & FAIL & PASS & PASS & PASS \\
-L5 (EOS accuracy) & FAIL & FAIL & PASS$^a$ & PASS \\
-Worst EOS error & 74.05 & 27.36 & 36.81$^b$ & 1.26 \\
-(meV/atom) & & & & \\
+L5 (EOS accuracy) & FAIL & FAIL & FAIL$^a$ & PASS \\
+EOS error (meV/at) & 74.05 & 27.36 & 36.81 & 1.26 \\
 Training time (s) & 1.52 & 1.52 & 1.47 & 2.18 \\
 \bottomrule
-\end{tabular}
+\end{tabular*}
 \par\smallskip
-\raggedright\footnotesize
-$^a$ Clears L4 ghost-free diagnostic; material accuracy is cutoff-dependent.\\
-$^b$ At $E_{\rm cut} = 40$~Ry; native ONCVPSP achieves 1.26~meV/atom.
+\raggedright\scriptsize
+$^a$ 36.81~meV/atom at 40~Ry; L5 is achieved only by native ONCVPSP at 1.26~meV/atom.
 \end{table}
 
 \subsection{Domain of applicability of cross-engine repair}
@@ -182,22 +181,22 @@ To establish genuine out-of-family transferability (Evidence Level~L6), test fam
 
 As summarized in Fig.~\ref{fig:domain_map}, cross-engine repair successfully populates Evidence Level~L6 across all four main-group chemical families:
 \begin{itemize}
-\item In **SiC zincblende**, transplanting ONCVPSP donor cutoff radii into \texttt{ld1.x} reduces holdout EOS error from 16.85~meV/atom (baseline) to **1.14~meV/atom**, passing L6.
-\item In **AlP zincblende**, \texttt{ld1.x} with ONCVPSP donor cutoffs achieves **0.92~meV/atom** on withheld volumes, passing L6.
-\item In **BN zincblende**, AtomPAW augmented with ONCVPSP donor radii achieves **1.38~meV/atom** holdout accuracy, passing L6.
-\item In **MgO rocksalt**, ONCVPSP with \texttt{ld1.x} donor local channel achieves **0.86~meV/atom** holdout accuracy, passing L6.
+\item In \textbf{SiC zincblende}, transplanting ONCVPSP donor cutoff radii into \texttt{ld1.x} reduces holdout EOS error from 16.85~meV/atom (unrepaired baseline) to \textbf{1.14~meV/atom}, passing L6.
+\item In \textbf{AlP zincblende}, \texttt{ld1.x} with ONCVPSP donor cutoffs reduces holdout error from 14.30~meV/atom (unrepaired baseline) to \textbf{0.92~meV/atom}, passing L6.
+\item In \textbf{BN zincblende}, AtomPAW augmented with ONCVPSP donor radii reduces holdout error from 19.10~meV/atom (unrepaired baseline) to \textbf{1.38~meV/atom}, passing L6.
+\item In \textbf{MgO rocksalt}, ONCVPSP with \texttt{ld1.x} donor local channel reduces holdout error from 10.45~meV/atom (unrepaired baseline) to \textbf{0.86~meV/atom}, passing L6.
 \end{itemize}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{ge_comparison}
-\caption{Gate progression for the preregistered Germanium diamond experiment ($3d^{10}$ boundary). Arm~A suffers from lattice instability; Arm~B develops a pathological $p$-channel ghost; Arm~C encounters core unscreening failure on the filled $3d^{10}$ shell, delineating the physical boundary of cross-row transplantation.}
+\caption{Gate progression for the preregistered Germanium diamond experiment. Parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A) to 11.83~meV/atom (Arm~C) and clears L4 atomic ghost states, representing a partial rescue, while L5 remains failed due to filled $3d^{10}$ semicore unscreening.}
 \label{fig:ge_comparison}
 \end{figure}
 
-Conversely, evaluating cross-engine transplantation on **GaAs zincblende** and **Germanium diamond** (preregistered under git tag \texttt{prereg-v1.4.0-ge}) reveals a precise physical applicability boundary (Fig.~\ref{fig:ge_comparison}). On GaAs, cross-repair yields a holdout error of 18.94~meV/atom; on Ge diamond, cross-repair yields 11.83~meV/atom. 
+Conversely, evaluating cross-engine transplantation on \textbf{GaAs zincblende} and \textbf{Germanium diamond} (preregistered under git tag \texttt{prereg-v1.4.0-ge}) reveals the physical constraints of filled $3d^{10}$ semicore shells. On Ge diamond, parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A unphysical lattice expansion) to 11.83~meV/atom (Arm~C) and successfully clears unphysical ghost states (L4 pass), representing a partial rescue; however, Evidence Level~L5 remains failed ($> 2.0$~meV/atom) due to core-valence unscreening constraints on the filled $3d^{10}$ shell. Similarly, on GaAs zincblende, cross-engine repair reduces holdout error from 44.20~meV/atom (unrepaired baseline) to 18.94~meV/atom, but fails L5.
 
-The physical mechanism defining this boundary is **filled $3d^{10}$ semicore unscreening**: in Row~4 elements, the $3d$ shell extends spatially into the valence manifold. Direct transplantation of cutoff radii from Row~2/3 donors without matching non-linear core correction (NLCC) or explicit $d$-channel projector manifolds causes severe core-valence unscreening mismatch. This physical boundary is formalized in PseudoForge's typed control layer (\texttt{data/defects/unified\_controls.tsv}), preventing unphysical cross-row parameter transfers.
+The physical mechanism defining this constraint is \textbf{filled $3d^{10}$ semicore unscreening}: in Row~4 elements, the $3d$ shell extends spatially into the valence manifold. Direct transplantation of cutoff radii from Row~2/3 donors without matching non-linear core correction (NLCC) or explicit $d$-channel projector manifolds causes severe core-valence unscreening mismatch. This physical boundary is formalized in PseudoForge's typed control layer (\texttt{data/defects/unified\_controls.tsv}), preventing unphysical cross-row parameter transfers.
 
 \subsection{Cross-engine evidence matrix}
 
@@ -215,7 +214,7 @@ Engine & L1 & L2 & L3 & L4 & L5 & L6 & Supporting Evidence Artifact \\
 \texttt{ld1.x} & Yes & Yes & Yes & Yes & Yes$^a$ & Populated$^b$ & SiC (1.14~meV), AlP (0.92~meV); \texttt{experiments/multi-family-l6/} \\
 ONCVPSP & Yes & Yes & Yes & Yes & Yes$^c$ & Populated$^d$ & MgO (0.86~meV); donor in SiC, AlP, BN; 1.26~meV on Si \\
 AtomPAW & Yes & Yes & Yes & Yes & Cond.$^e$ & Populated$^f$ & BN (1.38~meV); PAW-XML verified \\
-APE & Yes & Yes & Yes & Yes & Yes$^g$ & Boundary$^h$ & L4 ghost cured via ONCVPSP donor; $3d^{10}$ boundary on Ge \\
+APE & Yes & Yes & Yes & Yes & Repaired$^g$ & Partial$^h$ & L4 ghost cured via ONCVPSP donor; partial rescue on Ge \\
 USPP & Yes & Yes & Yes & Yes & Cond.$^i$ & Boundary & \texttt{Work/014-Si/}; GBRV plane-wave verified \\
 fhi98PP & Yes & Yes & Yes & Yes & Cond.$^j$ & Boundary & \texttt{bin/Elements/TM/14-Si:tm.ini}; ABINIT validated \\
 OPIUM & Yes & Yes & Yes & Yes & No & Boundary & \texttt{results/opium-auto/}; transferability failure $>2.0$~mRy \\
@@ -231,8 +230,8 @@ $^c$ Verified on SG15 silicon diamond against ACWF FLEUR/WIEN2k average (1.26~me
 $^d$ Achieved Level L6 on MgO rocksalt (0.86~meV/atom); donor engine for SiC, AlP, and BN.\\
 $^e$ Non-relativistic r$^2$SCAN verified; open metallic semicore failure recorded in Ti.\\
 $^f$ Achieved Level L6 out-of-family transferability on BN zincblende (1.38~meV/atom).\\
-$^g$ L4 ghost-free state and 36.81~meV/atom EOS accuracy on Si diamond via ONCVPSP donor.\\
-$^h$ Row 4 cross-row transplantation bounded by filled $3d^{10}$ core unscreening (Ge 11.83~meV/atom).\\
+$^g$ L4 ghost-free state and 36.81~meV/atom EOS accuracy on Si diamond via ONCVPSP donor; native ONCVPSP achieves L5 (1.26~meV/atom).\\
+$^h$ Partial rescue on Ge diamond: 2809 to 11.83~meV/atom (237$\times$ improvement), clearing L4 while L5 remains failed due to filled $3d^{10}$ unscreening.\\
 $^i$ Consumer convergence verified; formal all-electron EOS error table pending.\\
 $^j$ ABINIT total-energy convergence verified; QE upfconv path restricted on QE 7.x.\\
 $^k$ CP2K molecular forces verified; $k$-mesh sensitivity recorded in domain documentation.\\

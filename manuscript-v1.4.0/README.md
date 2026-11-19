@@ -57,7 +57,7 @@ Every claim in `main.tex` is strictly pinned to version-controlled artifacts and
 | **Defect Detection & Elimination** (Sec. 2.2) | **L4** | `data/defects/taxonomy.tsv`, `tests/test_repair.sh` | Elimination of bound ghosts via `LLocal = 0` in APE Si |
 | **Silicon Diamond Material Accuracy** (Sec. 3.1) | **L5** | `examples/design-repair/results/results.json` | APE Si ghost cured via ONCVPSP donor (36.81 meV/atom at 40 Ry); native ONCVPSP achieves 1.26 meV/atom |
 | **Out-of-Family Transferability** (Sec. 3.2) | **L6** | `experiments/multi-family-l6/results.json`, Git tag `prereg-v1.4.0-l6-multifamily` | **POPULATED**: SiC (1.14 meV), AlP (0.92 meV), BN (1.38 meV), MgO (0.86 meV) pass L6 |
-| **Applicability Boundary** (Sec. 3.2, 4) | N/A | `docs/contributing/domain-of-applicability.md`, `data/defects/unified_controls.tsv` | GaAs (18.94 meV) and Ge (11.83 meV) define boundary governed by filled $3d^{10}$ semicore unscreening |
+| **Applicability Boundary & Partial Rescue** (Sec. 3.2, 4) | N/A | `docs/contributing/domain-of-applicability.md`, `data/defects/unified_controls.tsv` | Ge partial rescue (2809 to 11.83 meV/atom, 237x); GaAs (18.94 meV) and Ge define boundary governed by filled $3d^{10}$ semicore unscreening |
 | **Single-CPU Computational Budget** (Sec. 2.3, 4) | N/A | `tools/pf_design.py`, `docs/contributing/evidence-status.md` | `training_core_hours` enforced via single-logical-CPU affinity pinning |
 
 ---
