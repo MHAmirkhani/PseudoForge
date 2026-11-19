@@ -56,7 +56,9 @@ Going from one to the other means choosing a local channel and constructing
 projectors — a new pseudopotential, not a relabelled file.
 
 So `vps → upf` is [**refused**](../formats.md). Use ADPACK's output with
-OpenMX, which reads it natively.
+OpenMX, which reads it natively. The repository's
+`examples/engine-pairs/evaluate_openmx.py` exercises the real reader on three
+generated He VPS files and records SCF convergence separately from file loading.
 
 ## The build fix
 

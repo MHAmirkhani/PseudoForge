@@ -55,8 +55,20 @@ python3 examples/engine-pairs/evaluate_cp2k.py "$work/native/report.json" \
 The smoke mode runs only the first level. Both modes report the two training
 volumes and leave selection to a later standalone validation. The CP2K grid
 cutoff and QE wavefunction cutoff describe different numerical settings.
-The native ADPACK and fhi98PP trials require OpenMX and ABINIT, respectively,
-for comparable material validation.
+
+## Check ADPACK VPS files with OpenMX
+
+```sh
+python3 examples/engine-pairs/evaluate_openmx.py "$work/native/report.json" \
+  --openmx /absolute/path/to/openmx --pao-dir /path/to/DFT_DATA19/PAO -o "$work/openmx"
+```
+
+The OpenMX test loads the three generated He VPS files and uses the same
+He8.0 basis at two integration cutoffs, then repeats with He10.0. It records
+the original VPS and basis checksums, SCF outcome and isolated-atom energies.
+Use the output to compare numerical sensitivity and verify native consumption.
+A material transferability comparison needs a separately converged reference
+and a basis appropriate to that system.
 
 ## Measure a Ti/O interaction
 
