@@ -135,6 +135,19 @@ class DesignTests(unittest.TestCase):
                                          [best, nearby, distant, worst])
         self.assertGreater(scores[0], scores[1])
 
+    def test_gp_respects_named_controls_radii_and_projector_energy(self):
+        for make_options in (
+            lambda value: {"engine_options": [f"qcut.s={value}", "ncon.s=4"]},
+            lambda value: {"channel_radii": [f"s:{value}:2.1", "p:1.8"]},
+            lambda value: {"extra_projectors": [f"3D:{value}", "4F:0.5"]},
+        ):
+            def candidate(value):
+                return {"options": make_options(value), "profile": "reference", "ecutwfc": 40, "ecutrho": 320}
+            best, nearby, distant, worst = map(candidate, ("1.8d0", "1.81", "2.19", "2.2"))
+            scores = design.posterior_scores([nearby, distant], [(best, 0.99), (worst, 0.01)],
+                                             [best, nearby, distant, worst])
+            self.assertGreater(scores[0], scores[1])
+
     def test_missing_reference_or_mismatched_theory_is_refused(self):
         for change in ({"source": ""}, {"xc": "pz"}, {"relativity": "full"}, {"forces_Ry_bohr": [[0, 0]]}):
             with self.subTest(change=change):

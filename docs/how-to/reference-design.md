@@ -3,8 +3,10 @@
 `pseudoforge design` searches a finite, explicit set of generation parameters
 and selects a candidate that meets physical error limits on training
 structures. It then evaluates the locked choice on held-out structures.
-This is a reproducible constrained grid search, not a new Bayesian optimizer or
-a claim that a potential is accurate outside those structures.
+Search strategies include a deterministic grid, seeded random, uniform
+engine/formulation allocation, cost-aware adaptive allocation and conditional
+Bayesian search. They search the candidates declared in the protocol. The
+reported verification applies to the evaluated structures and tolerances.
 
 The atomic generators and ordinary generation remain in Bash. This optional
 command needs Python 3.10 or newer (standard library only) and a local Quantum
@@ -89,8 +91,10 @@ preview because no training observations exist yet.
 Use `"strategy": "bayesian"` to retain the adaptive arm policy and select
 parameters within each arm with a Gaussian-process upper confidence bound.
 The model learns the bounded score from completed training trials, including
-failed attempts. Its kernel uses normalized numeric settings and categorical
-differences within that engine/formulation. It chooses among declared grid
+failed attempts. Its kernel normalizes numeric settings, including named
+controls such as `qcut.s`, matching and augmentation radii by channel, and
+extra-projector energies. It handles categorical choices within the same
+engine/formulation. It chooses among declared grid
 points and records the acquisition score. It does not fit the atomic solver
 or extrapolate outside the supplied candidate space.
 

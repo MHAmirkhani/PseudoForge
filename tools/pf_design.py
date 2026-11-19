@@ -580,23 +580,49 @@ def order_trials(trials, search):
     return selected
 
 
+def native_features(options):
+    """Keep each named native control and channel as a distinct coordinate."""
+    features = dict(options)
+
+    def number_or_label(value):
+        if re.fullmatch(NUMBER, value):
+            converted = float(value.lower().replace("d", "e"))
+            if math.isfinite(converted):
+                return converted
+        return value
+
+    for entry in features.pop("engine_options", []):
+        key, _, value = entry.partition("=")
+        features[f"engine_options.{key}"] = number_or_label(value)
+    for kind in ("channel_radii", "extra_projectors"):
+        counts = defaultdict(int)
+        for entry in features.pop(kind, []):
+            channel, *values = entry.lower().split(":")
+            for position, value in enumerate(values):
+                features[f"{kind}.{channel}.{counts[channel]}.{position}"] = number_or_label(value)
+            counts[channel] += 1
+    return features
+
+
 def posterior_scores(candidates, observed, domain):
     """GP posterior UCB over the native parameter grid in one arm."""
     if not observed:
         return [0.0] * len(candidates)
-    keys = sorted({key for item in domain for key in item["options"]})
+    features = {id(item): native_features(item["options"]) for item in domain}
+    keys = sorted({key for item in features.values() for key in item})
     numeric = {}
     for key in keys:
-        values = [item["options"][key] for item in domain if key in item["options"]]
+        values = [item[key] for item in features.values() if key in item]
         if all(type(value) in (int, float) for value in values):
             numeric[key] = (min(values), max(values) - min(values))
 
     def kernel(a, b):
+        features_a, features_b = features[id(a)], features[id(b)]
         distance = float(a["profile"] != b["profile"])
         distance += (math.log(a["ecutwfc"]) - math.log(b["ecutwfc"])) ** 2
         distance += (math.log(a["ecutrho"]) - math.log(b["ecutrho"])) ** 2
         for key in keys:
-            x, y = a["options"].get(key), b["options"].get(key)
+            x, y = features_a.get(key), features_b.get(key)
             if x == y:
                 continue
             center, width = numeric.get(key, (0, 0))
