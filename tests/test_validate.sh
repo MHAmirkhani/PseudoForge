@@ -126,6 +126,21 @@ case $VAL_NOTE in *unoccupied*) ok_ "the unoccupied spread is reported separatel
 case $VAL_NOTE in *penalty*) ok_ "the fit penalty is carried through" ;;
                   *) bad_ "penalty missing from the note" ;; esac
 
+{
+    cat "$TMP/gth.log"
+    printf '\n nl    s      occ              ae        pseudo       diff     diff*weight\n'
+    printf ' 3s   0.5    2.0000\n'
+    printf '         eigenvalue      -0.3755E+00 -0.3755E+00  0.1000E-06  0.2000E-05\n'
+} > "$TMP/gth_final.log"
+reset_val; val_gth "$TMP/gth_final.log"
+[ "$VAL_MAXDE" = 0.000000 ] && [[ "$VAL_NOTE" == *"0.000000 Ry"* ]] \
+    && ok_ "only the final GTH fit table contributes to the residual" \
+    || bad_ "intermediate simplex residuals leaked into final GTH diagnostics"
+printf ' nl    s      occ              ae        pseudo       diff     diff*weight\n' >> "$TMP/gth_final.log"
+reset_val; val_gth "$TMP/gth_final.log"
+[ "$VAL_VERDICT" = no-data ] && ok_ "a final GTH fit table without occupied states is ungraded" \
+    || bad_ "an incomplete GTH fit table was graded"
+
 # Without --refit there is no fit, and saying nothing reads as "not checked".
 printf 'GTH: Si written from tables/cp2k/pbe/Si-q4\n' > "$TMP/gth_pub.log"
 reset_val; val_gth "$TMP/gth_pub.log"

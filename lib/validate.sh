@@ -377,7 +377,7 @@ val_opium() {
 # failure rather than the expected behaviour.
 # ---------------------------------------------------------------------------
 val_gth() {
-    local log=$1 occ_max unocc_max pen
+    local log=$1 occ_max unocc_max pen nocc
     [ -s "$log" ] || return 1
 
     # Without --refit no fit was run: the file holds CP2K's published
@@ -395,16 +395,22 @@ val_gth() {
     VAL_METHOD="gth fit residuals"
 
     # Read the last table only: earlier ones are intermediate simplex states.
-    read -r occ_max unocc_max < <(awk '
-        /nl *s *occ *ae *pseudo *diff/ { delete o; delete u; no = 0; nu = 0; next }
+    read -r occ_max unocc_max nocc < <(awk '
+        /nl *s *occ *ae *pseudo *diff/ { mo = mu = no = 0; occ = -1; next }
         # an orbital header line: "3s   0.5    2.0000"
         $1 ~ /^[0-9][spdf]$/ && NF == 3 { occ = $3 + 0; next }
-        $1 == "eigenvalue" && NF >= 4 {
+        $1 == "eigenvalue" && NF >= 4 && occ >= 0 {
             d = $4; gsub(/[dD]/, "E", d); d += 0
             if (d < 0) d = -d
-            if (occ > 0) { if (d > mo) mo = d } else { if (d > mu) mu = d }
+            if (occ > 0) { no++; if (d > mo) mo = d } else { if (d > mu) mu = d }
         }
-        END { printf "%.6f %.6f\n", mo * 2, mu * 2 }' "$log")
+        END { printf "%.6f %.6f %d\n", mo * 2, mu * 2, no }' "$log")
+
+    if [ "$nocc" = 0 ]; then
+        VAL_MAXDE=0 VAL_DETOT=0 VAL_VERDICT=no-data
+        VAL_NOTE="the final GTH fit table contains no occupied-state residuals"
+        return 0
+    fi
 
     VAL_MAXDE=$occ_max
     pen=$(grep -i 'penalty' "$log" 2>/dev/null | tail -1 | awk '{print $NF}')

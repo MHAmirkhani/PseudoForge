@@ -442,6 +442,15 @@ exec_fhi98pp() {
         EXEC_MESSAGE="could not assemble the .cpi from fhipp.x output"; return 1; }
     EXEC_NATIVE=$cpi
 
+    # A native-only request should keep the original artifact and solver log.
+    # exec_upfconv opens the same log for append and can mask useful evidence
+    # when the installed converter has no FHI reader.
+    if [ "${SPEC[formats]:-upf}" = cpi ]; then
+        EXEC_NOTE="${EXEC_NOTE:+$EXEC_NOTE; }written as .cpi (ABINIT-compatible)"
+        printf '%s\n' "$cpi"
+        return 0
+    fi
+
     upf=$wd/$(exec_upf_name "$el")
     if exec_upfconv "$cpi" "$upf" "$log"; then
         printf '%s\n' "$upf"
