@@ -50,3 +50,10 @@ done
 The Ti example uses an exploratory 5 meV/atom tolerance and a 1 meV/atom
 numerical drift allowance. It tests EOS energy differences only. The two
 oxides are cubic verification prototypes from the published dataset.
+
+To test an explicit physical intervention, generate the protocols with
+`--atompaw-semicore` and run `atompaw-paw-semicore.json` as a separate design
+under the same numerical settings. This trial adds Ti 3s and 3p to the
+valence and scans three radii. Compare it with the radius-only arms. The
+combined intervention changes two ingredients in the construction, so a
+matched factorial study is needed to attribute an improvement to either one.

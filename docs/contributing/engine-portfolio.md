@@ -4,8 +4,9 @@ Status: **proposal, not an implemented optimizer or a demonstrated advantage**.
 Literature checked on 18 November 2026. The implemented foundation is the
 [nine-engine manual workflow](../how-to/manual-generation.md), its typed
 controls, input snapshots and failure reporting. The current `design` command
-is an explicit finite grid evaluated through QE; it has no adaptive portfolio
-scheduler or CP2K/OpenMX evaluation backend.
+evaluates a finite grid or a seeded random subset through QE, with optional
+cutoff/k-mesh stability checks and declared structural-family splits. The
+adaptive portfolio scheduler and CP2K/OpenMX evaluation remain proposed.
 
 ## What is already established
 

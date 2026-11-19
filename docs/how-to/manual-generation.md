@@ -83,7 +83,7 @@ not treated as a common cross-engine accuracy measure.
 | fhi98PP | Explicit channel radii, pseudocore/NLCC, spin flag with native up/down occupations, and `scheme=tm|ham` |
 | OPIUM | Global/per-channel radii and `method`; reference configuration in the synthesized-input path |
 | GTH | With `--refit`: Gaussian radii, atomic radii/domain, fitting weights and free/fixed radius masks |
-| AtomPAW | Reference configuration, coupled radius scaling, matching radii by channel, compensation shape/local channel and energies of existing additional projectors |
+| AtomPAW | Reference configuration, generated-deck s/p semicore selection, coupled radius scaling, matching radii by channel, compensation shape/local channel and energies of existing additional projectors |
 | APE | Reference configuration, component radii/scaling, local channel, NLCC/core radius, component method and construction/eigensolver/ODE tolerances |
 | ADPACK | Matching/local radii, NLCC, SCF mixing/threshold; grid, iterations/mixing method, native construction/local/projector/core settings and ghost search |
 
@@ -96,6 +96,11 @@ GTH/CP2K representation: published CPMD/ABINIT variants are not substituted for
 newly fitted coefficients. A second projector is required for an ONCVPSP
 projector separation, and partial-core ratios require enabled core correction.
 ONCVPSP basis size is checked against continuity order and projector count.
+AtomPAW accepts `--engine-option paw.semicore_s=on` and
+`--engine-option paw.semicore_p=on` to promote the outermost occupied core
+shell in the selected channel. For Ti these are 3s and 3p. This adjusts the
+occupation records, core/valence markers and projector layout together.
+If a native deck is supplied, edit those records in the deck.
 ADPACK 2.2 grid and SCF array limits are enforced, including for supplied
 inputs; its upstream grid-limit check compares the wrong variable.
 Imported coefficient blocks need an explicit matching `GTH-XC` header and use

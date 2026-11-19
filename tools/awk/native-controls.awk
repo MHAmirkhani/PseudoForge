@@ -157,6 +157,8 @@ END {
         if(tr2!="")kw("scf.criterion",tr2,0)
         for(key in O)kw(key,opt(key),0)
     } else if(eng=="atompaw") {
+        if("paw.semicore_s" in O)opt("paw.semicore_s")
+        if("paw.semicore_p" in O)opt("paw.semicore_p")
         split(X[P[3]],maxn);mark=0;for(l=0;l<6;l++)if(maxn[l+1]>l)mark+=maxn[l+1]-l
         r=4;while(r<=NRD && !(field(r,1)==0 && field(r,2)==0 && field(r,3)==0)){vcount[field(r,2)+0]++;r++}
         r+=mark+1;lm=field(r,1)+0;paw=r+1

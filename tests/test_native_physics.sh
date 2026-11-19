@@ -90,6 +90,17 @@ if physics_adpack_check "$tmp/adpack-overflow.inp" >/dev/null 2>&1; then bad 'AD
 printf 'grid.num 20000\nscf.maxIter 2000\n' > "$tmp/adpack-limits.inp"
 physics_adpack_check "$tmp/adpack-limits.inp" && ok 'ADPACK accepts documented array boundaries' || bad 'ADPACK array boundaries'
 
+spec_init; SPEC[engine]=atompaw; SPEC[family]=paw; SPEC[profile]=atompaw; SPEC[xc]=pbe; SPEC[rel]=scalar
+SPEC[engine_options]='paw.semicore_s=on paw.semicore_p=on'
+if ib_build_atompaw Ti "$tmp/semicore" >/dev/null &&
+    awk 'NR>=4 && NF==3 {if($1==0)exit !(val==12 && s && p); val+=$3; if($1==3 && $2==0)s=1; if($1==3 && $2==1)p=1} END{if(!s || !p)exit 1}' "$tmp/semicore/Ti.atompaw.input"; then
+    ok 'AtomPAW promotes Ti 3s/3p and writes a consistent 12-electron valence block'
+else
+    bad 'AtomPAW Ti semicore deck'
+fi
+if ib_build_atompaw H "$tmp/no-semicore" >/dev/null 2>&1; then bad 'AtomPAW accepted absent semicore shells'
+else ok 'AtomPAW refuses absent requested semicore shells'; fi
+
 spec_init; SPEC[engine]=gth; SPEC[family]=nc; SPEC[profile]=cp2k-gth; SPEC[xc]=pbe; SPEC[rel]=scalar; SPEC[formats]=gth
 GTH_REFIT=1; SPEC[rcloc]=0.46; SPEC[channel_radii]='s:0.43'; SPEC[engine_options]='atom.rcov=2.1 atom.rprb=4.2'
 gth_dir=$tmp/first/gth/Si.gth-inputs

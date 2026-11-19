@@ -1279,7 +1279,13 @@ ib_atompaw_rel() {
 # ---------------------------------------------------------------------------
 ib_build_atompaw() {
     local el=$1 outdir=$2
-    local deck z rows xc rel maxn nsh rc_val lmax upf
+    local deck z rows xc rel maxn rc_val lmax upf opts semicore_s=off semicore_p=off
+    for opts in ${SPEC[engine_options]:-}; do
+        case $opts in
+            paw.semicore_s=*) semicore_s=${opts#*=} ;;
+            paw.semicore_p=*) semicore_p=${opts#*=} ;;
+        esac
+    done
 
     if ! xc=$(ib_atompaw_xc); then
         IB_MESSAGE="AtomPAW in this build offers LDA-PW, GGA-PBE and GGA-PBESOL; '$(xc_generator "${SPEC[xc]}")' is not among them"
@@ -1291,11 +1297,28 @@ ib_build_atompaw() {
     deck=$outdir/$el.atompaw.input
     upf=$(exec_upf_name "$el")
     if [ -n "${PARAMS_DIR:-}" ]; then
+        if [ "$semicore_s" = on ] || [ "$semicore_p" = on ]; then
+            error "AtomPAW semicore controls construct a deck; edit occupations and c/v markers in a supplied deck"
+            return 1
+        fi
         physics_adopt atompaw "$el" "$deck" "$upf"; return $?
     fi
 
     rows=$(ib_shell_rows "$el" "${SPEC[config]:-${EL_CONFIG[$el]}}") || return 1
     [ -n "$rows" ] || { IB_MESSAGE="$el: no shell table"; return 1; }
+    if [ "$semicore_s" = on ] || [ "$semicore_p" = on ]; then
+        rows=$(printf '%s\n' "$rows" | awk -v s="$semicore_s" -v p="$semicore_p" '
+            BEGIN{want[0]=(s=="on");want[1]=(p=="on")}
+            {n[NR]=$1;l[NR]=$2;f[NR]=$3;part[NR]=$4}
+            $4=="core" && $3>0 && want[$2] && (outer[$2]==0 || $1>n[outer[$2]]) {outer[$2]=NR}
+            END {
+                for (channel=0;channel<=1;channel++) if(want[channel]) {
+                    if(!outer[channel])exit 1
+                    part[outer[channel]]="valence"
+                }
+                for (i=1;i<=NR;i++) print n[i],l[i],f[i],part[i]
+            }') || { error "$el: AtomPAW has no occupied core shell in a requested semicore channel"; return 1; }
+    fi
 
     # Highest n present for each l.  atompaw wants a zero where an l is absent,
     # and counts the shells it must ask about from these four numbers.

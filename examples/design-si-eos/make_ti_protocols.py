@@ -36,6 +36,8 @@ def main():
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument("--k-mesh", type=int, default=12)
     parser.add_argument("--convergence-mesh", type=int, default=16)
+    parser.add_argument("--atompaw-semicore", action="store_true",
+                        help="also prepare the Ti 3s/3p PAW intervention")
     args = parser.parse_args()
     if not 1 <= args.k_mesh < args.convergence_mesh:
         parser.error("convergence mesh must be larger than the positive base mesh")
@@ -96,6 +98,14 @@ def main():
                 ],
             }
             (args.output / f"{name}-{mode}.json").write_text(json.dumps(protocol, indent=2) + "\n")
+            if name == "atompaw-paw" and mode == "tuned" and args.atompaw_semicore:
+                protocol["candidates"] = [
+                    {**base, "id": f"ti-ssp-{scale:.2f}", "options": {
+                        "rcut_scale": scale,
+                        "engine_options": ["paw.semicore_s=on", "paw.semicore_p=on"],
+                    }} for scale in (0.8, 0.9, 1.0)
+                ]
+                (args.output / "atompaw-paw-semicore.json").write_text(json.dumps(protocol, indent=2) + "\n")
 
 
 if __name__ == "__main__":

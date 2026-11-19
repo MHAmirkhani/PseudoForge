@@ -34,6 +34,8 @@ gth	fit.charge_weight	positive	0	1000000	factor	Multiply reference integrated-ch
 gth	fit.rloc_free	enum	0,1	-	boolean	Allow local Gaussian radius to change during fitting
 gth	fit.radius_free	enum	0,1	-	boolean	Allow projector radii to change during fitting
 atompaw	paw.shape	enum	Besselshape,SINC2	-	-	Compensation-charge shape
+atompaw	paw.semicore_s	enum	on,off	-	-	Promote the outermost occupied core s shell to valence in a generated deck
+atompaw	paw.semicore_p	enum	on,off	-	-	Promote the outermost occupied core p shell to valence in a generated deck
 atompaw	paw.local_channel	integer	0	4	l	Local-potential construction channel
 atompaw	paw.projector_energy	number	-100	100	native-energy	Energy of existing unbound projector states
 ape	PPCalculationTolerance	positive	0	1	native	Pseudopotential construction tolerance
