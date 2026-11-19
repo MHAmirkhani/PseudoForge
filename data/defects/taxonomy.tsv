@@ -1,10 +1,10 @@
-# defect_id	engine	defect_class	detector	detector_location	repair_strategy	repair_parameters	evidence_source	cross_engine_source
-ape-si-ghost	ape	atomic_ghost_state	detect_bound_ghost	summary.txt/diagnostic_log	single_engine_repair	lloc=s	v14-nine-engine-optimization/qe-silicon-results.csv	
-atompaw-ti-semicore	atompaw	metallic_transferability_failure	training_selection_gate	training_benchmark/summary.json	single_engine_repair	semicore=omit,lloc=p	v14-convergence-and-engine/ti-convergence.tsv	
-opium-si-transferability	opium	material_accuracy_exceeded	l5_tolerance_gate	report.json/worst_normalized_error	single_engine_repair	rcut_scale=0.98,qcut=5.5	v14-nine-engine-optimization/qe-silicon-results.csv	
-oncvpsp-ghost-risk	oncvpsp	projector_ghost_risk	unbound_ghost_detector	summary.txt/oncvpsp.out	single_engine_repair	lloc=p,qcut.s=5.5	v14-convergence-and-engine/si-convergence.tsv	ld1
-uspp-qfcoef-concatenation	uspp	serialization_delimitation_fault	upf_reflow_validator	validate_upf/qfcoef_block	single_engine_repair	explicit_delimiters=true	commit 70514d0	
-fhi98pp-psp6-metadata	fhi98pp	consumer_format_metadata_mismatch	abinit_psp6_reader	evaluate_abinit.py/header_check	single_engine_repair	psp6_header_explicit=true	v14-nine-engine-optimization/reports/abinit-fhi98pp.json	
-gth-cp2k-kmesh-instability	gth	numerical_drift_inversion	kmesh_ladder_stability_gate	cp2k-training-gate.json	single_engine_repair	k_mesh_min=3x3x3,cutoff_scale=1.2	v14-checkpoint-and-force-pilot/reports/cp2k-training-gate.json	
-ld1-unclassified	ld1	none_documented	none	none	none	none	none	
-adpack-readfile-bounds	adpack	native_input_array_overflow	native_bounds_guard	readfile.c/grid_num_check	single_engine_repair	patch=bounds_fix,grid.num_max=20000	v14-convergence-and-engine/adpack-check.txt	
+# defect_id	engine	defect_class	detector	detector_location	repair_strategy	repair_parameters	evidence_source	cross_engine_strategy	cross_engine_source
+ape-si-ghost	ape	atomic_ghost_state	detect_bound_ghost	summary.txt/diagnostic_log	single_engine_repair	lloc=s	v14-nine-engine-optimization/qe-silicon-results.csv	import_donor_lloc_and_radii	oncvpsp
+atompaw-ti-semicore	atompaw	metallic_transferability_failure	training_selection_gate	training_benchmark/summary.json	single_engine_repair	semicore=omit,lloc=p	v14-convergence-and-engine/ti-convergence.tsv	import_donor_semicore_valence	oncvpsp
+opium-si-transferability	opium	material_accuracy_exceeded	l5_tolerance_gate	report.json/worst_normalized_error	single_engine_repair	rcut_scale=0.98,qcut=5.5	v14-nine-engine-optimization/qe-silicon-results.csv	import_donor_matching_radii	ld1
+oncvpsp-ghost-risk	oncvpsp	projector_ghost_risk	unbound_ghost_detector	summary.txt/oncvpsp.out	single_engine_repair	lloc=p,qcut.s=5.5	v14-convergence-and-engine/si-convergence.tsv	import_donor_local_channel	ld1
+uspp-qfcoef-concatenation	uspp	serialization_delimitation_fault	upf_reflow_validator	validate_upf/qfcoef_block	single_engine_repair	explicit_delimiters=true	commit 70514d0	none	none
+fhi98pp-psp6-metadata	fhi98pp	consumer_format_metadata_mismatch	abinit_psp6_reader	evaluate_abinit.py/header_check	single_engine_repair	psp6_header_explicit=true	v14-nine-engine-optimization/reports/abinit-fhi98pp.json	none	none
+gth-cp2k-kmesh-instability	gth	numerical_drift_inversion	kmesh_ladder_stability_gate	cp2k-training-gate.json	single_engine_repair	k_mesh_min=3x3x3,cutoff_scale=1.2	v14-checkpoint-and-force-pilot/reports/cp2k-training-gate.json	import_donor_realspace_projectors	oncvpsp
+ld1-unclassified	ld1	none_documented	none	none	none	none	none	none	none
+adpack-readfile-bounds	adpack	native_input_array_overflow	native_bounds_guard	readfile.c/grid_num_check	single_engine_repair	patch=bounds_fix,grid.num_max=20000	v14-convergence-and-engine/adpack-check.txt	none	none

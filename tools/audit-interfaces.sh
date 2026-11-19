@@ -76,7 +76,7 @@ repair design
 # `tui` alias, --functional to the functional list filter, --no-plot to
 # the --plot flag's inverse.
 SUB_FLAGS="
---accuracy --all --calc --calculation --check --code --defect --desc --description --dft --diff --dry-run --ecut --element --families --format --formats
+--accuracy --all --calc --calculation --check --code --defect --desc --description --dft --diff --donor-engine --dry-run --ecut --element --families --format --formats
 --functional --help --json --label --license --material --meta --no-cutoff-scan --no-plot --no-prompt
 --note --notes --path --plan --plot-bands --plot-dir --plot-dos --plot-format
 --plot-rlderiv --project --prompt --proxy --pw --qe --reference --relativity --rho --routes

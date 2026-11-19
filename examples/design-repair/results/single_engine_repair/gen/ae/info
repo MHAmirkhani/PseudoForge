@@ -1,0 +1,83 @@
+
+General Information about the atom:
+  Symbol: Si
+  Theory Level: DFT
+  Wave-equation: Scalar-relativistic
+  Spin mode: unpolarized
+  Nuclear charge:  14.00
+  Total charge:     0.00
+  Smearing: fixed occupancies
+  Configuration    : State   Occupation
+                       1s       2.00
+                       2s       2.00
+                       2p       6.00
+                       3s       2.00
+                       3p       2.00
+
+Exchange-Correlation model:
+  Exchange:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    Asymptotic value of the enhancement function:     0.804000000
+    Coefficient of the 2nd order expansion:     0.219514973
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+  Correlation:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    beta constant:     0.066724551
+    (1 - ln(2))/Pi^2 in the PBE:     0.031090691
+    Multiplies the A t^2 term. Used in the SPBE functional:     1.000000000
+    Scaling for t, used in the BKL functionals:     1.000000000
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+
+Mesh information:
+  Type: logarithmic [ri = b*exp(a*i)]
+  Mesh starting point:   3.74E-05 b
+  Mesh outmost point:    112.250 b
+  Mesh parameters (a, b):  2.48984E-02,  3.64965E-05
+  Mesh number of points:    600
+  Derivatives Method: Cubic splines
+
+SCF cycle information:
+  Number of iterations:     29
+  Convergence: 
+    ConvAbsDens   = 1.34E-07 ( 0.00E+00)
+    ConvRelDens   = 9.58E-09 ( 1.00E-08)
+    ConvAbsEnergy = 1.29E-06 ( 0.00E+00)
+    ConvRelEnergy = 4.45E-09 ( 0.00E+00)
+
+Density Moments
+  <r^-2> =      869.492
+  <r^-1> =       49.421
+  <r^ 1> =       14.501
+  <r^ 2> =       32.738
+  <r^ 3> =      108.815
+  <r^ 4> =      453.658
+  <r^ 5> =     2253.552
+
+Energies [H]
+  Total energy:                            -289.836832
+  Kinetic energy:                           290.553368
+  Electron-electron interaction energy:     132.158470
+  Electron-nucleus interaction energy:     -691.899999
+  Exchange-correlation energy:              -20.648671
+
+    Eigenvalues [H]
+     State   Occupation   Eigenvalue
+       1s       2.00       -65.63199
+       2s       2.00        -5.12655
+       2p       6.00        -3.51174
+       3s       2.00        -0.39736
+       3p       2.00        -0.14998

@@ -124,5 +124,34 @@ fail_report=$(find "$MOCK_FAIL/repair/uspp-qfcoef-concatenation" -name "repair-r
 check "repair-report.json exists for persisting defect" [ -f "$fail_report" ]
 check "persisting defect records inconclusive outcome" grep -q '"outcome": "inconclusive"' "$fail_report"
 
+# 9. Test cross-engine repair (APE Si using ONCVPSP donor)
+MOCK_CROSS="$TMP/mock_cross"
+mkdir -p "$MOCK_CROSS/pseudos" "$MOCK_CROSS/inputs"
+cat > "$MOCK_CROSS/PROVENANCE.txt" <<'EOF'
+engine.id=ape
+family=nc
+EOF
+cat > "$MOCK_CROSS/inputs/Si.inp.ape" <<'EOF'
+Title = "Si"
+CalculationMode = ae + pp
+local_channel = 1
+EOF
+cat > "$MOCK_CROSS/pseudos/Si.pbe-ape.UPF" <<'EOF'
+<UPF version="2.0.1">
+<!-- Unrepaired APE with ghost in s channel -->
+</UPF>
+EOF
+
+"$PF" repair "$MOCK_CROSS" --strategy cross_engine_repair --donor-engine oncvpsp >/dev/null
+cross_dir=$(find "$MOCK_CROSS/repair/ape-si-ghost" -type d -name "cross-oncvpsp-*" | head -1)
+check "cross-engine repair directory created" [ -d "$cross_dir" ]
+cross_report="$cross_dir/repair-report.json"
+check "cross-engine repair report exists" [ -f "$cross_report" ]
+check "cross-engine strategy recorded" grep -q '"strategy_applied": "cross_engine_repair"' "$cross_report"
+check "donor engine recorded" grep -q '"donor_engine": "oncvpsp"' "$cross_report"
+check "cross-engine outcome improved" grep -q '"outcome": "improved"' "$cross_report"
+check "cross-repaired UPF created" [ -f "$cross_dir/pseudos/Si.pbe-ape.UPF" ]
+check "translated APE input has LLocal=0" grep -q "LLocal = 0" "$cross_dir/inputs/Si.inp.ape"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

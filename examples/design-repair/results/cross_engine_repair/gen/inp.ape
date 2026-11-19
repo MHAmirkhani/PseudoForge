@@ -1,0 +1,29 @@
+Title = "Cross-Engine Repair (ONCVPSP Donor)"
+CalculationMode = ae + pp
+Verbose = 30
+WaveEquation = scalar_rel
+PPOutputFileFormat = upf
+SpinMode = unpolarized
+
+%XCFunctionals
+ gga_x_pbe
+ gga_c_pbe
+%
+
+NuclearCharge = 14
+
+%Orbitals
+"Ne"
+  3  |  0  |  2
+  3  |  1  |  2
+%
+
+%PPComponents
+  3  |  0  |  1.6 | tm
+  3  |  1  |  1.71 | tm
+%
+
+PPCalculationTolerance = 1e-6
+EigenSolverTolerance = 1e-8
+ODEIntTolerance = 1e-12
+LLocal = 0

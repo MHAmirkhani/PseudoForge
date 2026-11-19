@@ -1,0 +1,119 @@
+{
+  "timestamp": "2026-11-19 17:25:35",
+  "element": "Si",
+  "crystal": "Diamond (FCC 2-atom primitive cell)",
+  "functional": "PBE (Scalar relativistic)",
+  "reference_source": "ACWF all-electron FLEUR/WIEN2k (Bosoni et al., 2023)",
+  "reference_eos": {
+    "v0_ang3": 40.04,
+    "b0_gpa": 89.1,
+    "b0_prime": 4.15
+  },
+  "arms": [
+    {
+      "id": "baseline_unrepaired",
+      "name": "Baseline (Unrepaired APE)",
+      "description": "Default APE Si construction; omitting LLocal produces bound ghost state in s-channel",
+      "parameters": {
+        "llocal": null,
+        "rc_s": 2.38,
+        "rc_p": 3.56,
+        "scheme": "tm"
+      },
+      "gates": {
+        "L1_generation": {
+          "passed": true,
+          "seconds": 1.521
+        },
+        "L2_serialization": {
+          "passed": true,
+          "format": "UPF v2"
+        },
+        "L3_consumer_scf": {
+          "passed": true,
+          "consumer": "Quantum ESPRESSO pw.x"
+        },
+        "L4_atomic_diagnostics": {
+          "passed": false,
+          "ghost_free": false
+        },
+        "L5_material_accuracy": {
+          "passed": false,
+          "worst_eos_error_meV_per_atom": 74.05,
+          "acwf_all_electron_reference": "Bosoni et al. (2023)"
+        }
+      },
+      "status": "FAIL"
+    },
+    {
+      "id": "single_engine_repair",
+      "name": "Single-Engine Repair",
+      "description": "Native APE parameter adjustment setting LLocal = 0 (s-channel local)",
+      "parameters": {
+        "llocal": 0,
+        "rc_s": 2.38,
+        "rc_p": 3.56,
+        "scheme": "tm"
+      },
+      "gates": {
+        "L1_generation": {
+          "passed": true,
+          "seconds": 1.522
+        },
+        "L2_serialization": {
+          "passed": true,
+          "format": "UPF v2"
+        },
+        "L3_consumer_scf": {
+          "passed": true,
+          "consumer": "Quantum ESPRESSO pw.x"
+        },
+        "L4_atomic_diagnostics": {
+          "passed": true,
+          "ghost_free": true
+        },
+        "L5_material_accuracy": {
+          "passed": false,
+          "worst_eos_error_meV_per_atom": 27.36,
+          "acwf_all_electron_reference": "Bosoni et al. (2023)"
+        }
+      },
+      "status": "REPAIRED"
+    },
+    {
+      "id": "cross_engine_repair",
+      "name": "Cross-Engine Repair (ONCVPSP Donor)",
+      "description": "Parameters imported from ONCVPSP donor: LLocal = 0, rc_s = 1.60, rc_p = 1.71 bohr",
+      "parameters": {
+        "llocal": 0,
+        "rc_s": 1.6,
+        "rc_p": 1.71,
+        "scheme": "tm"
+      },
+      "gates": {
+        "L1_generation": {
+          "passed": true,
+          "seconds": 1.471
+        },
+        "L2_serialization": {
+          "passed": true,
+          "format": "UPF v2"
+        },
+        "L3_consumer_scf": {
+          "passed": true,
+          "consumer": "Quantum ESPRESSO pw.x"
+        },
+        "L4_atomic_diagnostics": {
+          "passed": true,
+          "ghost_free": true
+        },
+        "L5_material_accuracy": {
+          "passed": false,
+          "worst_eos_error_meV_per_atom": 36.81,
+          "acwf_all_electron_reference": "Bosoni et al. (2023)"
+        }
+      },
+      "status": "REPAIRED"
+    }
+  ]
+}
