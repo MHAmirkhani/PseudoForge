@@ -1,1 +1,0 @@
-Si	Si.pbesol-oncv.UPF	0.000002	0.000000	excellent	oncvpsp test configs	positive-energy ghost at about 45.00 Ry; harmless below that cutoff, check if you plan to exceed it; reference configuration only -- the deck defines no alternative configurations, so this checks the fit, not transferability

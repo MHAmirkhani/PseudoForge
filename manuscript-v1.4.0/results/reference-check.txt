@@ -1,1 +1,0 @@
-tools/gen_reference.sh --check exited 0.

@@ -1,1 +1,0 @@
-SLA  PW   GGX  GGC     PW91 Exchange-Correlation functional

@@ -1,5 +1,0 @@
-• Machine-readable defect taxonomy classifies pathologies across nine atomic generators.
-• Cross-engine parameter transplantation transfers cutoffs and projectors from donor backends.
-• Binding evidence hierarchy (L1–L6) enforces strict boundaries for transferability claims.
-• Level L6 transferability populated on SiC, AlP, BN, and MgO with holdout error < 1.5 meV/atom.
-• Preregistered Ge and GaAs benchmarks map physical applicability boundaries of 3d10 semicore.
