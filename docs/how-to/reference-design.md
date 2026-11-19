@@ -64,6 +64,14 @@ core validation used for ordinary generation. Published ONCVPSP and OPIUM decks
 cannot have their configuration rewritten with `--config`; supply a complete
 edited native input to ordinary generation, or choose a supported construction.
 
+For a finite-pool random baseline, set the top-level
+`"search": {"strategy": "random", "seed": 19, "max_trials": 8}`. The seed
+determines the order of distinct candidate IDs in the expanded pool. The report
+records that order before generation and a failed attempt counts toward the
+trial limit. Limit trials to the available candidate count. This matches
+methods by number of trials. A comparison by CPU-hour needs separate resource
+accounting.
+
 Every benchmark has an `id`, `split`, local `input` template, `reference` and
 `tolerances`. A reference contains:
 

@@ -15,6 +15,7 @@ import math
 import os
 import platform
 from pathlib import Path
+import random
 import re
 import shlex
 import shutil
@@ -162,7 +163,7 @@ def load_protocol(path):
         return obj
 
     protocol = json.loads(path.read_text(), object_pairs_hook=unique)
-    keys(protocol, {"schema_version", "element", "xc", "relativity", "candidates", "benchmarks", "fixed_pseudos", "repeats", "timeout_seconds", "reference_description", "convergence", "selection"}, "protocol")
+    keys(protocol, {"schema_version", "element", "xc", "relativity", "candidates", "benchmarks", "fixed_pseudos", "repeats", "timeout_seconds", "reference_description", "convergence", "selection", "search"}, "protocol")
     if type(protocol.get("schema_version")) is not int or protocol["schema_version"] != 1:
         raise ValueError("schema_version must be 1")
     if not re.fullmatch(r"[A-Z][a-z]?", str(protocol.get("element", ""))):
@@ -216,6 +217,15 @@ def load_protocol(path):
             expanded.append(item)
     protocol["candidates"] = expanded
     convergence_settings(protocol)
+    if "search" in protocol:
+        search = protocol["search"]
+        keys(search, {"strategy", "seed", "max_trials"}, "search")
+        if search.get("strategy") != "random":
+            raise ValueError("search strategy must be random")
+        if type(search.get("seed")) is not int or not 0 <= search["seed"] < 2**64:
+            raise ValueError("random search requires an unsigned 64-bit seed")
+        if type(search.get("max_trials")) is not int or not 1 <= search["max_trials"] <= len(expanded):
+            raise ValueError("max_trials must be between 1 and the expanded candidate count")
     fixed = protocol.get("fixed_pseudos", {})
     if not isinstance(fixed, dict):
         raise ValueError("fixed_pseudos must map symbols to local UPF paths")
@@ -572,18 +582,26 @@ def main(argv=None):
               "meets_reference_constraints": False, "plan_only": args.plan,
               "commands": [shlex.join(command) for command in commands],
               "fixed_pseudos": {el: {"path": file, "sha256": digest(file)} for el, file in protocol["fixed_pseudos"].items()}}
+    trials = list(zip(protocol["candidates"], commands))
+    search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
+    if search["strategy"] == "random":
+        trials.sort(key=lambda trial: trial[0]["id"])
+        random.Random(search["seed"]).shuffle(trials)
+        trials = trials[:search["max_trials"]]
+    report["search"] = {**search, "trial_order": [candidate["id"] for candidate, _ in trials],
+                        "candidate_count": len(commands)}
     write_json(output / "report.json", report)
     if args.plan:
         env = dict(os.environ)
         previews = []
-        for candidate, command in zip(protocol["candidates"], commands):
+        for candidate, command in trials:
             preview = output / "previews" / candidate["id"]
             command = command[:-1] + [str(preview), "--dry-run"]
             execute(command, ROOT, output / (candidate["id"] + ".preview.log"), env, protocol["timeout_seconds"])
             previews.append({"id": candidate["id"], "project": str(preview)})
         report["previews"] = previews
         write_json(output / "report.json", report)
-        print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; plan: {output / 'report.json'}")
+        print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; planned trials: {len(trials)}; report: {output / 'report.json'}")
         return 0
     pw = shutil.which(args.pw)
     if not pw:
@@ -593,7 +611,7 @@ def main(argv=None):
     env.setdefault("OMPI_MCA_btl", "^uct")
     train = [case for case in protocol["benchmarks"] if case["split"] == "train"]
     heldout = [case for case in protocol["benchmarks"] if case["split"] == "test"]
-    for candidate, command in zip(protocol["candidates"], commands):
+    for candidate, command in trials:
         item = {"id": candidate["id"], "candidate": candidate, "status": "failed"}
         project = output / candidate["id"]
         started = time.perf_counter()

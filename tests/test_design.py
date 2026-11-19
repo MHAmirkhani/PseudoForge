@@ -66,6 +66,30 @@ class DesignTests(unittest.TestCase):
         self.assertIn("--no-autofix", args)
         self.assertIn("--rcut-scale", args)
 
+    def test_seeded_plan_reports_and_limits_trials(self):
+        self.protocol["candidates"][0]["grid"] = {"rcut_scale": [0.95, 1.0, 1.05]}
+        self.protocol["search"] = {"strategy": "random", "seed": 19, "max_trials": 2}
+        self.load()
+        rc = self.root / "rc"
+        rc.touch()
+        env = dict(os.environ, PF_RC=str(rc), LD1_BIN=str(ROOT / "tests/mock/ld1.x"))
+        orders = []
+        for name in ("first", "second"):
+            out = self.root / name
+            command = [str(ROOT / "pseudoforge"), "design", str(self.root / "protocol.json"),
+                       "--plan", "-o", str(out)]
+            result = subprocess.run(command, env=env, text=True, capture_output=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            report = json.loads((out / "report.json").read_text())
+            orders.append(report["search"]["trial_order"])
+            self.assertEqual(report["search"]["candidate_count"], 3)
+            self.assertEqual([item["id"] for item in report["previews"]], orders[-1])
+        self.assertEqual(orders[0], orders[1])
+        self.assertEqual(len(set(orders[0])), 2)
+        self.protocol["search"]["max_trials"] = 4
+        with self.assertRaisesRegex(ValueError, "max_trials"):
+            self.load()
+
     def test_missing_reference_or_mismatched_theory_is_refused(self):
         for change in ({"source": ""}, {"xc": "pz"}, {"relativity": "full"}, {"forces_Ry_bohr": [[0, 0]]}):
             with self.subTest(change=change):
