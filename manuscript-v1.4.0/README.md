@@ -56,13 +56,14 @@ Every claim in `main.tex` is strictly pinned to version-controlled artifacts and
 | **Consumer SCF Convergence** (Sec. 2.1) | **L3** | `tests/test_engine_matrix.sh`, `tests/test_http.sh` | Plane-wave SCF convergence in QE `pw.x`, ABINIT, CP2K |
 | **Defect Detection & Elimination** (Sec. 2.2) | **L4** | `data/defects/taxonomy.tsv`, `tests/test_repair.sh` | Elimination of bound ghosts via `LLocal = 0` in APE Si |
 | **Silicon Diamond Material Accuracy** (Sec. 3.1) | **L5** | `examples/design-repair/results/results.json` | APE Si ghost cured via ONCVPSP donor (36.81 meV/atom at 40 Ry); native ONCVPSP achieves 1.26 meV/atom |
+| **Single-Engine Optimization Controls** (Sec. 3.2) | **L6** | `experiments/multi-family-l6/single_engine_control.json`, `docs/contributing/single-engine-control.md` | Genuine win in SiC (6.7×), AlP (5.3×), BN (4.3×); MgO equivalent within drift (0.05 meV/at) |
 | **Out-of-Family Transferability** (Sec. 3.2) | **L6** | `experiments/multi-family-l6/results.json`, Git tag `prereg-v1.4.0-l6-multifamily` | **POPULATED**: SiC (1.14 meV), AlP (0.92 meV), BN (1.38 meV), MgO (0.86 meV) pass L6 |
 | **Applicability Boundary & Partial Rescue** (Sec. 3.2, 4) | N/A | `docs/contributing/domain-of-applicability.md`, `data/defects/unified_controls.tsv` | Ge partial rescue (2809 to 11.83 meV/atom, 237x); GaAs (18.94 meV) and Ge define boundary governed by filled $3d^{10}$ semicore unscreening |
 | **Single-CPU Computational Budget** (Sec. 2.3, 4) | N/A | `tools/pf_design.py`, `docs/contributing/evidence-status.md` | `training_core_hours` enforced via single-logical-CPU affinity pinning |
 
 ---
 
-## 4. Phase 7 Blockers & Author Decision Escalations
+## 4. Submission Checklist & Author Decision Escalations
 
 The following decisions require explicit author resolution prior to journal submission:
 

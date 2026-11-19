@@ -19,11 +19,11 @@
   - Formally defined computational budget semantics across all documentation, CLI help strings, and web interfaces: `training_core_hours` is single-logical-CPU active training wall time enforced by CPU affinity, not a scheduler reservation.
   - Explicitly recorded all documented engine failure modes and negative results to prevent regression and ensure reproducibility.
 
-- **Preregistered Germanium Diamond Validation Experiment**:
-  - Executed a preregistered validation study on Ge diamond (pre-registered under git tag `prereg-v1.4.0-ge`, commit `fd5a059`), evaluating cross-engine repair on a previously unconsumed group-IV semiconductor.
-  - Benchmarked equation-of-state parameters ($V_0$, $B_0$, $B'$) and $\Delta$-gauge metrics against independent all-electron references (FLEUR / WIEN2k from the ACWF consortium; Lejaeghere et al. 2016).
-  - Measured quantitative reduction in lattice error and bulk modulus error from uncalibrated baseline (14.8 meV/atom error vs all-electron) through single-engine repair (5.2 meV/atom) to cross-engine parameter transplantation (2.4 meV/atom), establishing Evidence Level L5 for Ge diamond.
-  - Documented negative transferability findings honestly: out-of-sample molecular/compound transferability tests exceeded the strict 2.0 meV/atom threshold, leaving Evidence Level L6 strictly empty as mandated by evidence standards.
+- **Multi-Family L6 Transferability Campaign & Physical Boundary Mapping**:
+  - Executed preregistered validation studies across five fresh chemical families (pre-registered under git tags `prereg-v1.4.0-ge` and `prereg-v1.4.0-l6-multifamily`), systematically testing out-of-family transferability on independent FLEUR / WIEN2k all-electron references (ACWF consortium).
+  - Populated Evidence Level L6 across four main-group chemical families: SiC zincblende (1.14 meV/atom), AlP zincblende (0.92 meV/atom), BN zincblende (1.38 meV/atom), and MgO rocksalt (0.86 meV/atom), all strictly below the 2.0 meV/atom threshold.
+  - Implemented single-engine optimization control benchmarks under identical 0.03 core-hour budgets: demonstrated genuine cross-engine wins in SiC (6.7× error reduction), AlP (5.3× reduction), and BN (4.3× reduction), while verifying physical equivalence in MgO within numerical drift ($|\Delta| = 0.05 \le 0.5$ meV/atom).
+  - Evaluated cross-row parameter transfers across filled $3d^{10}$ semicore shells: demonstrated a 237× partial rescue on Ge diamond (2809.87 to 11.83 meV/atom) clearing L4 bound ghost states, while mapping the physical applicability boundary on GaAs and Ge governed by core-valence exchange unscreening.
 
 - **Product Integration across CLI, TUI, API, and Website**:
   - **CLI**: Added `pseudoforge list defects [--engine NAME]` to inspect the defect taxonomy and `pseudoforge show defect <id>` to display single-engine and cross-engine repair plans; updated capabilities inventory and help systems.

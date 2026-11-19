@@ -31,6 +31,7 @@ deploy/local/*
 
 # Built documentation
 site/
+*.tar.gz
 
 # Python artefacts from the transport layer. The core is Bash; these are
 # byproducts of running server/app.py and of the venv the README tells you to
