@@ -1,0 +1,1 @@
+<xc_functional type="LDA" name="MGGA-R2SCAN-001"/>

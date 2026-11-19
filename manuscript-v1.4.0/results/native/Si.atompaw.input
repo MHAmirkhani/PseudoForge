@@ -1,0 +1,26 @@
+Si 14
+MGGA-R2SCAN-001 nonrelativistic loggridv4 2001
+3 3 0 0 0 0
+3 0 2
+3 1 2
+0 0 0
+c
+c
+v
+c
+v
+1
+1.78
+n
+n
+VANDERBILT Besselshape
+2 0
+1.78
+1.78
+ABINITOUT
+default
+XMLOUT
+default
+PWSCFOUT
+UPFDX  0.008d0   UPFXMIN   -7.d0     UPFZMESH 14.d0
+END

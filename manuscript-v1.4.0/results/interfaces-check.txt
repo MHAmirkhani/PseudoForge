@@ -1,0 +1,348 @@
+
+== A. every subcommand responds to --help
+  PASS  generate --help
+  PASS  wizard --help
+  PASS  tui --help
+  PASS  engines --help
+  PASS  convert --help
+  PASS  optimise --help
+  PASS  doctor --help
+  PASS  compare --help
+  PASS  citation --help
+  PASS  params --help
+  PASS  profile --help
+  PASS  xc --help
+  PASS  validate --help
+  PASS  import --help
+  PASS  report --help
+  PASS  plot --help
+  PASS  api --help
+  PASS  native --help
+  PASS  recipe --help
+  PASS  list --help
+  PASS  show --help
+  PASS  config --help
+  PASS  advise --help
+  PASS  help --help
+  PASS  version prints a version string
+  PASS  every canonical subcommand appears in ./pseudoforge help
+  PASS  every top-level flag is in help (or the sub-flag list)
+
+== B. TUI screen reachability
+  PASS  every tui_layers() entry has a handler function
+  PASS  every ui_pick_* / ui_advanced named by a layer exists
+  PASS  element-selection menu emits tag 'finish'
+
+== C. TUI advanced screen reaches SPEC
+  PASS  ui_advanced: core_hole=1s
+  PASS  ui_advanced: rcut_scale=1.10
+  PASS  ui_advanced: lloc=-1
+  PASS  ui_advanced: rcloc=1.5
+  PASS  ui_advanced: nc_form=semilocal
+  PASS  ui_advanced: gipaw=1
+  PASS  ui_advanced: lsd=1
+  PASS  ui_advanced: variant=spn
+  PASS  screen: author=Test Author
+  PASS  screen: config=[Ar] 3d7 4s1
+  PASS  ui_advanced: zed=13.5
+  PASS  ui_advanced: zval=14
+  PASS  ui_advanced: nlcc=on
+  PASS  ui_advanced: rcore=0.8
+  PASS  ui_advanced: rho0=1.0
+  PASS  ui_advanced: which_augfun=PSQ
+  PASS  ui_advanced: rmatch_augfun=2.0
+  PASS  ui_advanced: extra_projectors=3D:0.5
+  PASS  ui_advanced: xmin=-7.0
+  PASS  ui_advanced: dx=0.0125
+  PASS  ui_advanced: rmax=120.0
+  PASS  ui_advanced: beta=0.1
+  PASS  ui_advanced: tr2=1.0d-14
+
+== D. Wizard steps (text-mode, one at a time)
+  PASS  wizard: family=paw
+  PASS  wizard: family=us
+  PASS  wizard: family=nc
+  PASS  wizard: xc=pbe
+  PASS  wizard: rel=scalar
+  PASS  wizard: rel=full
+  PASS  wizard: rel=nonrel
+  PASS  wizard: profile=atompaw (engine=atompaw)
+  PASS  wizard: source=online
+  PASS  wizard: source=local
+  PASS  wizard: engine=ld1
+  PASS  screen: elements=Si
+  PASS  screen: elements=H He Li
+
+== E. doc paths referenced from shell code exist
+  PASS  every docs/*.md path named by the shell code exists
+
+== F. CLI subcommand smoke
+  PASS  native list
+  PASS  native size
+  PASS  engines list
+  PASS  engines path ld1
+  PASS  convert --why gth upf
+  PASS  convert --list
+  PASS  list profiles
+  PASS  list functionals
+  PASS  list formats
+  PASS  list sets
+  PASS  doctor
+  PASS  config --show
+  PASS  citation psl-high
+
+== G. TUI per-engine generation
+  PASS  TUI: ld1/paw/Si produced 3 file(s) and a report
+  PASS  TUI: oncvpsp/nc/Si produced 4 file(s) and a report
+  PASS  TUI: uspp/us/Si produced 2 file(s) and a report
+  PASS  TUI: fhi98pp/nc/Si produced 2 file(s) and a report
+  PASS  TUI: opium/nc/Fe produced 10 file(s) and a report
+  PASS  TUI: gth/nc/Si produced 5 file(s) and a report
+  PASS  TUI: atompaw/paw/Si produced 4 file(s) and a report
+  PASS  TUI: ape/nc/Si produced 2 file(s) and a report
+  PASS  TUI: adpack/nc/Na produced 2 file(s) and a report
+
+== H. TUI top-level menu
+  PASS  every menu tag has a case handler
+  PASS  every tui_main case handler is defined
+  PASS  tui_main menu offers 15 entries
+
+== I. config file
+  PASS  config --show creates the file
+  PASS  config --show lists DEFAULT_XC
+  PASS  config --path prints the path
+  PASS  config --set writes a key
+  PASS  config --set accepts several KEY=VALUE pairs
+  PASS  config round-trip: PBEsol survives
+  PASS  config --edit runs the editor
+  PASS  config refuses an unknown flag
+  PASS  config migration creates the new file
+  PASS  config migration leaves the old file alone
+  PASS  config migration carries the values across
+
+== J. recipe round-trip across the interfaces
+  PASS  recipe: CLI save -> CLI load is byte-identical
+  PASS  recipe file: header, elements and custom keys are on disk
+  PASS  recipe: TUI save -> CLI load is byte-identical
+  PASS  recipe: CLI save -> TUI load is byte-identical
+  PASS  recipe list: saved recipes appear
+  PASS  recipe: future format refused
+  PASS  recipe: unknown spec key refused
+  PASS  recipe: unknown top-level key refused
+
+== K. engine-specific menus
+  PASS  fmt_for_engine ld1 -> upf xml
+  PASS  fmt_for_engine oncvpsp -> upf psp8 xml
+  PASS  fmt_for_engine uspp -> upf xml uspp van
+  PASS  fmt_for_engine fhi98pp -> xml cpi
+  PASS  fmt_for_engine opium -> upf fhi recpot siesta cpmd casino champ teter qso ncpp xml
+  PASS  fmt_for_engine gth -> gth gth-cpmd gth-abinit
+  PASS  fmt_for_engine atompaw -> upf paw-abinit paw-xml
+  PASS  fmt_for_engine ape -> upf
+  PASS  fmt_for_engine adpack -> openmx openmx-pao
+  PASS  fmt_validate ld1 'upf' -> 'upf'
+  PASS  fmt_validate ld1 'upf xml' -> 'upf xml'
+  PASS  fmt_validate ape 'upf' -> 'upf'
+  PASS  fmt_validate adpack 'openmx openmx-pao' -> 'openmx openmx-pao'
+  PASS  fmt_validate ld1 'cpi' refused
+  PASS  fmt_validate ape 'psp8' refused
+  PASS  fmt_validate fhi98pp 'upf' refused
+  PASS  fmt_validate adpack 'upf' refused
+  PASS  fmt_validate uspp 'psp8' refused
+  PASS  ui_pick_format ape: SPEC[formats]=upf, rc=3
+  PASS  ui_pick_format ape opened no menu
+  PASS  ui_pick_format ld1/xml: SPEC[formats]=xml, rc=0
+  PASS  ui_pick_format ld1 offers upf, xml, more
+  PASS  ui_pick_format oncvpsp offers exactly upf, psp8, xml, more
+  PASS  ui_pick_engine psl-high/paw: only ld1, rc=3
+  PASS  ui_pick_engine sg15/nc offers exactly oncvpsp and opium
+  PASS  ui_pick_engine gbrv/us: only uspp, rc=3
+
+== L. refusal matrix in the TUI
+  PASS  TUI refuses projector (exit 1)
+  PASS  TUI wrote nothing for projector
+  PASS  TUI showed the Review screen before refusing projector
+  PASS  TUI refuses upf1 (exit 1)
+  PASS  TUI wrote nothing for upf1
+  PASS  TUI showed the Review screen before refusing upf1
+  PASS  TUI refuses wrongfam (exit 1)
+  PASS  TUI wrote nothing for wrongfam
+  PASS  TUI showed the Review screen before refusing wrongfam
+  PASS  TUI refuses rcutscale (exit 1)
+  PASS  TUI wrote nothing for rcutscale
+  PASS  TUI showed the Review screen before refusing rcutscale
+  PASS  TUI refuses metagga (exit 1)
+  PASS  TUI wrote nothing for metagga
+  PASS  TUI showed the Review screen before refusing metagga
+  PASS  CLI refuses projector
+  PASS  CLI refuses upf1
+  PASS  CLI refuses wrongfam
+  PASS  CLI refuses rcutscale
+  PASS  CLI refuses metagga
+
+== M. sub-subcommand --help
+  PASS  native index --help
+  PASS  native list --help
+  PASS  native size --help
+  PASS  params status --help
+  PASS  params fetch --help
+  PASS  params path --help
+  PASS  params extract --help
+  PASS  profile list --help
+  PASS  profile new --help
+  PASS  profile edit --help
+  PASS  profile remove --help
+  PASS  xc list --help
+  PASS  xc add --help
+  PASS  xc remove --help
+  PASS  recipe save --help
+  PASS  recipe load --help
+  PASS  recipe list --help
+  PASS  recipe export --help
+  PASS  recipe import --help
+  PASS  recipe path --help
+  PASS  engines list --help
+  PASS  engines build --help
+  PASS  engines show --help
+  PASS  engines path --help
+  PASS  sub-subcommand --help wrote nothing named after itself
+
+== N. every flag parses into the variable it names
+  PASS  flag family (-t): SPEC[family] = nc
+  PASS  flag family (--family): SPEC[family] = paw
+  PASS  flag family (--type): SPEC[family] = us
+  PASS  flag profile: SPEC[profile] = psl-high
+  PASS  flag xc (-x): SPEC[xc] = pbe
+  PASS  flag xc (--functional): SPEC[xc] = pbesol
+  PASS  flag rel (-r): SPEC[rel] = scalar
+  PASS  flag rel (--relativity): SPEC[rel] = full
+  PASS  flag variant: SPEC[variant] = dn
+  PASS  flag upf: SPEC[upf] = 2
+  PASS  flag elements (-e): CLI_ELEMENTS = Fe
+  PASS  flag elements (-e twice): CLI_ELEMENTS = Fe Si
+  PASS  flag output: CLI_OUTPUT = /tmp/x
+  PASS  flag jobs (-j): MAX_PARALLEL_JOBS = 8
+  PASS  flag author: SPEC[author] = Me
+  PASS  flag config: SPEC[config] = [Ne] 3s2
+  PASS  flag core-hole: SPEC[core_hole] = 1s
+  PASS  flag zed: SPEC[zed] = 13.5
+  PASS  flag zval: SPEC[zval] = 4
+  PASS  flag nlcc: SPEC[nlcc] = 1
+  PASS  flag rcore: SPEC[rcore] = 1.25
+  PASS  flag rho0: SPEC[rho0] = 0.015
+  PASS  flag augfun: SPEC[which_augfun] = BESSEL
+  PASS  flag which-augfun: SPEC[which_augfun] = GAUSS
+  PASS  flag rmatch: SPEC[rmatch_augfun] = 1.10
+  PASS  flag lloc: SPEC[lloc] = s
+  PASS  flag rcloc: SPEC[rcloc] = 1.0
+  PASS  flag projector: SPEC[extra_projectors] = d l=2
+  PASS  flag rcut-scale: SPEC[rcut_scale] = 1.05
+  PASS  flag nc-form: SPEC[nc_form] = separable
+  PASS  flag lsd: SPEC[lsd] = 1
+  PASS  flag gipaw: SPEC[gipaw] = 1
+  PASS  flag beta: SPEC[beta] = 0.3
+  PASS  flag tr2: SPEC[tr2] = 1e-12
+  PASS  flag grid xmin: SPEC[xmin] = -7
+  PASS  flag grid dx: SPEC[dx] = 0.01
+  PASS  flag grid rmax: SPEC[rmax] = 100
+  PASS  flag engine: CLI_ENGINE = ld1
+  PASS  flag source: CLI_SOURCE = online
+  PASS  flag format: CLI_FORMATS = upf
+  PASS  flag formats: CLI_FORMATS = upf xml
+  PASS  flag no-test: RUN_LD1_TESTS = 0
+  PASS  flag test: RUN_LD1_TESTS = 1
+  PASS  flag cutoff-scan: RUN_CUTOFF_SCAN = 1
+  PASS  flag no-cutoff-scan: RUN_CUTOFF_SCAN = 0
+  PASS  flag cutoffs: CUTOFF_SCAN_LIST = 60,80,100
+  PASS  flag no-autofix: AUTOFIX_ENABLED = 0
+  PASS  flag autofix: AUTOFIX_ENABLED = 1
+  PASS  flag attempts: AUTOFIX_MAX_ATTEMPTS = 5
+  PASS  flag resume: RESUME = 1
+  PASS  flag no-resume: RESUME = 0
+  PASS  flag quiet: PF_QUIET = 1
+  PASS  flag verbose: PF_VERBOSE = 1
+  PASS  no flags: spec_init sets SPEC[family]
+
+== O. wizard text-mode, end to end
+  PASS  wizard: family=nc
+  PASS  wizard: xc=pbe
+  PASS  wizard: rel=scalar
+  PASS  wizard: profile=fhi
+  PASS  wizard: source=online
+  PASS  wizard: Cancel wrote nothing
+  PASS  wizard: family=paw
+  PASS  wizard: xc=pbesol
+  PASS  wizard: rel=full
+  PASS  wizard: source=online
+  PASS  wizard: second Cancel wrote nothing
+  PASS  wizard: advice pre-fills family (nc) and xc (pbesol)
+  PASS  wizard: refused 9 for family (kept 'nc')
+
+== P. store browse API
+  PASS  GET /api/native is 200
+  PASS  GET /api/native lists both fixture files
+  PASS  GET /api/native carries 'id'
+  PASS  GET /api/native carries 'element'
+  PASS  GET /api/native carries 'xc'
+  PASS  GET /api/native carries 'family'
+  PASS  GET /api/native carries 'relativity'
+  PASS  GET /api/native carries 'engine'
+  PASS  GET /api/native carries 'format'
+  PASS  GET /api/native carries 'profile'
+  PASS  GET /api/native carries 'encoding'
+  PASS  GET /api/native carries 'size'
+  PASS  GET /api/native carries 'sha256'
+  PASS  GET /api/native/<known id> is 200
+  PASS  GET /api/native/<id> returns the row's fields
+  PASS  GET /api/native/<unknown> is 404
+  PASS  GET /api/download/<known id> is 200
+  PASS  GET /api/download points inside PF_NATIVE_DIR
+  PASS  GET /api/download/<unknown> is 404
+  PASS  GET /api/download/..%2Fetc%2Fpasswd refused (400)
+  PASS  GET /api/download/../etc/passwd refused (400)
+  PASS  GET /api/download//etc/passwd refused (400)
+  PASS  GET /api/download/.. refused (400)
+  PASS  GET /api/native with no index is 503
+  PASS  the 503 body names the fix
+  PASS  route /api/native is declared
+  PASS  route /api/native/:id is declared
+  PASS  route /api/download/:id... is declared
+
+== Q. every tool is reachable from CLI and TUI
+  PASS  CLI has advise --help
+  PASS  CLI has provenance --help
+  PASS  CLI has element --help
+  PASS  CLI has coverage --help
+  PASS  CLI has recent --help
+  PASS  CLI has capabilities --help
+  PASS  CLI has compare --help
+  PASS  CLI has cutoff --help
+  PASS  CLI has build-command --help
+  PASS  TUI menu has advise
+  PASS  TUI menu has provenance
+  PASS  TUI menu has element
+  PASS  TUI menu has coverage
+  PASS  TUI menu has recent
+  PASS  TUI menu has capabilities
+  PASS  TUI menu has compare
+  PASS  TUI menu has cutoff
+  PASS  TUI menu has build-command
+  PASS  TUI tool advise is a CLI subcommand
+  PASS  TUI tool build-command is a CLI subcommand
+  PASS  TUI tool capabilities is a CLI subcommand
+  PASS  TUI tool compare is a CLI subcommand
+  PASS  TUI tool coverage is a CLI subcommand
+  PASS  TUI tool cutoff is a CLI subcommand
+  PASS  TUI tool element is a CLI subcommand
+  PASS  TUI tool provenance is a CLI subcommand
+  PASS  TUI tool recent is a CLI subcommand
+  PASS  static HTML exists for /playground/
+  PASS  static HTML exists for /search/
+  PASS  web-only /playground/ is not a CLI subcommand
+  PASS  web-only /playground/ is not in TUI tools menu
+  PASS  web-only /search/ is not a CLI subcommand
+  PASS  web-only /search/ is not in TUI tools menu
+  PASS  web-only page /playground/ is served (HTTP 200)
+  PASS  web-only page /search/ is served (HTTP 200)
+
+312 passed, 0 failed, 0 skipped

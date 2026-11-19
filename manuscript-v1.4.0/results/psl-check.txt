@@ -1,0 +1,10 @@
+PSlibrary round-trip verification
+  upstream: <checkout-parent>/pslibrary.1.0.0
+  database: <work>/check/data/psl
+  PASS  gen-pbe-scalar        565 decks, 2 differing only where ERRATA declares
+  PASS  gen-pbe-full          565 decks, 2 differing only where ERRATA declares
+  PASS  gen-pz-scalar         565 decks, 2 differing only where ERRATA declares
+  PASS  test-pbe-scalar       462 decks byte-identical
+  PASS  test-pbe-full         462 decks byte-identical
+
+  all round-trip checks passed

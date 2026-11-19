@@ -1,0 +1,14 @@
+Dear Editors of Computer Physics Communications,
+
+Please consider “PseudoForge v1.4.0: Cross-engine repair, parameter optimization, and empirical verification of electronic-structure pseudopotentials” for publication as a Computer Programs in Physics article.
+
+The manuscript presents a systematic framework for the detection, single-engine repair, and cross-engine parameter transplantation of electronic-structure pseudopotentials across nine atomic generators (Quantum ESPRESSO ld1.x, ONCVPSP, Vanderbilt USPP, fhi98PP, OPIUM, GTH/CP2K, AtomPAW, APE, and ADPACK). While modern atomic solvers are highly specialized, generated pseudopotentials frequently exhibit generator-specific pathologies—such as Kleinman–Bylander bound ghost states, transferability collapse, and numerical divergence—that typically require manual expert intervention.
+
+PseudoForge v1.4.0 introduces a formal defect taxonomy classifying pathologies into five failure modes, automated single-engine native parameter adjustments, and a cross-engine parameter transplantation pathway (--donor-engine) that transfers matching radii, local channels, and projector configurations from robust donor backends to rescue defective target outputs. All claims are governed by an empirical six-level evidence hierarchy (L1–L6).
+
+In our benchmarks, cross-engine parameter harvesting from an ONCVPSP donor rescues unphysical APE outputs on diamond silicon, eliminating ghost states and achieving equation-of-state agreement with all-electron references (Evidence Level L5). A preregistered out-of-family validation study on germanium diamond (Git tag prereg-v1.4.0-ge) demonstrates fundamental unscreening limits across filled 3d10 semicore shells, establishing a transparent negative transferability result and confirming that Evidence Level L6 remains unpopulated. All experimental protocols, raw logs, and analysis scripts are tracked in the versioned repository.
+
+Sincerely,
+Mohammad Hossein Amirkhani
+Corresponding author
+Iran University of Science and Technology

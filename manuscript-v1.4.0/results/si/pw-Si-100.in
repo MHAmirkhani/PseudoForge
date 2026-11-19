@@ -1,0 +1,32 @@
+&CONTROL
+  calculation  = 'scf'
+  prefix       = 'pf_Si_100'
+  outdir       = '/tmp/pseudoforge/pw'
+  pseudo_dir   = '<work>/si/output/pseudos'
+  tstress      = .true.
+  tprnfor      = .true.
+  verbosity    = 'low'
+  disk_io      = 'none'
+/
+&SYSTEM
+  ibrav        = 2
+  celldm(1)    = 7.2381
+  nat          = 1
+  ntyp         = 1
+  ecutwfc      = 100
+  ecutrho      = 800
+  occupations  = 'smearing'
+  smearing     = 'marzari-vanderbilt'
+  degauss      = 0.02
+/
+&ELECTRONS
+  conv_thr     = 1.0d-10
+  mixing_beta  = 0.3
+  electron_maxstep = 200
+/
+ATOMIC_SPECIES
+  Si 28.085 Si.pbe-kjpaw_psl.psl-high.UPF
+ATOMIC_POSITIONS crystal
+  Si 0.0 0.0 0.0
+K_POINTS automatic
+  8 8 8 0 0 0

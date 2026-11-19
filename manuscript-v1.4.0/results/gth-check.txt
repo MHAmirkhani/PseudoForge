@@ -1,0 +1,30 @@
+
+== functional mapping
+  PASS  pz -> pade
+  PASS  pbe -> pbe
+  PASS  pbesol -> pbesol
+  PASS  blyp -> blyp
+  PASS  bp -> bp
+  PASS  olyp -> olyp
+  PASS  scan refused
+  PASS  r2scan refused
+  PASS  hse refused
+  PASS  pbe0 refused
+
+== psp.par -> CP2K conversion against the published tables
+  PASS  30/30 reproduce the published table byte for byte
+  PASS  spin-orbit average, Si l=1 -> 2.43127673
+
+== structural validation
+  PASS  a published block validates
+  PASS  truncated rejected
+  PASS  nan rejected
+  PASS  nozval rejected
+  PASS  badcount rejected
+
+== engine
+  PASS  atom.x installed beside pseudo.x
+  PASS  generate writes the published Si coefficients unchanged
+  SKIP  refit (slow; run tests/test_gth.sh --all)
+
+19 passed, 0 failed, 1 skipped

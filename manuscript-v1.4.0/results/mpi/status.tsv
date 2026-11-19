@@ -1,0 +1,3 @@
+condition	exit_status	upf_written
+unset override, 12 second timeout	124	no
+OMPI_MCA_btl=^uct	0	yes

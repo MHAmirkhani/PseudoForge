@@ -1,0 +1,3 @@
+ERROR AtomPAW cannot generate meta-GGA with a relativistic solver.
+  Its r2SCAN path is non-relativistic only.
+  Re-run with -r nonrel, or choose a GGA functional to keep scalar relativity.

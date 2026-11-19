@@ -1,0 +1,44 @@
+
+== matrix
+  PASS  ld1/nc/Si/scalar -- 2/2 formats valid  5s
+  PASS  ld1/us/Si/scalar -- 2/2 formats valid  5s
+  PASS  ld1/paw/Si/scalar -- 2/2 formats valid  5s
+  PASS  oncvpsp/nc/Si/scalar -- 3/3 formats valid  6s
+  PASS  uspp/us/Si/scalar -- 4/4 formats valid  4s
+  PASS  fhi98pp/nc/Si/scalar -- 1/1 formats valid  1s
+  PASS  opium/nc/Fe/scalar -- 9/9 formats valid  2s
+  PASS  opium/nc/Fe/full -- 2/2 formats valid  3s
+  PASS  gth/nc/Si/scalar -- 3/3 formats valid  1s
+  PASS  atompaw/paw/Si/scalar -- 3/3 formats valid  4s
+  PASS  ape/nc/Si/scalar -- 1/1 formats valid  6s
+  PASS  adpack/nc/Na/full -- 1/1 formats valid  89s
+
+== manifest records the engine
+  PASS  ld1/nc/Si/scalar -- manifest records engine=ld1
+  PASS  ld1/us/Si/scalar -- manifest records engine=ld1
+  PASS  ld1/paw/Si/scalar -- manifest records engine=ld1
+  PASS  oncvpsp/nc/Si/scalar -- manifest records engine=oncvpsp
+  PASS  uspp/us/Si/scalar -- manifest records engine=uspp
+  PASS  fhi98pp/nc/Si/scalar -- manifest records engine=fhi98pp
+  PASS  opium/nc/Fe/scalar -- manifest records engine=opium
+  PASS  opium/nc/Fe/full -- manifest records engine=opium
+  PASS  gth/nc/Si/scalar -- manifest records engine=gth
+  PASS  atompaw/paw/Si/scalar -- manifest records engine=atompaw
+  PASS  ape/nc/Si/scalar -- manifest records engine=ape
+  PASS  adpack/nc/Na/full -- manifest records engine=adpack
+
+== resume after gzip does not regenerate
+  PASS  ld1/nc/Si/scalar -- resume was a no-op (2 .gz files)
+  PASS  ld1/us/Si/scalar -- resume was a no-op (2 .gz files)
+  PASS  ld1/paw/Si/scalar -- resume was a no-op (2 .gz files)
+  PASS  oncvpsp/nc/Si/scalar -- resume was a no-op (3 .gz files)
+  PASS  uspp/us/Si/scalar -- resume was a no-op (4 .gz files)
+  PASS  fhi98pp/nc/Si/scalar -- resume was a no-op (1 .gz files)
+  PASS  opium/nc/Fe/scalar -- resume was a no-op (9 .gz files)
+  PASS  opium/nc/Fe/full -- resume was a no-op (2 .gz files)
+  PASS  gth/nc/Si/scalar -- resume was a no-op (3 .gz files)
+  PASS  atompaw/paw/Si/scalar -- resume was a no-op (3 .gz files)
+  PASS  ape/nc/Si/scalar -- resume was a no-op (1 .gz files)
+  PASS  adpack/nc/Na/full -- resume was a no-op (1 .gz files)
+
+36 passed, 0 failed, 0 skipped
