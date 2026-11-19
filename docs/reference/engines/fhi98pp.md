@@ -57,11 +57,19 @@ because QE 7.x's `upfconv.x` dropped the FHI reader from its dispatch.
 
 ## Validator
 
+`generate --format cpi` saves the semilocal operator, all-electron reference
+and analyzer input in the project. When atomic tests are enabled and
+`pslp.x` is installed beside `fhipp.x`, PseudoForge runs it using the highest
+constructed angular channel as local. Native output and log derivatives are
+kept in the project's `tests/` directory. The reported verdict refers to this
+choice of separable operator and the analyzer's energy range.
+
 `pslp.x` output is parsed for ghost states. The first version of that check
 searched for the word `ghost` — and matched the tool's own explanatory prose,
 *"the ghost state analysis will assume a zero reference energy"*, reporting a
 ghost in a clean pseudopotential. It now matches the actual finding line
-(`^ *\* *ghost state`).
+(`^ *\* *ghost state`). A clean verdict requires a complete run and an
+explicit no-ghost finding. Unfinished or indeterminate runs remain ungraded.
 
 A validator that rejects valid output is worse than no validator. See
 [Adding an engine](../../contributing/adding-an-engine.md).

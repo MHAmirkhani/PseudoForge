@@ -446,6 +446,16 @@ exec_fhi98pp() {
     # exec_upfconv opens the same log for append and can mask useful evidence
     # when the installed converter has no FHI reader.
     if [ "${SPEC[formats]:-upf}" = cpi ]; then
+        if [ -s "$wd/fort.37" ]; then
+            # pslp needs the actual all-electron potential and the generator's
+            # input files. Keep these once, without relying on the PID scratch
+            # directory that is removed before batch validation.
+            local evidence="$PROJECT_DIR/tests/$el.fhi"
+            mkdir -p "$evidence" &&
+                cp -f "$wd/fort.20" "$wd/fort.22" "$wd/fort.37" "$evidence/" &&
+                sed '1,11d' "$cpi" > "$evidence/fort.31" ||
+                warn "$el: could not archive the native fhi98PP analyzer inputs"
+        fi
         EXEC_NOTE="${EXEC_NOTE:+$EXEC_NOTE; }written as .cpi (ABINIT-compatible)"
         printf '%s\n' "$cpi"
         return 0

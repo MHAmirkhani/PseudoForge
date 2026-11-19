@@ -451,26 +451,31 @@ val_uspp() {
 #
 # pslp.x is the analysis half of the distribution: it does the ghost-state
 # analysis and the logarithmic-derivative comparison that fhipp.x does not.
-# It reads the pseudopotential fhipp.x wrote, so it needs that run's working
-# directory, which exec_fhi98pp keeps when PF_KEEP_SCRATCH is set.  When the
-# directory is gone, say so rather than report a silent "-".
+# It reads the portable analyzer inputs archived by exec_fhi98pp.
 # ---------------------------------------------------------------------------
 val_fhi98pp() {
-    local log=$1 el=$2 bin wd out
+    local log=$1 el=$2 bin wd out lmax tnrl tspin
     bin=$(eng_resolve fhi98pp 2>/dev/null) || return 1
     bin=$(dirname "$bin")/pslp.x
     [ -x "$bin" ] || return 1
 
-    wd=$SCRATCH_DIR/$$-$el
-    if [ ! -f "$wd/fort.20" ]; then
+    wd=$PROJECT_DIR/tests/$el.fhi
+    if [ ! -s "$wd/fort.20" ] || [ ! -s "$wd/fort.31" ] || [ ! -s "$wd/fort.37" ]; then
         VAL_METHOD="pslp"
         VAL_VERDICT=no-data
-        VAL_NOTE="pslp.x needs the generation working directory; re-run with PF_KEEP_SCRATCH=1 to analyse"
+        VAL_NOTE="pslp.x needs archived native analyzer inputs; regenerate as .cpi to analyse"
         return 0
     fi
+    lmax=$(awk 'NR==1{n=$2+$3+2} NR==n{print $1;exit}' "$wd/fort.22")
+    [[ "$lmax" =~ ^[0-4]$ ]] || return 1
+    read -r _ tnrl _ < "$wd/fort.20"
+    read -r tspin _ < <(sed -n '2p' "$wd/fort.20")
+    printf '%s 0 %s %s 0.0\n.t. .t. .t. %s\n.f. 0.0\n%s\n' \
+        "$lmax" "$lmax" "$lmax" "$tnrl" "$tspin" > "$wd/fort.21" || return 1
 
     out=$wd/pslp.out
-    ( cd "$wd" && OMP_NUM_THREADS=1 timeout "${PSLP_TIMEOUT:-300}" "$bin" ) > "$out" 2>&1
+    local rc=0
+    ( cd "$wd" && OMP_NUM_THREADS=1 timeout "${PSLP_TIMEOUT:-300}" "$bin" </dev/null ) > "$out" 2>&1 || rc=$?
     cp -f "$out" "${log%.log}.pslp.log" 2>/dev/null
 
     VAL_METHOD="pslp ghost/logderiv"
@@ -483,6 +488,11 @@ val_fhi98pp() {
     # "the ghost state analysis will assume a zero reference energy" -- and
     # reports a ghost for a file that has none. That is the worst possible
     # direction for this check to fail in.
+    if [ "$rc" != 0 ] || grep -qiE 'stop pslp|pslp[[:space:]]*-[[:space:]]*stop|NaN' "$out" 2>/dev/null; then
+        VAL_VERDICT=no-data
+        VAL_NOTE="pslp.x could not complete the analysis; see ${log%.log}.pslp.log"
+        return 0
+    fi
     if grep -qE '^ *\* *ghost state' "$out" 2>/dev/null; then
         VAL_VERDICT=ghost
         VAL_NOTE=$(grep -E '^ *\* *ghost state' "$out" | head -1 | sed 's/^[[:space:]]*\* *//')
@@ -493,17 +503,17 @@ val_fhi98pp() {
     # log-derivative radius it cannot use, leaves NaN in the KB energies, and
     # writes an "undetermined" verdict. That is an analysis that did not run,
     # not a pseudopotential that passed.
-    if grep -qE 'STOP pslp|NaN' "$out" 2>/dev/null; then
-        VAL_VERDICT=no-data
-        VAL_NOTE="pslp.x could not complete the analysis ($(grep -oE 'STOP pslp[^"]*' "$out" | head -1 | cut -c1-70)); see ${log%.log}.pslp.log"
-        return 0
-    fi
     if grep -qE '^ *\* *undetermined' "$out" 2>/dev/null; then
         VAL_VERDICT=no-data
         VAL_NOTE="pslp.x returned undetermined -- inspect the log derivatives in ${log%.log}.pslp.log"
         return 0
     fi
 
+    if ! grep -qE '^ *\* *no ghost' "$out" 2>/dev/null || ! grep -q 'done & exiting' "$out"; then
+        VAL_VERDICT=no-data
+        VAL_NOTE="pslp.x produced no complete ghost verdict; see ${log%.log}.pslp.log"
+        return 0
+    fi
     VAL_VERDICT=no-data
     VAL_NOTE="pslp.x reported no ghost states; it writes no eigenvalue comparison, so there is no transferability number"
     return 0
