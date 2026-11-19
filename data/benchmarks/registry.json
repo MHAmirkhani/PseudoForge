@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "benchmarks": [
+    {
+      "benchmark_id": "ge-diamond-eos",
+      "element": "Ge",
+      "atomic_number": 32,
+      "crystal_structure": "Diamond",
+      "space_group": "Fd-3m (227)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "AiiDA Common Workflows (ACWF) verification dataset",
+        "doi": "10.1038/s42254-023-00655-3",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "results-unaries-verification-PBE-v1-AE-average.json",
+        "dataset_file_sha256": "d7844caa127eae860fe5087ead42f80d1b6b5eb952a686ff4b912ddaed7db48b",
+        "citation": "Bosoni et al., Nat. Rev. Phys. 6, 45-58 (2024)",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 47.82658983637545,
+          "V0_ang3_atom": 23.913294918187725,
+          "B0_ev_ang3": 0.36773771717230463,
+          "B0_GPa": 58.91814690740943,
+          "B0_prime": 4.86198008912424,
+          "E0_eV": 0.0
+        }
+      },
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 45.91352624292043,
+          "celldm_1_bohr": 10.741520139119,
+          "reference_energy_Ry_cell": 0.001120017437563,
+          "reference_energy_meV_atom": 7.619307
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 46.87005803964794,
+          "celldm_1_bohr": 10.815601929353,
+          "reference_energy_Ry_cell": 0.000268944436882,
+          "reference_energy_meV_atom": 1.829588
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 47.82658983637545,
+          "celldm_1_bohr": 10.888682537607,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 48.78312163310296,
+          "celldm_1_bohr": 10.960795119546,
+          "reference_energy_Ry_cell": 0.000248721671861,
+          "reference_energy_meV_atom": 1.692015
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 49.73965342983047,
+          "celldm_1_bohr": 11.031971108189,
+          "reference_energy_Ry_cell": 0.00095785398357,
+          "reference_energy_meV_atom": 6.516134
+        }
+      ],
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "preregistered_arms": [
+        {
+          "arm_id": "arm_a_baseline",
+          "name": "Arm A: Baseline APE (unrepaired)",
+          "engine": "ape",
+          "defect_state": "unrepaired",
+          "native_controls": "Standard APE input without explicit LLocal specification"
+        },
+        {
+          "arm_id": "arm_b_single_repair",
+          "name": "Arm B: APE with single-engine repair",
+          "engine": "ape",
+          "defect_state": "repaired",
+          "native_controls": "Explicit LLocal = 0 to eliminate s-channel bound ghost"
+        },
+        {
+          "arm_id": "arm_c_cross_repair",
+          "name": "Arm C: APE with cross-engine repair",
+          "engine": "ape",
+          "defect_state": "cross_engine_repaired",
+          "donor_engine": "oncvpsp",
+          "donor_parameters": {
+            "rc_s": 2.0,
+            "rc_p": 2.2,
+            "rc_d": 2.0,
+            "lloc": 0
+          },
+          "native_controls": "Cutoff radii mapped from ONCVPSP donor (rc_s=2.0, rc_p=2.2, rc_d=2.0 bohr) and explicit LLocal = 0"
+        }
+      ],
+      "budget_semantics": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work."
+    }
+  ]
+}
