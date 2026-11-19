@@ -1,12 +1,16 @@
 # Design against reference data
 
-`pseudoforge design` searches a finite, explicit set of generation parameters
-and selects a candidate that meets physical error limits on training
+`pseudoforge design` searches candidate generation parameters across compatible
+atomic engines and selects a candidate that meets physical error limits on training
 structures. It then evaluates the locked choice on held-out structures.
-Search strategies include a deterministic grid, seeded random, uniform
+Search strategies include a deterministic explicit grid, seeded random, uniform
 engine/formulation allocation, cost-aware adaptive allocation and conditional
-Bayesian search. They search the candidates declared in the protocol. The
+Bayesian search (GP-UCB). They search the candidates declared in the protocol. The
+runner incorporates a robust runtime ledger with file locking, SHA-256 protocol validation,
+and orderly checkpoint/resume under measured training budgets. The
 reported verification applies to the evaluated structures and tolerances.
+For molecular systems with independent all-electron force references, see the
+molecular force benchmark in `examples/design-forces/README.md`.
 
 The atomic generators and ordinary generation remain in Bash. This optional
 command needs Python 3.10 or newer (standard library only) and a local Quantum
@@ -108,7 +112,7 @@ elapsed-time budget is distinct from a scheduler's allocated core-hours.
 
 On Linux, use `"training_core_hours"` in place of `"training_wall_seconds"`
 to restrict the run to one inherited logical CPU and cap elapsed training time
-on that CPU. For example, `0.05` allows 180 seconds of active training. Setup,
+on that CPU. `training_core_hours` is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work. For example, `0.05` allows 180 seconds of active training. Setup,
 held-out evaluation and measured child-process CPU time have separate fields
 in the report. A CPU affinity mask can share the physical core with other
 processes. Use the same host and an isolated CPU allocation for comparisons.

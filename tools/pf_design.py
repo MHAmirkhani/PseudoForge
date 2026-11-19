@@ -4,6 +4,13 @@
 Generation stays in the Bash core. QE measures the same physical observables
 for every candidate. A candidate is selected using training cases only; held
 out cases are evaluated once after that decision and cannot change the choice.
+Supports explicit grid, seeded random, uniform, cost-aware adaptive UCB,
+and conditional Gaussian-process (GP-UCB) strategies with checkpoint/resume,
+file locking, and SHA-256 protocol validation.
+
+training_core_hours is single-logical-CPU active training wall time enforced
+by CPU affinity. It is not a scheduler reservation; cluster-accounting
+adapters are future work.
 """
 from __future__ import annotations
 
@@ -1156,7 +1163,10 @@ def design_run(args, output, check_stop):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog="training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work."
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--plan", action="store_true", help="validate inputs without running solvers")
     mode.add_argument("--resume", action="store_true", help="continue a checkpoint from its archived inputs")

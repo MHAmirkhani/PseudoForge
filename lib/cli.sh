@@ -368,6 +368,21 @@ Turn physics choices into an exact CLI generation command.
 Validates parameters with cli_check_spec and formats with spec_cmdline.
 EOF
         ;;
+        design) cat <<'EOF'
+usage: pseudoforge design <protocol.json> [-o DIR] [--pw /path/to/pw.x]
+       pseudoforge design <protocol.json> --plan -o DIR
+       pseudoforge design --status -o DIR
+       pseudoforge design --resume -o DIR
+
+Search and evaluate pseudopotential candidates against reference data using
+explicit grid, seeded random, uniform, cost-aware adaptive UCB, or conditional
+Gaussian-process (GP-UCB) strategies with checkpoint/resume and file locking.
+
+NOTE: training_core_hours is single-logical-CPU active training wall time
+enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting
+adapters are future work.
+EOF
+        ;;
         tui)     cli_usage ;;
         *)       cli_usage ;;
     esac

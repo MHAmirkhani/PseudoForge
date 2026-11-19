@@ -29,7 +29,8 @@ cannot drift from what the code actually knows about.
 ## Choosing between them
 
 The short version, with the reasoning in [Choose an
-engine](../how-to/choose-an-engine.md):
+engine](../how-to/choose-an-engine.md) (and [Design against reference data](../how-to/reference-design.md)
+for automated multi-engine search and parameter tuning against reference structures):
 
 | If you want | Use |
 |---|---|

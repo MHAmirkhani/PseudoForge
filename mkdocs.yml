@@ -163,5 +163,7 @@ nav:
       - Writing documentation: contributing/writing-docs.md
       - Roadmap: contributing/roadmap.md
       - Engine-portfolio research proposal: contributing/engine-portfolio.md
+      - Evidence status: contributing/evidence-status.md
+      - v1.4.0 progress: contributing/v1.4.0-progress.md
       - Final release plan: contributing/final-release-plan.md
       - Changelog: contributing/changelog.md

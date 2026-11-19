@@ -58,10 +58,16 @@ kinetic-energy cutoff convergence scan. Results land in `summary.txt`,
 `summary.csv`, `summary.json` and a self-contained `summary.html`.
 
 **Designs against supplied reference data.** The optional `pseudoforge design`
-command evaluates an explicit candidate grid using common force, stress and
-relative-energy constraints. It selects using training structures, then checks
-the locked choice on held-out structures. It requires Python 3.10+ (standard
-library) and local Quantum ESPRESSO. See the [worked Si example](docs/how-to/reference-design.md).
+command evaluates candidate parameter sets using explicit grid, seeded random,
+uniform, cost-aware adaptive UCB, or conditional Gaussian-process (GP-UCB)
+search strategies against reference energy, force and stress constraints. It features
+checkpoint/resume, file locking, SHA-256 protocol validation, and single-CPU budget tracking.
+`training_core_hours` is single-logical-CPU active training wall time enforced by CPU affinity.
+It is not a scheduler reservation; cluster-accounting adapters are future work.
+Calculations select a candidate on training structures, locking the choice before held-out
+structures or molecular-force benchmarks are opened. It requires Python 3.10+ (standard
+library) and local Quantum ESPRESSO. See the [reference-design guide](docs/how-to/reference-design.md)
+and the [molecular force benchmark](examples/design-forces/README.md).
 This is a constrained search workflow; broader benchmarks are required to
 establish improvements over published pseudopotentials.
 
