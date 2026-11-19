@@ -75,6 +75,10 @@ error, line too long*. A normaliser that re-wraps such rows already existed —
 but only on the `generate` path, so `pseudoforge convert` and the website's
 `/api/convert` handed the broken file out. It lives in `lib/upf.sh` now and
 both paths call it, and the validator enforces QE's 1024-character limit.
+Each coefficient keeps its original digits and an explicit separator, even
+when its printed representation fills or exceeds the output column width.
+The validator rejects joined values in previously exported files. Regenerate
+those UPFs from their native Vanderbilt files.
 
 **`rrkj3 → upf` failed outright.** `upfconv -h` advertises "*.rrkj3 or
 *.RRKJ3", but its dispatch compares the tail of the name with no case

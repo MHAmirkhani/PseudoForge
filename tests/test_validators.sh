@@ -113,6 +113,39 @@ pawxml_validate "$TMP/bad.xml" >/dev/null 2>&1 \
     && bad_ "a non-PAW-XML file passed pawxml_validate" \
     || ok_ "a file that is not PAW-XML is rejected"
 
+awk 'BEGIN {
+    for (i = 1; i <= 60; i++) {
+        print "13.725254851600001"
+        print "-3.3619410337100003E-002"
+        print "3.9588683056099999E-002"
+    }
+}' > "$TMP/coefficients"
+awk -v coefficients="$TMP/coefficients" '
+    /<\/UPF>/ {
+        print "<PP_QFCOEF>"
+        while ((getline coefficient < coefficients) > 0) printf " %s", coefficient
+        print "\n</PP_QFCOEF>"
+    }
+    { print }
+' "$FIX/upf/Si.pbe-oncv.UPF" > "$TMP/long.UPF"
+if upf_normalise "$TMP/long.UPF" &&
+    awk '/<PP_QFCOEF>/ { inside=1; next } /<\/PP_QFCOEF>/ { inside=0 }
+         inside { for (i=1; i<=NF; i++) print $i }' "$TMP/long.UPF" > "$TMP/rewrapped" &&
+    cmp -s "$TMP/coefficients" "$TMP/rewrapped" &&
+    upf_validate "$TMP/long.UPF" >/dev/null 2>&1; then
+    ok_ "reflow preserves the delimiters and exact digits of long coefficients"
+else
+    bad_ "reflow corrupted long augmentation coefficients"
+fi
+sed '/<PP_QFCOEF>/a\    13.725254851600001-3.3619410337100003E-002' \
+    "$TMP/long.UPF" > "$TMP/joined.UPF"
+if out=$(upf_validate "$TMP/joined.UPF" 2>&1) ||
+    [[ $out != *'malformed numeric token in PP_QFCOEF'* ]]; then
+    bad_ "joined augmentation coefficients were not diagnosed"
+else
+    ok_ "joined augmentation coefficients are rejected with a precise diagnosis"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \

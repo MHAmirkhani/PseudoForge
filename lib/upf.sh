@@ -175,6 +175,24 @@ upf_validate() {
         echo "ERROR: file contains Fortran overflow markers (****) -- numbers exceeded their format"
         bad=1
     fi
+    # The v2 reader consumes augmentation coefficients as list-directed reals.
+    # Catch corrupt exports whose reflow joined adjacent fixed-width fields.
+    if [ "$fmt" = v2 ] && ! awk '
+        /<PP_QFCOEF([[:space:]]|>|$)/ { inside = opening = 1 }
+        opening {
+            if (!sub(/^[^>]*>/, "")) next
+            opening = 0
+        }
+        inside {
+            closing = sub(/<\/PP_QFCOEF>.*/, "")
+            for (i = 1; i <= NF; i++)
+                if ($i !~ /^[-+]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eEdD][-+]?[0-9]+)?$/) exit 1
+            if (closing) inside = 0
+        }
+    ' "$f"; then
+        echo "ERROR: malformed numeric token in PP_QFCOEF -- regenerate the UPF from its native potential"
+        bad=1
+    fi
 
     zval=$(upf_get "$f" z_valence)
     if [ -z "$zval" ]; then
@@ -357,8 +375,8 @@ psp8_validate() {
 #   * the element symbol keeps the lower case of the generator's input ("si")
 #
 # None of these change the physics; all three stop the file being loaded.  This
-# rewrites the header onto several lines and fills in what is missing, leaving
-# every numeric block untouched.
+# rewrites the header onto several lines, fills in what is missing and
+# reflows overlong rows without changing their numeric values.
 # ---------------------------------------------------------------------------
 upf_normalise() {
     local f=$1 tmp
@@ -424,7 +442,8 @@ upf_normalise() {
             out = ""; c = 0
             for (i = 1; i <= n; i++) {
                 if (v[i] == "") continue
-                out = out sprintf("%22s", v[i])
+                # Width is a minimum. Long Fortran reals still need a delimiter.
+                out = out sprintf(" %22s", v[i])
                 if (++c % 4 == 0) { print out; out = "" }
             }
             if (out != "") print out
