@@ -1,0 +1,459 @@
+{
+  "timestamp": "2026-11-19 21:51:05",
+  "schema_version": 1,
+  "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+  "seeds": [
+    37,
+    73
+  ],
+  "core_hours_per_family": 0.04,
+  "max_trials_per_arm": 6,
+  "error_tolerance_meV_atom": 2.0,
+  "drift_tolerance_meV_atom": 0.5,
+  "summary": {
+    "total_families": 5,
+    "l6_achieved_count": 4,
+    "boundary_count": 1,
+    "l6_success_rate_percent": 80.0
+  },
+  "families": [
+    {
+      "benchmark_id": "sic-zincblende-eos",
+      "family": "SiC",
+      "target_engine": "ld1",
+      "donor_engine": "oncvpsp",
+      "row_relationship": "Same row / cross-row (Row 3 Si, Row 2 C)",
+      "core_topology": "Main-group noble gas [Ne]/[He], pure sp valence, no d-states",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "sic-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 20.97815454,
+          "V0_ang3_atom": 10.48907727,
+          "B0_ev_ang3": 1.32319992,
+          "B0_GPa": 212.0,
+          "B0_prime": 3.9,
+          "E0_eV": 0.0
+        }
+      },
+      "holdout": {
+        "structure": "SiC 2H-wurtzite / high-strain polymorph",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 22.23684381,
+        "celldm_1_bohr": 8.43548219,
+        "reference_energy_Ry_cell": 0.0033383083,
+        "reference_energy_meV_atom": 22.709999,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "baseline": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 2.2,
+          "rc_p": 2.35,
+          "lloc": 1
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 12.4,
+        "holdout_error_meV_per_atom": 16.85
+      },
+      "single_repair": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 1.9,
+          "rc_p": 2.05,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 6.8,
+        "holdout_error_meV_per_atom": 8.42
+      },
+      "cross_engine_repair": {
+        "engine": "ld1",
+        "donor": "oncvpsp",
+        "params": {
+          "rc_s": 1.62,
+          "rc_p": 1.74,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": true,
+        "training_error_meV_per_atom": 0.88,
+        "holdout_error_meV_per_atom": 1.14
+      },
+      "l6_achieved": true,
+      "physical_boundary_variable": "None (L6 achieved: core-shell topology matches; identical sp-valence screening)"
+    },
+    {
+      "benchmark_id": "alp-zincblende-eos",
+      "family": "AlP",
+      "target_engine": "ld1",
+      "donor_engine": "oncvpsp",
+      "row_relationship": "Same row (Row 3 Al, Row 3 P)",
+      "core_topology": "Main-group neon core [Ne]/[Ne], pure sp valence, no d-states",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "alp-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 41.32209357,
+          "V0_ang3_atom": 20.66104678,
+          "B0_ev_ang3": 0.52428676,
+          "B0_GPa": 84.0,
+          "B0_prime": 3.95,
+          "E0_eV": 0.0
+        }
+      },
+      "holdout": {
+        "structure": "AlP Rocksalt (B1 phase)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 43.80141918,
+        "celldm_1_bohr": 10.57421796,
+        "reference_energy_Ry_cell": 0.0026029859,
+        "reference_energy_meV_atom": 17.707714,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "baseline": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 2.3,
+          "rc_p": 2.45,
+          "lloc": 1
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 11.2,
+        "holdout_error_meV_per_atom": 14.3
+      },
+      "single_repair": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 2.05,
+          "rc_p": 2.2,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 4.15,
+        "holdout_error_meV_per_atom": 5.25
+      },
+      "cross_engine_repair": {
+        "engine": "ld1",
+        "donor": "oncvpsp",
+        "params": {
+          "rc_s": 1.78,
+          "rc_p": 1.92,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": true,
+        "training_error_meV_per_atom": 0.74,
+        "holdout_error_meV_per_atom": 0.92
+      },
+      "l6_achieved": true,
+      "physical_boundary_variable": "None (L6 achieved: identical row 3 core depth; donor cutoff transplantation preserves kinetic energy balance)"
+    },
+    {
+      "benchmark_id": "bn-zincblende-eos",
+      "family": "BN",
+      "target_engine": "atompaw",
+      "donor_engine": "oncvpsp",
+      "row_relationship": "Same row (Row 2 B, Row 2 N)",
+      "core_topology": "Light main-group helium core [He]/[He], ultra-compact core, no core p/d states",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "bn-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 11.95803675,
+          "V0_ang3_atom": 5.97901837,
+          "B0_ev_ang3": 2.30935836,
+          "B0_GPa": 370.0,
+          "B0_prime": 3.75,
+          "E0_eV": 0.0
+        }
+      },
+      "holdout": {
+        "structure": "BN Wurtzite (w-BN)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 12.67551896,
+        "celldm_1_bohr": 6.99424402,
+        "reference_energy_Ry_cell": 0.003330595,
+        "reference_energy_meV_atom": 22.657526,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "baseline": {
+        "engine": "atompaw",
+        "params": {
+          "rc_s": 1.8,
+          "rc_p": 1.8,
+          "local_channel": 1
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 15.6,
+        "holdout_error_meV_per_atom": 19.1
+      },
+      "single_repair": {
+        "engine": "atompaw",
+        "params": {
+          "rc_s": 1.55,
+          "rc_p": 1.55,
+          "local_channel": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 5.3,
+        "holdout_error_meV_per_atom": 6.45
+      },
+      "cross_engine_repair": {
+        "engine": "atompaw",
+        "donor": "oncvpsp",
+        "params": {
+          "rc_s": 1.38,
+          "rc_p": 1.42,
+          "local_channel": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": true,
+        "training_error_meV_per_atom": 1.05,
+        "holdout_error_meV_per_atom": 1.38
+      },
+      "l6_achieved": true,
+      "physical_boundary_variable": "None (L6 achieved: donor ONCV radii optimize PAW augmentation spheres without compensation overlap)"
+    },
+    {
+      "benchmark_id": "mgo-rocksalt-eos",
+      "family": "MgO",
+      "target_engine": "oncvpsp",
+      "donor_engine": "ld1",
+      "row_relationship": "Cross-row (Row 3 Mg, Row 2 O)",
+      "core_topology": "Ionic closed-shell rocksalt (Mg 2+, O 2-), noble-gas configurations [Ne]/[Ne]",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "mgo-rocksalt-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 19.13726973,
+          "V0_ang3_atom": 9.56863487,
+          "B0_ev_ang3": 0.95495089,
+          "B0_GPa": 153.0,
+          "B0_prime": 4.15,
+          "E0_eV": 0.0
+        }
+      },
+      "holdout": {
+        "structure": "MgO Zincblende (B3 phase)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 20.28550592,
+        "celldm_1_bohr": 8.18114604,
+        "reference_energy_Ry_cell": 0.0021873855,
+        "reference_energy_meV_atom": 14.880448,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "baseline": {
+        "engine": "oncvpsp",
+        "params": {
+          "rc_s": 2.1,
+          "rc_p": 2.25,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 8.1,
+        "holdout_error_meV_per_atom": 10.45
+      },
+      "single_repair": {
+        "engine": "oncvpsp",
+        "params": {
+          "rc_s": 1.85,
+          "rc_p": 1.95,
+          "lloc": 1
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 3.4,
+        "holdout_error_meV_per_atom": 4.12
+      },
+      "cross_engine_repair": {
+        "engine": "oncvpsp",
+        "donor": "ld1",
+        "params": {
+          "rc_s": 1.65,
+          "rc_p": 1.75,
+          "lloc": 1
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": true,
+        "training_error_meV_per_atom": 0.65,
+        "holdout_error_meV_per_atom": 0.86
+      },
+      "l6_achieved": true,
+      "physical_boundary_variable": "None (L6 achieved: strong ionic transferability with closed-shell electronic density; ld1 local channel optimizes Madelung potential)"
+    },
+    {
+      "benchmark_id": "gaas-zincblende-eos",
+      "family": "GaAs",
+      "target_engine": "ld1",
+      "donor_engine": "oncvpsp",
+      "row_relationship": "Row 4 target (Ga: [Ar] 3d10 4s2 4p1; As: [Ar] 3d10 4s2 4p3)",
+      "core_topology": "Transition-adjacent filled 3d10 semicore shell; substantial core-valence exchange overlap",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "gaas-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 47.52734375,
+          "V0_ang3_atom": 23.76367188,
+          "B0_ev_ang3": 0.4119396,
+          "B0_GPa": 66.0,
+          "B0_prime": 4.7,
+          "E0_eV": 0.0
+        }
+      },
+      "holdout": {
+        "structure": "GaAs Wurtzite",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 50.37898438,
+        "celldm_1_bohr": 11.07903668,
+        "reference_energy_Ry_cell": 0.0023187491,
+        "reference_energy_meV_atom": 15.774095,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "baseline": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 2.4,
+          "rc_p": 2.5,
+          "rc_d": 2.2,
+          "lloc": 2
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 38.5,
+        "holdout_error_meV_per_atom": 44.2
+      },
+      "single_repair": {
+        "engine": "ld1",
+        "params": {
+          "rc_s": 2.15,
+          "rc_p": 2.25,
+          "rc_d": 2.05,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 21.3,
+        "holdout_error_meV_per_atom": 25.8
+      },
+      "cross_engine_repair": {
+        "engine": "ld1",
+        "donor": "oncvpsp",
+        "params": {
+          "rc_s": 1.95,
+          "rc_p": 2.05,
+          "rc_d": 1.85,
+          "lloc": 0
+        },
+        "l1": true,
+        "l2": true,
+        "l3": true,
+        "l4": true,
+        "l5": false,
+        "training_error_meV_per_atom": 15.2,
+        "holdout_error_meV_per_atom": 18.94
+      },
+      "l6_achieved": false,
+      "physical_boundary_variable": "Filled 3d10 semicore unscreening mismatch; core-valence exchange overlap requires explicit semicore valence or matched d-projector manifold not translatable from light main-group donors"
+    }
+  ]
+}

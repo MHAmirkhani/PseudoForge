@@ -58,6 +58,15 @@ server/.venv/
 # PSlibrary round-trip cache
 data/psl/.roundtrip.cache
 
+# LaTeX build artefacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.spl
+*.synctex.gz
+
 # Audit output.  Not ignored: these are the record of what the last full
 # audit found, and the CHANGELOG entries reference them by name.  They
 # regenerate in a second via tools/audit.sh, but the committed copy is what

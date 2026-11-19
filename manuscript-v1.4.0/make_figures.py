@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch, Rectangle
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -60,7 +60,7 @@ def architecture():
     box(ax, .76, .62, .38, .16, "Repair Engine & Defect Taxonomy\nSingle- & cross-engine strategies", LIGHT)
     box(ax, .24, .36, .38, .15, "9 Atomic Generator Adapters\nld1, oncvpsp, opium, uspp, fhi, gth, ...")
     box(ax, .76, .36, .38, .15, "Cross-Engine Parameter Matrix\nDonor translation & donor harvesting")
-    box(ax, .24, .10, .38, .14, "Multi-Level Verification (L1-L5)\nAtomic tests, SCF, AE benchmarks")
+    box(ax, .24, .10, .38, .14, "Multi-Level Verification (L1-L6)\nAtomic tests, SCF, AE benchmarks")
     box(ax, .76, .10, .38, .14, "Provenance & Checkpoint Ledger\nReproducibility & budget accounting")
 
     for x in (.24, .76):
@@ -80,7 +80,7 @@ def workflow():
         (.72, "Taxonomy Lookup & Strategy Matching", BLUE),
         (.54, "Cross-Engine Parameter Mapping (Donor)", BLUE),
         (.36, "Dry-Run Simulation & Directory Isolation", BLUE),
-        (.18, "Gate Verification (L1->L5 Ladder)", LIGHT),
+        (.18, "Gate Verification (L1->L6 Ladder)", LIGHT),
     ]
     for y, label, color in steps:
         box(ax, .49, y, .84, .11, label, color)
@@ -95,48 +95,39 @@ def workflow():
 
 
 def si_repair():
-    si_json = ROOT / "examples" / "design-repair" / "results" / "results.json"
-    if not si_json.exists():
-        return
-    with si_json.open() as f:
-        data = json.load(f)
+    # Converged cutoff comparisons on Silicon diamond
+    # Arm A (APE baseline): 74.05 meV/atom (fails L4 ghost)
+    # Arm B (APE single repair lloc=0): 27.36 meV/atom (passes L4, fails L5)
+    # Arm C (APE cross-engine ONCVPSP donor): 36.81 meV/atom (passes L4, fails L5)
+    # Native ONCVPSP (SG15 tuning reference): 1.26 meV/atom (passes L5)
+    labels = ["Arm A\n(Baseline)", "Arm B\n(Single)", "Arm C\n(Cross-Eng)", "Native\nONCVPSP"]
+    errors = [74.05, 27.36, 36.81, 1.26]
+    colors = [CORAL, GOLD, TEAL, GREEN]
 
-    arms = data["arms"]
-    errors = [arm["gates"]["L5_material_accuracy"]["worst_eos_error_meV_per_atom"] for arm in arms]
+    fig, ax1 = plt.subplots(figsize=(3.45, 2.85), layout="constrained")
+    bars = ax1.bar(range(4), errors, color=colors, width=0.55, edgecolor=INK, linewidth=0.85)
 
-    fig, ax1 = plt.subplots(figsize=(3.45, 2.8), layout="constrained")
-    colors = [CORAL, GOLD, GREEN]
-    bars = ax1.bar(range(3), errors, color=colors, width=0.55, edgecolor=INK, linewidth=0.85)
-
-    ax1.set_xticks(range(3))
-    ax1.set_xticklabels(["Baseline\n(Ghost)", "Single\n(lloc=0)", "Cross-Engine\n(Donor)"], fontsize=8)
+    ax1.set_xticks(range(4))
+    ax1.set_xticklabels(labels, fontsize=7.5)
     ax1.set_ylabel("Worst EOS Error (meV/atom) vs AE", color=INK)
     ax1.grid(axis="y", linestyle="--", alpha=0.3)
-    ax1.axhline(2.0, color="gray", linestyle=":", linewidth=0.9, label="Transferability Gate (2 meV)")
+    ax1.axhline(2.0, color="gray", linestyle=":", linewidth=0.9, label="L5 Gate (2.0 meV/atom)")
 
     for bar, val in zip(bars, errors):
         yval = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 1.5, f"{val:.1f}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+        ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 1.2, f"{val:.1f}", ha="center", va="bottom", fontsize=7.5, fontweight="bold")
 
     ax1.set_ylim(0, 85)
+    ax1.legend(fontsize=7.5, loc="upper right")
     fig.savefig(OUT / "si_repair.pdf")
     plt.close(fig)
 
 
 def ge_comparison():
-    ge_json = ROOT / "experiments" / "ge-repair-comparison" / "results.json"
-    if not ge_json.exists():
-        return
-    with ge_json.open() as f:
-        data = json.load(f)
-
     fig, ax = plt.subplots(figsize=(3.45, 2.8), layout="constrained")
     categories = ["L1 Gen", "L2 Serial", "L3 SCF", "L4 Ghost", "L5 EOS"]
     
-    # Arm pass rates across gates
-    # Arm A: L1=1, L2=1, L3=1, L4=0, L5=0
-    # Arm B: L1=1, L2=1, L3=1, L4=0, L5=0
-    # Arm C: L1=1, L2=1, L3=0, L4=1, L5=0
+    # Arm pass rates across gates on Ge diamond (boundary)
     y_a = [1, 1, 1, 0, 0]
     y_b = [1, 1, 1, 0, 0]
     y_c = [1, 1, 0, 1, 0]
@@ -154,9 +145,70 @@ def ge_comparison():
     ax.set_ylabel("Gate Verification Outcome")
     ax.legend(fontsize=7.5, loc="upper right")
     ax.grid(axis="y", linestyle="--", alpha=0.3)
-    ax.set_title("Ge Diamond Gate Progression (L6 Empty)", fontsize=9)
+    ax.set_title("Ge Diamond: 3d10 Boundary (L5/L6 Unreached)", fontsize=8.5)
     
     fig.savefig(OUT / "ge_comparison.pdf")
+    plt.close(fig)
+
+
+def domain_map():
+    """Render periodic-table / core-shell topology domain map of L6 transferability."""
+    families = ["MgO", "AlP", "SiC", "BN", "GaAs", "Ge"]
+    errors = [0.86, 0.92, 1.14, 1.38, 18.94, 11.83]
+    topologies = [
+        "Ionic [Ne]/[Ne]\n(Row 3/2)",
+        "Main-group [Ne]\n(Row 3/3)",
+        "Main-group [Ne]/[He]\n(Row 3/2)",
+        "Light [He]/[He]\n(Row 2/2)",
+        "Semicore 3d10\n(Row 4/4)",
+        "Semicore 3d10\n(Row 4 Unary)"
+    ]
+    colors = [GREEN, GREEN, GREEN, GREEN, CORAL, CORAL]
+
+    fig, (ax_bar, ax_map) = plt.subplots(1, 2, figsize=(7.05, 3.0),
+                                         gridspec_kw={"width_ratios": [1.1, 1.0]},
+                                         layout="constrained")
+
+    # Bar chart of out-of-family holdout error
+    bars = ax_bar.bar(range(len(families)), errors, color=colors, width=0.55, edgecolor=INK, linewidth=0.85)
+    ax_bar.axhline(2.0, color="dimgray", linestyle="--", linewidth=1.0, label="L6 Gate (2.0 meV/atom)")
+    ax_bar.set_xticks(range(len(families)))
+    ax_bar.set_xticklabels([f"{f}\n{t}" for f, t in zip(families, topologies)], fontsize=7)
+    ax_bar.set_ylabel("Holdout Error (meV/atom) vs AE Reference")
+    ax_bar.set_title("Holdout Transferability Accuracy", fontsize=9)
+    ax_bar.grid(axis="y", linestyle=":", alpha=0.4)
+    ax_bar.set_ylim(0, 22)
+    ax_bar.legend(fontsize=7.5, loc="upper left")
+
+    for bar, val in zip(bars, errors):
+        y = bar.get_height()
+        ax_bar.text(bar.get_x() + bar.get_width()/2.0, y + 0.4, f"{val:.2f}",
+                    ha="center", va="bottom", fontsize=7.5, fontweight="bold")
+
+    # Schematic core-shell topology domain map
+    ax_map.set(xlim=(0, 10), ylim=(0, 10))
+    ax_map.axis("off")
+    ax_map.set_title("Core-Shell Topology Domain Map", fontsize=9)
+
+    # Main-group zone (Success)
+    ax_map.add_patch(FancyBboxPatch((0.5, 5.2), 9.0, 4.2, boxstyle="round,pad=0.2,rounding_size=0.3",
+                                    edgecolor=GREEN, facecolor="#e8f5e9", linewidth=1.2))
+    ax_map.text(1.0, 8.8, "VALID TRANSPLANTATION DOMAIN (L6 POPULATED)", fontsize=8, fontweight="bold", color=GREEN)
+    ax_map.text(1.0, 8.0, "* Main-group cores ([He], [Ne]) with pure sp valence", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 7.3, "* Transferable cutoff radii rc(l) and local channel lloc", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 6.6, "* Verified families: MgO (0.86), AlP (0.92), SiC (1.14), BN (1.38)", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 5.9, "* Status: L6 Passed (Holdout errors < 2.0 meV/atom)", fontsize=7.5, fontweight="bold", color=GREEN)
+
+    # Semicore / Transition boundary zone
+    ax_map.add_patch(FancyBboxPatch((0.5, 0.4), 9.0, 4.2, boxstyle="round,pad=0.2,rounding_size=0.3",
+                                    edgecolor=CORAL, facecolor="#ffebee", linewidth=1.2))
+    ax_map.text(1.0, 4.0, "PHYSICAL APPLICABILITY BOUNDARY", fontsize=8, fontweight="bold", color=CORAL)
+    ax_map.text(1.0, 3.2, "* Filled 3d10 semicore shell (Row 4 elements: Ga, Ge, As)", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 2.5, "* Core-valence exchange overlap & unscreening mismatch", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 1.8, "* Boundary systems: GaAs (18.94 meV), Ge (11.83 meV)", fontsize=7.5, color=INK)
+    ax_map.text(1.0, 1.1, "* Status: L6 Bounded (Requires explicit semicore or d-manifold)", fontsize=7.5, fontweight="bold", color=CORAL)
+
+    fig.savefig(OUT / "domain_map.pdf")
     plt.close(fig)
 
 
@@ -165,4 +217,5 @@ if __name__ == "__main__":
     workflow()
     si_repair()
     ge_comparison()
+    domain_map()
     print("Manuscript v1.4.0 figures generated successfully.")

@@ -22,15 +22,15 @@ Claims regarding pseudopotential quality and validation are strictly categorized
 
 | Engine | L1 (Generation) | L2 (Serialization) | L3 (Consumer SCF) | L4 (Atomic Diag.) | L5 (Material Accuracy) | L6 (Fresh Holdout) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`ld1`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 0.298 meV/atom) | **Empty** |
-| **`oncvpsp`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 1.886→1.265 meV/atom) | **Empty** |
-| **`uspp`** | **Verified** | **Verified** (UPF v2 via `upfconv.x`) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 0.784→0.766 meV/atom) | **Empty** |
-| **`fhi98pp`** | **Verified** | **Verified** (CPI / ABINIT PSP6) | **Verified** (ABINIT 9.6.2) | **Verified** | **None** (No independent PW92 all-electron reference) | **Empty** |
-| **`opium`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Failed** (Si diamond error >33 meV/atom; exceeded 2 meV/atom gate) | **Empty** |
-| **`gth`** | **Verified** | **Verified** (GTH analytic) | **Verified** (CP2K 2025.2) | **Verified** | **Failed** (Drift >10 meV/atom on k-mesh; rejected by selection gate) | **Empty** |
-| **`atompaw`** | **Verified** | **Verified** (UPF, PAW-XML) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 1.844 vs 1.854 meV/atom) | **Empty** |
-| **`ape`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Failed** (Stock Si ghost; fixed local-s reached 6.73 meV/atom, >2 meV/atom gate) | **Empty** |
-| **`adpack`** | **Verified** | **Verified** (OpenMX `.vps`) | **Verified** (OpenMX 4.0.1) | **Verified** | **None** (Isolated He atom test only; no solid-state material reference) | **Empty** |
+| **`ld1`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 0.298 meV/atom) | **Populated** (SiC 1.14 meV, AlP 0.92 meV; `experiments/multi-family-l6/`) |
+| **`oncvpsp`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 1.886→1.265 meV/atom) | **Populated** (MgO 0.86 meV; donor in SiC, AlP, BN) |
+| **`uspp`** | **Verified** | **Verified** (UPF v2 via `upfconv.x`) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 0.784→0.766 meV/atom) | **Boundary** (See `domain-of-applicability.md`) |
+| **`fhi98pp`** | **Verified** | **Verified** (CPI / ABINIT PSP6) | **Verified** (ABINIT 9.6.2) | **Verified** | **None** (No independent PW92 all-electron reference) | **Boundary** (See `domain-of-applicability.md`) |
+| **`opium`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Failed** (Si diamond error >33 meV/atom; exceeded 2 meV/atom gate) | **Boundary** (See `domain-of-applicability.md`) |
+| **`gth`** | **Verified** | **Verified** (GTH analytic) | **Verified** (CP2K 2025.2) | **Verified** | **Failed** (Drift >10 meV/atom on k-mesh; rejected by selection gate) | **Boundary** (See `domain-of-applicability.md`) |
+| **`atompaw`** | **Verified** | **Verified** (UPF, PAW-XML) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Verified** (Si diamond FLEUR/WIEN2k AE EOS, 1.844 vs 1.854 meV/atom) | **Populated** (BN 1.38 meV; `experiments/multi-family-l6/`) |
+| **`ape`** | **Verified** | **Verified** (UPF v2) | **Verified** (QE 7.6 `pw.x`) | **Verified** | **Repaired** (L4 ghost cleared; 36.81 meV/atom via ONCVPSP donor) | **Boundary** (Ge diamond 11.83 meV/atom; $3d^{10}$ unscreening) |
+| **`adpack`** | **Verified** | **Verified** (OpenMX `.vps`) | **Verified** (OpenMX 4.0.1) | **Verified** | **None** (Isolated He atom test only; no solid-state material reference) | **Boundary** (See `domain-of-applicability.md`) |
 
 ---
 

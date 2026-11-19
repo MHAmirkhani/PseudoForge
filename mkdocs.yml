@@ -165,6 +165,8 @@ nav:
       - Roadmap: contributing/roadmap.md
       - Engine-portfolio research proposal: contributing/engine-portfolio.md
       - Evidence status: contributing/evidence-status.md
+      - Domain of applicability: contributing/domain-of-applicability.md
+      - v1.4.0 verification: contributing/v1.4.0-verification.md
       - v1.4.0 progress: contributing/v1.4.0-progress.md
       - Final release plan: contributing/final-release-plan.md
       - Changelog: contributing/changelog.md

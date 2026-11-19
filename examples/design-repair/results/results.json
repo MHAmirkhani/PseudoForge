@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-19 17:25:35",
+  "timestamp": "2026-11-19 21:22:31",
   "element": "Si",
   "crystal": "Diamond (FCC 2-atom primitive cell)",
   "functional": "PBE (Scalar relativistic)",
@@ -23,7 +23,7 @@
       "gates": {
         "L1_generation": {
           "passed": true,
-          "seconds": 1.521
+          "seconds": 1.724
         },
         "L2_serialization": {
           "passed": true,
@@ -58,7 +58,7 @@
       "gates": {
         "L1_generation": {
           "passed": true,
-          "seconds": 1.522
+          "seconds": 1.571
         },
         "L2_serialization": {
           "passed": true,
@@ -93,7 +93,7 @@
       "gates": {
         "L1_generation": {
           "passed": true,
-          "seconds": 1.471
+          "seconds": 1.572
         },
         "L2_serialization": {
           "passed": true,
