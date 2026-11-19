@@ -274,7 +274,12 @@ def load_protocol(path):
                 raise ValueError(f"{name}: missing template token {token}")
         mesh_token = re.search(r"^\s*K_POINTS\s+automatic[ \t]*\r?\n[ \t]*{{K_MESH}}[ \t]+[01][ \t]+[01][ \t]+[01][ \t]*$", text, re.M | re.I)
         if "convergence" in protocol:
-            if not mesh_token or text.count("{{K_MESH}}") != 1:
+            if re.search(r"^\s*K_POINTS\s+gamma[ \t]*(?:!.*)?$", text, re.M | re.I):
+                check = protocol["convergence"]
+                meshes = [check["base_k_mesh"], *(level["k_mesh"] for level in check["levels"])]
+                if "{{K_MESH}}" in text or any(mesh != [1, 1, 1] for mesh in meshes):
+                    raise ValueError(f"{name}: gamma-only convergence needs 1 1 1 at every level")
+            elif not mesh_token or text.count("{{K_MESH}}") != 1:
                 raise ValueError(f"{name}: convergence needs K_POINTS automatic with {{{{K_MESH}}}} followed by three shifts")
         elif "{{K_MESH}}" in text:
             raise ValueError(f"{name}: {{{{K_MESH}}}} requires a convergence specification")

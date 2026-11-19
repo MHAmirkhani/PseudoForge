@@ -215,7 +215,9 @@ using 60/480 Ry can be checked with three successive increases.
 ```
 
 In every template, use `K_POINTS automatic` followed by
-`{{K_MESH}} 0 0 0`, or the desired three shifts. Every level must increase
+`{{K_MESH}} 0 0 0`, or the desired three shifts. To use QE's specialized
+gamma-only solver, use `K_POINTS gamma` and declare a `1 1 1` mesh at
+every level. Every level must increase
 at least one setting and keep the others the same or tighter. The evaluator
 runs each tighter level once. It compares forces, stress and signed energy
 differences with the preceding level and with all base repeats. For each

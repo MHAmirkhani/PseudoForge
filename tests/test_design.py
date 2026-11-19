@@ -60,6 +60,16 @@ class DesignTests(unittest.TestCase):
         protocol = self.load()
         self.assertEqual(protocol["benchmarks"][0]["composition"], ("Si",))
 
+    def test_gamma_convergence_checks_cutoffs_with_a_fixed_unit_mesh(self):
+        self.protocol["convergence"] = {
+            "base_k_mesh": [1, 1, 1], "tolerance_fraction": .25,
+            "levels": [{"ecutwfc": 40, "ecutrho": 320, "k_mesh": [1, 1, 1]}],
+        }
+        self.assertEqual(self.load()["convergence"]["base_k_mesh"], [1, 1, 1])
+        self.protocol["convergence"]["levels"][0]["k_mesh"] = [2, 2, 2]
+        with self.assertRaisesRegex(ValueError, "gamma-only convergence"):
+            self.load()
+
     def test_grid_expansion_preserves_physics(self):
         self.protocol["candidates"][0]["grid"] = {"rcut_scale": [0.9, 1.1], "nlcc": ["on", "off"]}
         protocol = self.load()
@@ -216,10 +226,12 @@ JOB DONE.
             "base_k_mesh": [4, 4, 4], "tolerance_fraction": 0.1,
             "levels": [{"ecutwfc": 40, "ecutrho": 240, "k_mesh": [4, 4, 4]}],
         }
+        for path in self.root.glob("*.in"):
+            path.write_text(path.read_text().replace("K_POINTS gamma", "K_POINTS automatic\n4 4 4 0 0 0"))
         with self.assertRaisesRegex(ValueError, "K_POINTS automatic"):
             self.load()
         for path in self.root.glob("*.in"):
-            path.write_text(path.read_text().replace("K_POINTS gamma", "K_POINTS automatic\n{{K_MESH}} 0 0 0"))
+            path.write_text(path.read_text().replace("4 4 4 0 0 0", "{{K_MESH}} 0 0 0"))
         self.load()
         for change in ({"k_mesh": [4, 3, 4]}, {"ecutwfc": 30}, {"ecutrho": 200}):
             with self.subTest(change=change), self.assertRaises(ValueError):
