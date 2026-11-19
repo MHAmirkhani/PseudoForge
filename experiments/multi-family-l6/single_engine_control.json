@@ -1,0 +1,123 @@
+{
+  "timestamp": "2026-11-19 23:59:00",
+  "schema_version": 1,
+  "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+  "core_hours_per_arm": 0.03,
+  "families": [
+    {
+      "benchmark_id": "sic-zincblende-eos",
+      "family": "SiC",
+      "target_engine": "ld1",
+      "baseline_unrepaired_meV_atom": 16.85,
+      "single_engine": {
+        "sweep_parameter": "rcut_scale (0.95 to 1.05)",
+        "best_scale": 0.95,
+        "best_rc_s_bohr": 2.09,
+        "best_rc_p_bohr": 2.23,
+        "lloc": 0,
+        "holdout_error_meV_atom": 7.62,
+        "l5_passed": false,
+        "l6_passed": false
+      },
+      "cross_engine": {
+        "donor_engine": "oncvpsp",
+        "rc_s_bohr": 1.62,
+        "rc_p_bohr": 1.74,
+        "lloc": 0,
+        "holdout_error_meV_atom": 1.14,
+        "l5_passed": true,
+        "l6_passed": true
+      },
+      "comparison_verdict": "cross_engine_superior",
+      "delta_meV_atom": 6.48,
+      "physical_mechanism": "Target ld1 native radius scaling cannot reach optimal core matching radii without donor ONCVPSP localization; cross-engine achieves 1.14 meV/atom vs single-engine 7.62 meV/atom."
+    },
+    {
+      "benchmark_id": "alp-zincblende-eos",
+      "family": "AlP",
+      "target_engine": "ld1",
+      "baseline_unrepaired_meV_atom": 14.30,
+      "single_engine": {
+        "sweep_parameter": "rcut_scale (0.95 to 1.05)",
+        "best_scale": 0.95,
+        "best_rc_s_bohr": 1.95,
+        "best_rc_p_bohr": 2.09,
+        "lloc": 0,
+        "holdout_error_meV_atom": 4.88,
+        "l5_passed": false,
+        "l6_passed": false
+      },
+      "cross_engine": {
+        "donor_engine": "oncvpsp",
+        "rc_s_bohr": 1.78,
+        "rc_p_bohr": 1.92,
+        "lloc": 0,
+        "holdout_error_meV_atom": 0.92,
+        "l5_passed": true,
+        "l6_passed": true
+      },
+      "comparison_verdict": "cross_engine_superior",
+      "delta_meV_atom": 3.96,
+      "physical_mechanism": "Single-engine radius adjustment stalls at 4.88 meV/atom; donor ONCVPSP radii transfer optimal kinetic balance, achieving 0.92 meV/atom."
+    },
+    {
+      "benchmark_id": "bn-zincblende-eos",
+      "family": "BN",
+      "target_engine": "atompaw",
+      "baseline_unrepaired_meV_atom": 19.10,
+      "single_engine": {
+        "sweep_parameter": "augmentation radius rc",
+        "best_rc_bohr": 1.50,
+        "local_channel": 0,
+        "holdout_error_meV_atom": 5.92,
+        "l5_passed": false,
+        "l6_passed": false
+      },
+      "cross_engine": {
+        "donor_engine": "oncvpsp",
+        "rc_s_bohr": 1.38,
+        "rc_p_bohr": 1.42,
+        "local_channel": 0,
+        "holdout_error_meV_atom": 1.38,
+        "l5_passed": true,
+        "l6_passed": true
+      },
+      "comparison_verdict": "cross_engine_superior",
+      "delta_meV_atom": 4.54,
+      "physical_mechanism": "Native AtomPAW radius adjustment fails to resolve hard helium core without overlapping compensation charge; ONCVPSP donor radii achieve 1.38 meV/atom."
+    },
+    {
+      "benchmark_id": "mgo-rocksalt-eos",
+      "family": "MgO",
+      "target_engine": "oncvpsp",
+      "baseline_unrepaired_meV_atom": 10.45,
+      "single_engine": {
+        "sweep_parameter": "qcut/rcut native tuning",
+        "best_rc_s_bohr": 1.70,
+        "best_rc_p_bohr": 1.80,
+        "lloc": 1,
+        "holdout_error_meV_atom": 0.91,
+        "l5_passed": true,
+        "l6_passed": true
+      },
+      "cross_engine": {
+        "donor_engine": "ld1",
+        "rc_s_bohr": 1.65,
+        "rc_p_bohr": 1.75,
+        "lloc": 1,
+        "holdout_error_meV_atom": 0.86,
+        "l5_passed": true,
+        "l6_passed": true
+      },
+      "comparison_verdict": "equivalent_within_drift",
+      "delta_meV_atom": 0.05,
+      "physical_mechanism": "Both single-engine (0.91 meV/atom) and cross-engine (0.86 meV/atom) achieve Level L6. The difference (0.05 meV/atom) is well within the 0.5 meV/atom numerical drift threshold. Cross-engine and single-engine are equivalent for MgO."
+    }
+  ],
+  "summary": {
+    "total_families": 4,
+    "cross_engine_superior_count": 3,
+    "equivalent_within_drift_count": 1,
+    "single_engine_superior_count": 0
+  }
+}

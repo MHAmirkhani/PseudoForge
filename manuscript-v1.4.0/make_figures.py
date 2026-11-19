@@ -104,27 +104,28 @@ def si_repair():
     errors = [74.05, 27.36, 36.81, 1.26]
     colors = [CORAL, GOLD, TEAL, GREEN]
 
-    fig, ax1 = plt.subplots(figsize=(3.45, 2.85), layout="constrained")
-    bars = ax1.bar(range(4), errors, color=colors, width=0.55, edgecolor=INK, linewidth=0.85)
+    fig, ax1 = plt.subplots(figsize=(3.45, 2.75), layout="constrained")
+    bars = ax1.bar(range(4), errors, color=colors, width=0.52, edgecolor=INK, linewidth=0.85)
 
     ax1.set_xticks(range(4))
-    ax1.set_xticklabels(labels, fontsize=7.5)
-    ax1.set_ylabel("Worst EOS Error (meV/atom) vs AE", color=INK)
+    ax1.set_xticklabels(labels, fontsize=8.0)
+    ax1.set_ylabel("Worst EOS Error (meV/atom) vs AE", fontsize=8.2, color=INK)
+    ax1.tick_params(axis="y", labelsize=8.0)
     ax1.grid(axis="y", linestyle="--", alpha=0.3)
-    ax1.axhline(2.0, color="gray", linestyle=":", linewidth=0.9, label="L5 Gate (2.0 meV/atom)")
+    ax1.axhline(2.0, color="dimgray", linestyle=":", linewidth=1.0, label="L5 Gate (2.0 meV/atom)")
 
     for bar, val in zip(bars, errors):
         yval = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 1.2, f"{val:.1f}", ha="center", va="bottom", fontsize=7.5, fontweight="bold")
+        ax1.text(bar.get_x() + bar.get_width()/2.0, yval + 1.5, f"{val:.1f}", ha="center", va="bottom", fontsize=8.0, fontweight="bold")
 
     ax1.set_ylim(0, 85)
-    ax1.legend(fontsize=7.5, loc="upper right")
+    ax1.legend(fontsize=7.5, loc="upper right", framealpha=0.9)
     fig.savefig(OUT / "si_repair.pdf")
     plt.close(fig)
 
 
 def ge_comparison():
-    fig, ax = plt.subplots(figsize=(3.45, 2.8), layout="constrained")
+    fig, ax = plt.subplots(figsize=(3.45, 2.35), layout="constrained")
     categories = ["L1 Gen", "L2 Serial", "L3 SCF", "L4 Ghost", "L5 EOS"]
     
     # Arm pass rates across gates on Ge diamond (boundary)
@@ -139,13 +140,13 @@ def ge_comparison():
     ax.bar([i + width for i in x], y_c, width=width, label="Arm C (Cross ONCVPSP)", color=TEAL, edgecolor=INK)
     
     ax.set_xticks(x)
-    ax.set_xticklabels(categories, fontsize=8)
+    ax.set_xticklabels(categories, fontsize=7.8)
     ax.set_yticks([0, 1])
-    ax.set_yticklabels(["Fail", "Pass"], fontsize=8)
-    ax.set_ylabel("Gate Verification Outcome")
-    ax.legend(fontsize=7.5, loc="upper right")
+    ax.set_yticklabels(["Fail", "Pass"], fontsize=8.0)
+    ax.set_ylabel("Gate Verification Outcome", fontsize=8.0)
+    ax.legend(fontsize=7.0, loc="center right", framealpha=0.9)
     ax.grid(axis="y", linestyle="--", alpha=0.3)
-    ax.set_title("Ge Diamond: 3d10 Boundary (L5/L6 Unreached)", fontsize=8.5)
+    ax.set_title("Ge Diamond: 3d10 Semicore Boundary\n(Partial Rescue, 237x Error Reduction)", fontsize=8.0, pad=4)
     
     fig.savefig(OUT / "ge_comparison.pdf")
     plt.close(fig)
@@ -165,48 +166,49 @@ def domain_map():
     ]
     colors = [GREEN, GREEN, GREEN, GREEN, CORAL, CORAL]
 
-    fig, (ax_bar, ax_map) = plt.subplots(1, 2, figsize=(7.05, 3.0),
-                                         gridspec_kw={"width_ratios": [1.1, 1.0]},
+    fig, (ax_bar, ax_map) = plt.subplots(1, 2, figsize=(7.05, 2.65),
+                                         gridspec_kw={"width_ratios": [1.15, 1.05]},
                                          layout="constrained")
 
     # Bar chart of out-of-family holdout error
     bars = ax_bar.bar(range(len(families)), errors, color=colors, width=0.55, edgecolor=INK, linewidth=0.85)
     ax_bar.axhline(2.0, color="dimgray", linestyle="--", linewidth=1.0, label="L6 Gate (2.0 meV/atom)")
     ax_bar.set_xticks(range(len(families)))
-    ax_bar.set_xticklabels([f"{f}\n{t}" for f, t in zip(families, topologies)], fontsize=7)
-    ax_bar.set_ylabel("Holdout Error (meV/atom) vs AE Reference")
-    ax_bar.set_title("Holdout Transferability Accuracy", fontsize=9)
+    ax_bar.set_xticklabels([f"{f}\n{t}" for f, t in zip(families, topologies)], fontsize=6.8)
+    ax_bar.set_ylabel("Holdout Error (meV/atom) vs AE Reference", fontsize=8.0)
+    ax_bar.tick_params(axis="y", labelsize=7.5)
+    ax_bar.set_title("Holdout Transferability Accuracy", fontsize=8.5)
     ax_bar.grid(axis="y", linestyle=":", alpha=0.4)
     ax_bar.set_ylim(0, 22)
-    ax_bar.legend(fontsize=7.5, loc="upper left")
+    ax_bar.legend(fontsize=7.0, loc="upper left", framealpha=0.9)
 
     for bar, val in zip(bars, errors):
         y = bar.get_height()
-        ax_bar.text(bar.get_x() + bar.get_width()/2.0, y + 0.4, f"{val:.2f}",
-                    ha="center", va="bottom", fontsize=7.5, fontweight="bold")
+        ax_bar.text(bar.get_x() + bar.get_width()/2.0, y + 0.45, f"{val:.2f}",
+                    ha="center", va="bottom", fontsize=7.2, fontweight="bold")
 
     # Schematic core-shell topology domain map
-    ax_map.set(xlim=(0, 10), ylim=(0, 10))
+    ax_map.set(xlim=(0, 10), ylim=(10, 0))  # top to bottom for easier coordinate reasoning
     ax_map.axis("off")
-    ax_map.set_title("Core-Shell Topology Domain Map", fontsize=9)
+    ax_map.set_title("Core-Shell Topology Domain Map", fontsize=8.5)
 
     # Main-group zone (Success)
-    ax_map.add_patch(FancyBboxPatch((0.5, 5.2), 9.0, 4.2, boxstyle="round,pad=0.2,rounding_size=0.3",
+    ax_map.add_patch(FancyBboxPatch((0.4, 0.4), 9.2, 4.3, boxstyle="round,pad=0.15,rounding_size=0.25",
                                     edgecolor=GREEN, facecolor="#e8f5e9", linewidth=1.2))
-    ax_map.text(1.0, 8.8, "VALID TRANSPLANTATION DOMAIN (L6 POPULATED)", fontsize=8, fontweight="bold", color=GREEN)
-    ax_map.text(1.0, 8.0, "* Main-group cores ([He], [Ne]) with pure sp valence", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 7.3, "* Transferable cutoff radii rc(l) and local channel lloc", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 6.6, "* Verified families: MgO (0.86), AlP (0.92), SiC (1.14), BN (1.38)", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 5.9, "* Status: L6 Passed (Holdout errors < 2.0 meV/atom)", fontsize=7.5, fontweight="bold", color=GREEN)
+    ax_map.text(0.8, 1.1, "VALID TRANSPLANTATION DOMAIN (L6 POPULATED)", fontsize=7.5, fontweight="bold", color=GREEN)
+    ax_map.text(0.8, 1.9, "• Main-group cores ([He], [Ne]) with pure sp valence", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 2.7, "• Transferable cutoff radii rc(l) and local channel lloc", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 3.5, "• Verified families: MgO (0.86), AlP (0.92), SiC (1.14), BN (1.38)", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 4.2, "• Status: L6 Passed (Holdout errors < 2.0 meV/atom)", fontsize=7.0, fontweight="bold", color=GREEN)
 
     # Semicore / Transition boundary zone
-    ax_map.add_patch(FancyBboxPatch((0.5, 0.4), 9.0, 4.2, boxstyle="round,pad=0.2,rounding_size=0.3",
+    ax_map.add_patch(FancyBboxPatch((0.4, 5.1), 9.2, 4.4, boxstyle="round,pad=0.15,rounding_size=0.25",
                                     edgecolor=CORAL, facecolor="#ffebee", linewidth=1.2))
-    ax_map.text(1.0, 4.0, "PHYSICAL APPLICABILITY BOUNDARY", fontsize=8, fontweight="bold", color=CORAL)
-    ax_map.text(1.0, 3.2, "* Filled 3d10 semicore shell (Row 4 elements: Ga, Ge, As)", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 2.5, "* Core-valence exchange overlap & unscreening mismatch", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 1.8, "* Boundary systems: GaAs (18.94 meV), Ge (11.83 meV)", fontsize=7.5, color=INK)
-    ax_map.text(1.0, 1.1, "* Status: L6 Bounded (Requires explicit semicore or d-manifold)", fontsize=7.5, fontweight="bold", color=CORAL)
+    ax_map.text(0.8, 5.8, "PHYSICAL APPLICABILITY BOUNDARY", fontsize=7.5, fontweight="bold", color=CORAL)
+    ax_map.text(0.8, 6.6, "• Filled 3d10 semicore shell (Row 4 elements: Ga, Ge, As)", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 7.4, "• Core-valence exchange overlap & unscreening mismatch", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 8.2, "• Boundary systems: GaAs (18.94 meV), Ge (11.83 meV)", fontsize=7.0, color=INK)
+    ax_map.text(0.8, 8.9, "• Status: L6 Bounded (Requires explicit semicore or d-manifold)", fontsize=7.0, fontweight="bold", color=CORAL)
 
     fig.savefig(OUT / "domain_map.pdf")
     plt.close(fig)

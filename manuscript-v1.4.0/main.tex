@@ -17,7 +17,7 @@
 \affiliation[iust]{organization={Iran University of Science and Technology}, city={Tehran}, country={Iran}}
 
 \begin{abstract}
-Pseudopotential generation codes frequently produce generator-specific defects---such as bound ghost states, transferability collapse, format delimiter truncations, and self-consistent field (SCF) divergence---that require specialized expert intervention. PseudoForge v1.4.0 establishes a systematic framework for the automated detection, single-engine repair, and cross-engine parameter transplantation of pseudopotential outputs across nine atomic generators (\texttt{ld1.x}, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, and ADPACK). We define a machine-readable defect taxonomy classifying pathologies into five failure modes and implement native single-engine repair strategies alongside a cross-engine parameter transplantation pathway (\texttt{--donor-engine}) that transfers cutoff radii, local channels, and projector configurations from well-behaved donor engines to rescue defective targets. Empirical claims are evaluated against a binding six-level evidence hierarchy (L1--L6). On diamond silicon, single-engine local-channel tuning and cross-engine parameter harvesting from an ONCVPSP donor rescue unphysical APE outputs, eliminating $s$-channel ghost states, while native ONCVPSP tuning achieves 1.26~meV/atom equation-of-state agreement with independent all-electron references (Evidence Level~L5). Cross-engine repair achieves out-of-family transferability (Evidence Level~L6) across four fresh chemical families (SiC, AlP, BN, and MgO with holdout errors 0.86--1.38~meV/atom), and systematic benchmark mapping reveals that cross-row parameter transplantation across filled $3d^{10}$ semicore boundaries (GaAs and Ge) defines a precise physical applicability boundary governed by core-valence exchange unscreening. We formalize computational budget semantics under logical-CPU affinity, establish a machine-readable native-control layer across all nine engines, and deliver verified integration across command-line, interactive terminal, REST API, and web interfaces.
+Pseudopotential generation codes frequently produce generator-specific defects---such as bound ghost states, transferability collapse, format delimiter truncations, and self-consistent field (SCF) divergence---that require specialized expert intervention. PseudoForge v1.4.0 establishes a systematic framework for the automated detection, single-engine repair, and cross-engine parameter transplantation of pseudopotential outputs across nine atomic generators (\texttt{ld1.x}, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, and ADPACK). We define a machine-readable defect taxonomy classifying pathologies into five failure modes and implement native single-engine repair strategies alongside a cross-engine parameter transplantation pathway (\texttt{--donor-engine}) that transfers cutoff radii, local channels, and projector configurations from well-behaved donor engines to rescue defective targets. Empirical claims are evaluated against a binding six-level evidence hierarchy (L1--L6). On silicon diamond, single-engine repair (\texttt{LLocal = 0}) and cross-engine donor transplantation both eliminate the $s$-channel ghost (L4). At 40~Ry, single-engine repair achieves lower EOS error (27.36~meV/atom) than cross-engine transplantation (36.81~meV/atom). Native ONCVPSP tuning reaches 1.26~meV/atom (L5). This shows that cross-engine transplantation is not universally superior---it is a rescue tool when the target engine's own parameter space cannot resolve the defect. Cross-engine repair achieves out-of-family transferability (Evidence Level~L6) across four fresh chemical families (SiC, AlP, BN, and MgO with holdout errors 0.86--1.38~meV/atom), outperforming native single-engine optimization in three families (SiC, AlP, BN) while proving physically equivalent in MgO within numerical drift ($|\Delta| = 0.05 \le 0.5$~meV/atom). Systematic benchmark mapping reveals that cross-row parameter transplantation across filled $3d^{10}$ semicore boundaries (GaAs and Ge) defines a precise physical applicability boundary governed by core-valence exchange unscreening. We formalize computational budget semantics under logical-CPU affinity, establish a machine-readable native-control layer across all nine engines, and deliver verified integration across command-line, interactive terminal, REST API, and web interfaces.
 \end{abstract}
 
 \begin{keyword}
@@ -48,7 +48,7 @@ Historically, generating and curating pseudopotentials has relied either on manu
 However, existing automation efforts remain fundamentally confined to single-engine silos. If an atomic code encounters numerical breakdown (such as APE Kleinman--Bylander ghosting in open channels or AtomPAW semicore SCF collapse), single-engine optimizers typically fail to converge or require manual parameter re-engineering. Crucially, prior tools lack an automated mechanism to translate physical parameters (such as matching radii, projector cutoffs, and augmentation radii) across different engine formulations to rescue failing calculations. Furthermore, computational claims in the pseudopotential literature frequently blur the distinction between native generation success, atomic reference fitting, consumer SCF convergence, and genuine out-of-family material transferability.
 
 In this work, we present PseudoForge v1.4.0, which pivots from unified multi-engine generation to \textit{cross-engine repair, parameter optimization, and empirical verification}. The primary scientific contributions of v1.4.0 are:
-\begin{enumerate}
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
 \item \textbf{A formal defect taxonomy}: Classifying pathologies across all nine supported atomic generators (\texttt{ld1.x}, ONCVPSP, USPP, fhi98PP, OPIUM, GTH, AtomPAW, APE, and ADPACK) into five failure modes with automated detectors.
 \item \textbf{Automated single- and cross-engine repair}: Implementing native parameter adjustment rules alongside a cross-engine parameter transplantation pathway (\texttt{--donor-engine}) that maps physical parameters from well-behaved donor engines (e.g., ONCVPSP or \texttt{ld1.x}) into defective targets driven by a typed native-control matrix.
 \item \textbf{A binding six-level evidence hierarchy (L1--L6)}: Enforcing rigorous boundaries between software execution, atomic diagnostics, all-electron material accuracy (L5), and independent out-of-family transferability (L6).
@@ -67,7 +67,7 @@ In this work, we present PseudoForge v1.4.0, which pivots from unified multi-eng
 \subsection{Defect taxonomy and detection}
 
 To formalize the space of pseudopotential failures, PseudoForge catalogs defects into five distinct classes:
-\begin{enumerate}
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
 \item \textbf{Atomic ghost states}: Kleinman--Bylander projector separable representations can introduce unphysical bound or low-lying continuum states. Detected by scanning logarithmic derivative poles and inspecting radial wavefunctions for spurious nodes.
 \item \textbf{Transferability and material accuracy collapse}: Pseudopotentials reproducing isolated-atom valence eigenvalues may exhibit excessive lattice parameter error or bulk modulus drift in condensed phases. Evaluated against all-electron equations of state.
 \item \textbf{Consumer format serialization faults}: Syntax anomalies in output UPF, PSML, or PAW-XML files (e.g., concatenated floating-point fields without spaces or missing tag closers) causing crash upon ingestion by Quantum ESPRESSO or ABINIT.
@@ -89,7 +89,7 @@ Cross-engine repair recognizes that physical quantities governing pseudopotentia
 \end{figure}
 
 The repair engine operates via the CLI flag \texttt{--donor-engine <engine>}. The workflow executes in four stages (Fig.~\ref{fig:workflow}):
-\begin{enumerate}
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
 \item \textbf{Diagnostic isolation}: The defective element is generated in an isolated sandbox and evaluated against atomic diagnostics and consumer SCF gates.
 \item \textbf{Donor parameter harvesting}: Optimal cutoff radii $r_c(l)$ and local channels $l_{\rm loc}$ are extracted from the specified donor engine's verified parameter database.
 \item \textbf{Deck synthesis and dry-run validation}: PseudoForge synthesizes a native input deck for the target engine, injecting donor cutoffs while preserving the target's native numerical solver settings.
@@ -128,7 +128,7 @@ To evaluate cross-engine repair, we examine silicon ($Z=14$) in diamond crystal 
 \label{fig:si_repair}
 \end{figure}
 
-As shown in Table~\ref{tab:si_benchmark} and Fig.~\ref{fig:si_repair}, Arm~A succeeds at L1--L3 but fails L4 due to a bound Kleinman--Bylander ghost in the $s$-channel, resulting in severe EOS error (74.05~meV/atom). Arm~B successfully eliminates the ghost state via native local channel selection (\texttt{LLocal = 0}), reducing worst EOS error to 27.36~meV/atom. Arm~C, harvesting optimized radii ($r_c = 1.60, 1.71$~bohr) and local channel from the ONCVPSP donor, completely clears L4 diagnostics and achieves 36.81~meV/atom at standard plane-wave cutoffs ($E_{\rm cut} = 40$~Ry). Native ONCVPSP SG15 radius tuning achieves high material fidelity (1.26~meV/atom vs ACWF FLEUR/WIEN2k all-electron references), satisfying Evidence Level~L5.
+As shown in Table~\ref{tab:si_benchmark} and Fig.~\ref{fig:si_repair}, Arm~A succeeds at L1--L3 but fails L4 due to a bound Kleinman--Bylander ghost in the $s$-channel, resulting in severe EOS error (74.05~meV/atom). On silicon diamond, single-engine repair (\texttt{LLocal = 0}) and cross-engine donor transplantation both eliminate the $s$-channel ghost (L4). At 40~Ry, single-engine repair achieves lower EOS error (27.36~meV/atom) than cross-engine transplantation (36.81~meV/atom). Native ONCVPSP tuning reaches 1.26~meV/atom (L5). This shows that cross-engine transplantation is not universally superior---it is a rescue tool when the target engine's own parameter space cannot resolve the defect. Arm~B successfully eliminates the ghost state via native local channel selection (\texttt{LLocal = 0}), reducing worst EOS error to 27.36~meV/atom. Arm~C, harvesting optimized radii ($r_c = 1.60, 1.71$~bohr) and local channel from the ONCVPSP donor, completely clears L4 diagnostics and achieves 36.81~meV/atom at standard plane-wave cutoffs ($E_{\rm cut} = 40$~Ry). Native ONCVPSP SG15 radius tuning achieves high material fidelity (1.26~meV/atom vs ACWF FLEUR/WIEN2k all-electron references), satisfying Evidence Level~L5.
 
 \begin{table}[t]
 \centering
@@ -158,49 +158,6 @@ Training time (s) & 1.52 & 1.52 & 1.47 & 2.18 \\
 \raggedright\scriptsize
 $^a$ 36.81~meV/atom at 40~Ry; L5 is achieved only by native ONCVPSP at 1.26~meV/atom.
 \end{table}
-
-\subsection{Domain of applicability of cross-engine repair}
-
-A critical question for automated cross-engine repair is determining where parameter transplantation succeeds and where physical boundaries emerge. Rather than presenting boundary conditions as isolated negative failures, PseudoForge characterizes the systematic **domain of applicability** of cross-engine parameter transplantation across multiple fresh chemical families.
-
-To establish genuine out-of-family transferability (Evidence Level~L6), test families must share zero geometries and zero chemical environments with the calibration set (Si diamond, TiO, TiO$_2$, silane, and silanone). We benchmarked five fresh chemical families against independent FLEUR/WIEN2k all-electron reference equations of state~\cite{tran2016,bosoni2024}:
-\begin{enumerate}
-\item \textbf{SiC (zincblende)}: Group IV--IV, noble gas cores ([Ne]/[He]), pure $sp$ valence.
-\item \textbf{AlP (zincblende)}: III--V semiconductor, identical neon cores ([Ne]/[Ne]), pure $sp$ valence.
-\item \textbf{BN (zincblende)}: Light III--V, ultra-compact helium cores ([He]/[He]), no core $p/d$ states.
-\item \textbf{MgO (rocksalt)}: Ionic oxide (${\rm Mg}^{2+}, {\rm O}^{2-}$), closed-shell noble gas configurations.
-\item \textbf{GaAs (zincblende)}: III--V semiconductor, transition-adjacent with filled $3d^{10}$ semicore shell.
-\end{enumerate}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=.96\textwidth]{domain_map}
-\caption{Domain of applicability of cross-engine parameter transplantation. Left: Out-of-family holdout transferability accuracy across benchmark chemical families against independent all-electron references; four main-group families populate Evidence Level~L6 ($< 2.0$~meV/atom). Right: Core-shell topology domain map illustrating that parameter transplantation is physically valid across main-group noble gas cores, while encountering an applicability boundary at filled $3d^{10}$ semicore shells (GaAs and Ge) due to core-valence exchange unscreening.}
-\label{fig:domain_map}
-\end{figure*}
-
-As summarized in Fig.~\ref{fig:domain_map}, cross-engine repair successfully populates Evidence Level~L6 across all four main-group chemical families:
-\begin{itemize}
-\item In \textbf{SiC zincblende}, transplanting ONCVPSP donor cutoff radii into \texttt{ld1.x} reduces holdout EOS error from 16.85~meV/atom (unrepaired baseline) to \textbf{1.14~meV/atom}, passing L6.
-\item In \textbf{AlP zincblende}, \texttt{ld1.x} with ONCVPSP donor cutoffs reduces holdout error from 14.30~meV/atom (unrepaired baseline) to \textbf{0.92~meV/atom}, passing L6.
-\item In \textbf{BN zincblende}, AtomPAW augmented with ONCVPSP donor radii reduces holdout error from 19.10~meV/atom (unrepaired baseline) to \textbf{1.38~meV/atom}, passing L6.
-\item In \textbf{MgO rocksalt}, ONCVPSP with \texttt{ld1.x} donor local channel reduces holdout error from 10.45~meV/atom (unrepaired baseline) to \textbf{0.86~meV/atom}, passing L6.
-\end{itemize}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{ge_comparison}
-\caption{Gate progression for the preregistered Germanium diamond experiment. Parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A) to 11.83~meV/atom (Arm~C) and clears L4 atomic ghost states, representing a partial rescue, while L5 remains failed due to filled $3d^{10}$ semicore unscreening.}
-\label{fig:ge_comparison}
-\end{figure}
-
-Conversely, evaluating cross-engine transplantation on \textbf{GaAs zincblende} and \textbf{Germanium diamond} (preregistered under git tag \texttt{prereg-v1.4.0-ge}) reveals the physical constraints of filled $3d^{10}$ semicore shells. On Ge diamond, parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A unphysical lattice expansion) to 11.83~meV/atom (Arm~C) and successfully clears unphysical ghost states (L4 pass), representing a partial rescue; however, Evidence Level~L5 remains failed ($> 2.0$~meV/atom) due to core-valence unscreening constraints on the filled $3d^{10}$ shell. Similarly, on GaAs zincblende, cross-engine repair reduces holdout error from 44.20~meV/atom (unrepaired baseline) to 18.94~meV/atom, but fails L5.
-
-The physical mechanism defining this constraint is \textbf{filled $3d^{10}$ semicore unscreening}: in Row~4 elements, the $3d$ shell extends spatially into the valence manifold. Direct transplantation of cutoff radii from Row~2/3 donors without matching non-linear core correction (NLCC) or explicit $d$-channel projector manifolds causes severe core-valence unscreening mismatch. This physical boundary is formalized in PseudoForge's typed control layer (\texttt{data/defects/unified\_controls.tsv}), preventing unphysical cross-row parameter transfers.
-
-\subsection{Cross-engine evidence matrix}
-
-Table~\ref{tab:evidence} summarizes the empirical verification reach of PseudoForge v1.4.0 across all nine supported atomic engines, strictly validated against archived artifacts.
 
 \begin{table*}[t]
 \centering
@@ -238,10 +195,53 @@ $^k$ CP2K molecular forces verified; $k$-mesh sensitivity recorded in domain doc
 $^l$ OpenMX SCF convergence verified; PAO basis bounds enforced.
 \end{table*}
 
+\subsection{Domain of applicability of cross-engine repair}
+
+A critical question for automated cross-engine repair is determining where parameter transplantation succeeds and where physical boundaries emerge. Rather than presenting boundary conditions as isolated negative failures, PseudoForge characterizes the systematic **domain of applicability** of cross-engine parameter transplantation across multiple fresh chemical families.
+
+To establish genuine out-of-family transferability (Evidence Level~L6), test families must share zero geometries and zero chemical environments with the calibration set (Si diamond, TiO, TiO$_2$, silane, and silanone). We benchmarked five fresh chemical families against independent FLEUR/WIEN2k all-electron reference equations of state~\cite{tran2016,bosoni2024}:
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+\item \textbf{SiC (zincblende)}: Group IV--IV, noble gas cores ([Ne]/[He]), pure $sp$ valence.
+\item \textbf{AlP (zincblende)}: III--V semiconductor, identical neon cores ([Ne]/[Ne]), pure $sp$ valence.
+\item \textbf{BN (zincblende)}: Light III--V, ultra-compact helium cores ([He]/[He]), no core $p/d$ states.
+\item \textbf{MgO (rocksalt)}: Ionic oxide (${\rm Mg}^{2+}, {\rm O}^{2-}$), closed-shell noble gas configurations.
+\item \textbf{GaAs (zincblende)}: III--V semiconductor, transition-adjacent with filled $3d^{10}$ semicore shell.
+\end{enumerate}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=.96\textwidth]{domain_map}
+\caption{Domain of applicability of cross-engine parameter transplantation. Left: Out-of-family holdout transferability accuracy across benchmark chemical families against independent all-electron references; four main-group families populate Evidence Level~L6 ($< 2.0$~meV/atom). Right: Core-shell topology domain map illustrating that parameter transplantation is physically valid across main-group noble gas cores, while encountering an applicability boundary at filled $3d^{10}$ semicore shells (GaAs and Ge) due to core-valence exchange unscreening.}
+\label{fig:domain_map}
+\end{figure*}
+
+As summarized in Fig.~\ref{fig:domain_map}, cross-engine repair successfully populates Evidence Level~L6 across all four main-group chemical families, evaluated alongside native single-engine optimization controls:
+\begin{itemize}
+\item In \textbf{SiC zincblende}, transplanting ONCVPSP donor cutoff radii into \texttt{ld1.x} reduces holdout EOS error from 16.85~meV/atom (unrepaired baseline) to \textbf{1.14~meV/atom}, passing L6. In comparison, native single-engine radius sweeps on \texttt{ld1.x} achieve 7.62~meV/atom, confirming a genuine cross-engine advantage ($6.7\times$ error reduction).
+\item In \textbf{AlP zincblende}, \texttt{ld1.x} with ONCVPSP donor cutoffs reduces holdout error from 14.30~meV/atom (unrepaired baseline) to \textbf{0.92~meV/atom}, passing L6, outperforming native single-engine parameter optimization (4.88~meV/atom; genuine cross-engine win).
+\item In \textbf{BN zincblende}, AtomPAW augmented with ONCVPSP donor radii reduces holdout error from 19.10~meV/atom (unrepaired baseline) to \textbf{1.38~meV/atom}, passing L6, significantly outperforming native single-engine tuning (5.92~meV/atom; genuine cross-engine win).
+\item In \textbf{MgO rocksalt}, ONCVPSP with \texttt{ld1.x} donor local channel reduces holdout error from 10.45~meV/atom (unrepaired baseline) to \textbf{0.86~meV/atom}, passing L6. Here, native single-engine ONCVPSP parameter optimization reaches 0.91~meV/atom; because cross-engine and single-engine errors differ by only 0.05~meV/atom ($|\Delta| \le 0.5$~meV/atom drift threshold), cross-engine and single-engine are equivalent in MgO rather than a distinct cross-engine win.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{ge_comparison}
+\caption{Gate progression for the preregistered Germanium diamond experiment. Parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A) to 11.83~meV/atom (Arm~C) and clears L4 atomic ghost states, representing a partial rescue, while L5 remains failed due to filled $3d^{10}$ semicore unscreening.}
+\label{fig:ge_comparison}
+\end{figure}
+
+Conversely, evaluating cross-engine transplantation on \textbf{GaAs zincblende} and \textbf{Germanium diamond} (preregistered under git tag \texttt{prereg-v1.4.0-ge}) reveals the physical constraints of filled $3d^{10}$ semicore shells. On Ge diamond, parameter transplantation achieves a 237$\times$ error reduction from 2809.87~meV/atom (Arm~A unphysical lattice expansion) to 11.83~meV/atom (Arm~C) and successfully clears unphysical ghost states (L4 pass), representing a partial rescue; however, Evidence Level~L5 remains failed ($> 2.0$~meV/atom) due to core-valence unscreening constraints on the filled $3d^{10}$ shell. Similarly, on GaAs zincblende, cross-engine repair reduces holdout error from 44.20~meV/atom (unrepaired baseline) to 18.94~meV/atom, but fails L5.
+
+The physical mechanism defining this constraint is \textbf{filled $3d^{10}$ semicore unscreening}: in Row~4 elements, the $3d$ shell extends spatially into the valence manifold. Direct transplantation of cutoff radii from Row~2/3 donors without matching non-linear core correction (NLCC) or explicit $d$-channel projector manifolds causes severe core-valence unscreening mismatch. This physical boundary is formalized in PseudoForge's typed control layer (\texttt{data/defects/unified\_controls.tsv}), preventing unphysical cross-row parameter transfers.
+
+\subsection{Cross-engine evidence matrix}
+
+Table~\ref{tab:evidence} summarizes the empirical verification reach of PseudoForge v1.4.0 across all nine supported atomic engines, strictly validated against archived artifacts.
+
 \section{Limitations and honest scope}
 
 Scientific integrity requires stating explicitly what PseudoForge v1.4.0 does \textit{not} do:
-\begin{enumerate}
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
 \item \textbf{Domain boundaries of cross-row parameter transplantation}: While out-of-family transferability (L6) is systematically achieved across main-group families with matching core configurations (SiC, AlP, BN, MgO), cross-row parameter transplantation is bounded at transition-adjacent elements (GaAs, Ge). Filled $3d^{10}$ semicore states require explicit semicore projector manifolds not translatable from light main-group donors.
 \item \textbf{Single-CPU budget semantics}: All reported computational costs reflect active single-core wall-time enforced by CPU affinity. These metrics cannot be equated directly to cluster-scheduler allocations, queue wait times, or parallel scaling overheads.
 \item \textbf{Semicore shell sensitivity}: Cross-engine parameter transplantation between different rows of the periodic table is limited by core electron topology; filled $d$-shells prevent naive radius transfer.
@@ -252,14 +252,14 @@ Scientific integrity requires stating explicitly what PseudoForge v1.4.0 does \t
 
 PseudoForge v1.4.0 establishes an automated framework for the detection, single-engine repair, and cross-engine parameter transplantation of electronic-structure pseudopotentials across nine atomic generators. By structuring defects within a formal taxonomy and introducing a typed native-control matrix, the software enables the recovery of pathology-stricken calculations. Evaluated against a binding six-level evidence hierarchy, cross-engine repair achieves verified out-of-family transferability (Level~L6) across four distinct chemical families (SiC, AlP, BN, and MgO) with holdout errors below 1.5~meV/atom. Furthermore, preregistered experiments on GaAs and Ge systematically map the physical applicability boundary of cross-row transplantation to filled $3d^{10}$ semicore unscreening constraints. PseudoForge provides an extensible, reproducible computational foundation for pseudopotential generation and repair.
 
-\section*{Code and data availability}
+\paragraph*{Code and data availability}
 PseudoForge v1.4.0 is available under the GPL-2.0-or-later license from Zenodo (\url{https://doi.org/10.5281/zenodo.24017550}) and GitHub (\url{https://github.com/MHAmirkhani/PseudoForge}). All preregistration tags, experimental raw logs, domain tables, and analysis scripts are permanently tracked in the repository.
 
-\section*{Declaration of generative AI and AI-assisted technologies}
+\paragraph*{Declaration of generative AI}
 During the preparation of this manuscript, the authors utilized large language model assistants (OpenAI Codex and Google DeepMind Antigravity) for code refactoring, test automation, and preliminary drafting. All experimental design, numerical execution, scientific interpretations, and final text were independently reviewed and verified by the authors.
 
-\begingroup\small\raggedright
-\setlength{\bibsep}{1pt}
+\begingroup\footnotesize\raggedright
+\setlength{\bibsep}{0pt}
 \bibliographystyle{elsarticle-num}
 \bibliography{references}
 \endgroup
