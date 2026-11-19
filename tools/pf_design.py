@@ -14,6 +14,7 @@ import json
 import math
 import os
 import platform
+from collections import defaultdict, deque
 from pathlib import Path
 import random
 import re
@@ -221,10 +222,10 @@ def load_protocol(path):
     if "search" in protocol:
         search = protocol["search"]
         keys(search, {"strategy", "seed", "max_trials"}, "search")
-        if search.get("strategy") != "random":
-            raise ValueError("search strategy must be random")
+        if search.get("strategy") not in ("random", "uniform"):
+            raise ValueError("search strategy must be random or uniform")
         if type(search.get("seed")) is not int or not 0 <= search["seed"] < 2**64:
-            raise ValueError("random search requires an unsigned 64-bit seed")
+            raise ValueError("seeded search requires an unsigned 64-bit seed")
         if type(search.get("max_trials")) is not int or not 1 <= search["max_trials"] <= len(expanded):
             raise ValueError("max_trials must be between 1 and the expanded candidate count")
     fixed = protocol.get("fixed_pseudos", {})
@@ -535,6 +536,33 @@ def pareto(results):
         any(a < b for a, b in zip(objectives(other), objectives(r))) for other in feasible)]
 
 
+def order_trials(trials, search):
+    strategy = search["strategy"]
+    if strategy == "grid":
+        return trials
+    rng = random.Random(search["seed"])
+    trials = sorted(trials, key=lambda trial: trial[0]["id"])
+    rng.shuffle(trials)
+    limit = search["max_trials"]
+    if strategy == "random":
+        return trials[:limit]
+
+    # Reserve one slot per available engine/formulation per round. The seed
+    # controls the first round's arm order and the candidate order in each arm.
+    arms = defaultdict(deque)
+    for trial in trials:
+        candidate = trial[0]
+        arms[candidate["engine"], candidate["family"]].append(trial)
+    active = deque(arms.values())
+    selected = []
+    while len(selected) < limit:
+        arm = active.popleft()
+        selected.append(arm.popleft())
+        if arm:
+            active.append(arm)
+    return selected
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("protocol", type=Path)
@@ -599,10 +627,7 @@ def main(argv=None):
               "fixed_pseudos": {el: {"path": file, "sha256": digest(file)} for el, file in protocol["fixed_pseudos"].items()}}
     trials = list(zip(protocol["candidates"], commands))
     search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
-    if search["strategy"] == "random":
-        trials.sort(key=lambda trial: trial[0]["id"])
-        random.Random(search["seed"]).shuffle(trials)
-        trials = trials[:search["max_trials"]]
+    trials = order_trials(trials, search)
     report["search"] = {**search, "trial_order": [candidate["id"] for candidate, _ in trials],
                         "candidate_count": len(commands)}
     write_json(output / "report.json", report)

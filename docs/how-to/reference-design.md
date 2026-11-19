@@ -74,6 +74,9 @@ records that order before generation and a failed attempt counts toward the
 trial limit. Limit trials to the available candidate count. This matches
 methods by number of trials. A comparison by CPU-hour needs separate resource
 accounting.
+Use `"strategy": "uniform"` for seed-controlled round-robin allocation
+across distinct engine/formulation pairs. The runner skips exhausted pairs
+and continues with the remaining candidates.
 
 Every benchmark has an `id`, `split`, local `input` template, `reference` and
 `tolerances`. A reference contains:

@@ -90,6 +90,18 @@ class DesignTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "max_trials"):
             self.load()
 
+    def test_uniform_search_balances_available_engine_formulation_pairs(self):
+        trials = [({"id": f"{engine}-{family}-{index}", "engine": engine, "family": family}, [])
+                  for engine, family, size in (("ld1", "us", 1), ("ld1", "paw", 4), ("oncvpsp", "nc", 3))
+                  for index in range(size)]
+        spec = {"strategy": "uniform", "seed": 42, "max_trials": 6}
+        ordered = design.order_trials(trials, spec)
+        arms = [(candidate["engine"], candidate["family"]) for candidate, _ in ordered]
+        self.assertEqual(len(set(arms[:3])), 3)
+        self.assertEqual(len(set(arms[3:5])), 2)
+        self.assertEqual(len({candidate["id"] for candidate, _ in ordered}), 6)
+        self.assertEqual(ordered, design.order_trials(list(reversed(trials)), spec))
+
     def test_missing_reference_or_mismatched_theory_is_refused(self):
         for change in ({"source": ""}, {"xc": "pz"}, {"relativity": "full"}, {"forces_Ry_bohr": [[0, 0]]}):
             with self.subTest(change=change):
