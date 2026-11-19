@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import pf_design as design
 
 LENGTHS_BOHR = (10.1, 10.4)
-SETTINGS = ((30, 4), (45, 4), (45, 6))
+SETTINGS = ((30, 4), (45, 4), (45, 6), (45, 8), (45, 10))
 HARTREE_TO_MEV = 27211.386245988
 
 

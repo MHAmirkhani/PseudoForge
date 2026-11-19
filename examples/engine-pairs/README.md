@@ -67,8 +67,10 @@ The replay writes the [ABINIT format-6 header](https://docs.abinit.org/developer
 for the scalar Si/PW panel, with the highest constructed channel local. It
 appends the CPI radial records byte for byte and requires the tested layout
 without nonlinear core charge. It compares the energy difference for two Si
-diamond volumes at three cutoff and k-point settings. The report retains both
-CPI and PSP6 checksums. There is no independent PW92 reference in this replay.
+diamond volumes. The ladder first raises the cutoff from 30 to 45 Ha at
+the same mesh, then checks meshes up to 10³ at 45 Ha. The report retains
+both CPI and PSP6 checksums. There is no independent PW92 reference in
+this replay.
 
 ## Check ADPACK VPS files with OpenMX
 
