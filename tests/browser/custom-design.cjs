@@ -81,8 +81,9 @@ const {AxeBuilder} = require('@axe-core/playwright');
     await page.getByRole('button', {name: 'Download protocol'}).click();
     assert.equal((await downloadPromise).suggestedFilename(), 'protocol.json');
     const report = {schema_version: 1, selected: 'fixture', meets_reference_constraints: false,
-      search: {strategy: 'adaptive', training_wall_seconds: 60, trial_order: ['fixture']},
-      resource_accounting: {training_trial_cpu_seconds: 20.5},
+      checkpoint: {version: 1, phase: 'heldout', paused: true},
+      search: {strategy: 'adaptive', training_core_hours: 0.05, trial_order: ['fixture']},
+      resource_accounting: {training_trial_cpu_seconds: 20.5, training_elapsed_core_hours: 0.01},
       reference_kinds: ['synthetic-test'], pareto: [], test: {passes: false, convergence: {passes: false}},
       results: [{id: '<img src=x onerror=alert(1)>', status: 'evaluated', training: {cost_seconds: 1, worst_normalized_error: 0.2, convergence: {passes: true}}}]};
     await page.locator('#design-report-file').setInputFiles({name: 'report.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(report))});
@@ -91,8 +92,10 @@ const {AxeBuilder} = require('@axe-core/playwright');
     assert.match(await page.locator('#design-results').innerText(), /<img src=x/);
     assert.equal(await page.getByRole('columnheader', {name: 'Numerical stability'}).count(), 1);
     assert.equal(await page.getByText('Held-out numerical stability failed.', {exact: true}).count(), 1);
+    assert.equal(await page.getByText('Held-out evaluation paused. Resume from the local output directory.', {exact: true}).isVisible(), true);
     await page.getByText('Search allocation and budget', {exact: true}).click();
     assert.equal(await page.getByText('Measured training CPU time: 20.50 s', {exact: true}).isVisible(), true);
+    assert.equal(await page.getByText('Local training budget: 0.05 core-hours', {exact: true}).isVisible(), true);
     const designViolations = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     assert.deepEqual(designViolations.violations.map(v => v.id), [], 'design page accessibility');
     for (const route of ['/customize/', '/design/']) {

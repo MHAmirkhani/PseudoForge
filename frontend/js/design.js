@@ -45,8 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   editor.append(uploadLabel, label, textarea, notice, save,
-    make('pre', 'pseudoforge design protocol.json --plan -o design-plan\npseudoforge design protocol.json --pw /path/to/pw.x -o design-run'));
-  const results = make('section'); results.append(make('h2', 'Inspect a completed run'));
+    make('pre', 'pseudoforge design protocol.json --plan -o design-plan\npseudoforge design protocol.json --pw /path/to/pw.x -o design-run\npseudoforge design --status -o design-run\npseudoforge design --resume -o design-run'));
+  const results = make('section'); results.append(make('h2', 'Inspect a run'));
   const reportLabel = make('label', 'Load report.json');
   const reportFile = make('input'); reportFile.type = 'file'; reportFile.accept = '.json,application/json'; reportFile.id = 'design-report-file';
   reportLabel.append(reportFile);
@@ -55,6 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     view.replaceChildren();
     const report = JSON.parse(text);
     if (!report || report.schema_version !== 1 || !Array.isArray(report.results)) throw new Error('This is not a PseudoForge design report.');
+    const checkpoint = report.checkpoint;
+    if (checkpoint?.version === 1) {
+      const phases = {training: 'Training', heldout: 'Held-out evaluation', complete: 'Complete'};
+      const phase = phases[checkpoint.phase] || 'Unknown phase';
+      view.append(make('p', checkpoint.paused ? phase + ' paused. Resume from the local output directory.' : phase));
+      if (typeof checkpoint.active?.id === 'string') view.append(make('p', 'Active candidate: ' + checkpoint.active.id));
+    }
     view.append(make('p', 'Selected from training cases: ' + (report.selected || 'none')));
     if (report.search && typeof report.search.strategy === 'string') {
       const details = make('details');
@@ -62,8 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const search = report.search;
       details.append(make('p', 'Strategy: ' + search.strategy));
       if (Number.isFinite(search.training_wall_seconds)) details.append(make('p', 'Training budget: ' + search.training_wall_seconds + ' s'));
-      const cpu = report.resource_accounting?.training_trial_cpu_seconds;
+      if (Number.isFinite(search.training_core_hours)) details.append(make('p', 'Local training budget: ' + search.training_core_hours + ' core-hours'));
+      const usage = report.resource_accounting;
+      const cpu = usage?.training_trial_cpu_seconds;
       if (Number.isFinite(cpu)) details.append(make('p', 'Measured training CPU time: ' + cpu.toFixed(2) + ' s'));
+      const charged = usage?.training_elapsed_core_hours;
+      if (Number.isFinite(charged)) details.append(make('p', 'Charged elapsed core-hours: ' + charged.toPrecision(4)));
       if (typeof search.stop_reason === 'string') details.append(make('p', search.stop_reason));
       const order = make('ol');
       for (const id of Array.isArray(search.trial_order) ? search.trial_order : []) {

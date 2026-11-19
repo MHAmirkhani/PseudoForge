@@ -106,6 +106,33 @@ and is recorded separately. For reproducible performance comparisons, use
 the same resources, settings and budget across strategies. A serial local
 elapsed-time budget is distinct from a scheduler's allocated core-hours.
 
+On Linux, use `"training_core_hours"` in place of `"training_wall_seconds"`
+to restrict the run to one inherited logical CPU and cap elapsed training time
+on that CPU. For example, `0.05` allows 180 seconds of active training. Setup,
+held-out evaluation and measured child-process CPU time have separate fields
+in the report. A CPU affinity mask can share the physical core with other
+processes. Use the same host and an isolated CPU allocation for comparisons.
+
+## Continue an interrupted run
+
+```bash
+pseudoforge design --status -o ./si-design
+pseudoforge design --resume -o ./si-design
+```
+
+Use Ctrl+C or send SIGTERM to pause the process. The checkpoint retains
+completed trials, the seeded search history and the elapsed budget already used.
+An interrupted attempt keeps its logs and retries in a new directory if
+training budget remains. A paused held-out evaluation keeps the candidate
+chosen from training. The output directory has one writer at a time.
+
+Resume uses the archived protocol and checksums, including fixed
+pseudopotentials. It checks the identified generator and solver executables,
+configuration, installed sources and saved pseudopotentials. Keep any external
+engine parameters and runtime libraries pinned for the run. When an unclean
+exit leaves an active attempt, launch a fresh run to establish a reliable
+resource ledger. The public report viewer displays the saved phase and usage.
+
 Every benchmark has an `id`, `split`, local `input` template, `reference` and
 `tolerances`. A reference contains:
 

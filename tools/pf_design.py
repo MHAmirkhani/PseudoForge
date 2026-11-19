@@ -8,6 +8,8 @@ out cases are evaluated once after that decision and cannot change the choice.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import fcntl
 import hashlib
 import itertools
 import json
@@ -221,7 +223,7 @@ def load_protocol(path):
     convergence_settings(protocol)
     if "search" in protocol:
         search = protocol["search"]
-        keys(search, {"strategy", "seed", "max_trials", "training_wall_seconds"}, "search")
+        keys(search, {"strategy", "seed", "max_trials", "training_wall_seconds", "training_core_hours"}, "search")
         if search.get("strategy") not in ("random", "uniform", "adaptive", "bayesian"):
             raise ValueError("search strategy must be random, uniform, adaptive or bayesian")
         if type(search.get("seed")) is not int or not 0 <= search["seed"] < 2**64:
@@ -230,6 +232,12 @@ def load_protocol(path):
             raise ValueError("max_trials must be between 1 and the expanded candidate count")
         if "training_wall_seconds" in search:
             finite(search["training_wall_seconds"], "training wall budget", positive=True)
+        if "training_core_hours" in search:
+            if "training_wall_seconds" in search:
+                raise ValueError("choose one training budget")
+            hours = finite(search["training_core_hours"], "training core-hour budget", positive=True)
+            if not math.isfinite(hours * 3600):
+                raise ValueError("training core-hour budget is too large")
     fixed = protocol.get("fixed_pseudos", {})
     if not isinstance(fixed, dict):
         raise ValueError("fixed_pseudos must map symbols to local UPF paths")
@@ -406,32 +414,80 @@ def child_cpu_seconds():
     return usage.ru_utime + usage.ru_stime
 
 
-def execute(command, directory, logfile, env, timeout, stdin=None, *, deadline=None):
+class DesignInterrupted(Exception):
+    def __init__(self, signum):
+        self.signum = signum
+
+
+@contextmanager
+def capture_stop():
+    requested = None
+
+    def receive(signum, _frame):
+        nonlocal requested
+        requested = signum
+
+    def check():
+        if requested is not None:
+            raise DesignInterrupted(requested)
+
+    signals = (signal.SIGINT, signal.SIGTERM)
+    previous = {signum: signal.signal(signum, receive) for signum in signals}
+    try:
+        yield check
+    finally:
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
+
+
+def terminate_process(process, *, immediate=False):
+    try:
+        os.killpg(process.pid, signal.SIGKILL if immediate else signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+
+def execute(command, directory, logfile, env, timeout, stdin=None, *, deadline=None, check_stop=None):
     remaining = timeout if deadline is None else min(timeout, deadline - time.monotonic())
     if remaining <= 0:
         raise ValueError("training wall budget exhausted before starting the command")
+    if check_stop:
+        check_stop()
     started = time.perf_counter()
+    command_end = time.monotonic() + remaining
     with logfile.open("wb") as log:
         process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         try:
-            process.communicate(input=stdin, timeout=remaining)
+            if check_stop is None:
+                process.communicate(input=stdin, timeout=remaining)
+            else:
+                while True:
+                    check_stop()
+                    slice_seconds = min(0.25, command_end - time.monotonic())
+                    if slice_seconds <= 0:
+                        raise subprocess.TimeoutExpired(command, remaining)
+                    try:
+                        process.communicate(input=stdin, timeout=slice_seconds)
+                        break
+                    except subprocess.TimeoutExpired:
+                        stdin = None
+        except (DesignInterrupted, KeyboardInterrupt):
+            terminate_process(process, immediate=True)
+            raise
         except subprocess.TimeoutExpired as exc:
             # Kill the deadline-limited group immediately. Ordinary per-command
             # timeouts still give the executable a chance to shut down cleanly.
             deadline_limited = remaining < timeout
-            try:
-                os.killpg(process.pid, signal.SIGKILL if deadline_limited else signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
+            terminate_process(process, immediate=deadline_limited)
             reason = "training wall budget exhausted" if deadline_limited else "command timed out"
             raise ValueError(f"{reason}; see {logfile}") from exc
     if process.returncode:
@@ -439,7 +495,8 @@ def execute(command, directory, logfile, env, timeout, stdin=None, *, deadline=N
     return time.perf_counter() - started
 
 
-def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index=0, deadline=None):
+def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index=0, deadline=None,
+              check_stop=None, work_dir=None):
     # Every repeat has a distinct scratch directory. No candidate benefits
     # from another candidate's wavefunctions or a previous test's restart.
     by_id = {case["id"]: case for case in cases}
@@ -454,7 +511,7 @@ def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index
         measurements, durations = [], []
         text = Path(case["input"]).read_text()
         for repeat in range(protocol["repeats"] if not index else 1):
-            folder = project / directory / case["id"] / str(repeat + 1)
+            folder = (work_dir or project) / directory / case["id"] / str(repeat + 1)
             folder.mkdir(parents=True)
             scratch = folder / "scratch"
             scratch.mkdir()
@@ -471,7 +528,7 @@ def run_cases(protocol, candidate, project, cases, pw, env, *, level=None, index
             (folder / "input.in").write_text(rendered)
             logfile = folder / "output.out"
             durations.append(execute([pw], folder, logfile, env, protocol["timeout_seconds"],
-                                     rendered.encode(), deadline=deadline))
+                                     rendered.encode(), deadline=deadline, check_stop=check_stop))
             measurements.append(parse_qe(logfile.read_text(errors="replace"), len(case["composition"])))
         # Single-point calculations must be reproducible within their own
         # stated tolerances; use the worst error over repeats, never the best.
@@ -515,8 +572,9 @@ def numerical_drift(cases, earlier, later, fraction):
     return {"changes": errors, "worst_normalized_drift": worst, "passes": worst <= 1}
 
 
-def evaluate(protocol, candidate, project, cases, pw, env, *, deadline=None):
-    result = run_cases(protocol, candidate, project, cases, pw, env, deadline=deadline)
+def evaluate(protocol, candidate, project, cases, pw, env, *, deadline=None, check_stop=None, work_dir=None):
+    run_options = {"deadline": deadline, "check_stop": check_stop, "work_dir": work_dir}
+    result = run_cases(protocol, candidate, project, cases, pw, env, **run_options)
     if "convergence" not in protocol:
         return result
     check = protocol["convergence"]
@@ -527,7 +585,7 @@ def evaluate(protocol, candidate, project, cases, pw, env, *, deadline=None):
     for index, settings in enumerate(check["levels"], start=1):
         try:
             assessed = run_cases(protocol, candidate, project, cases, pw, env, level=settings,
-                                 index=index, deadline=deadline)
+                                 index=index, **run_options)
             fraction = check["tolerance_fraction"]
             entry = {"settings": settings, "assessment": assessed,
                      "from_previous": numerical_drift(cases, previous, assessed, fraction),
@@ -699,7 +757,7 @@ def adaptive_trials(trials, search, results, decisions):
             del arms[arm]
         decisions.append({"id": candidate["id"], "engine": arm[0], "family": arm[1], **reason})
         yield candidate, command
-        trial = results[-1]
+        trial = results[index]
         assessment = trial.get("training", {})
         # Stable feasible trials earn [0.5, 1]; other measured trials earn
         # less than 0.5. Failed generation or evaluation earns zero.
@@ -709,181 +767,421 @@ def adaptive_trials(trials, search, results, decisions):
             reward = 1 - 0.5 * error
         rewards[arm].append(reward)
         observed[arm].append((candidate, reward))
-        costs[arm].append(max(0.001, trial["trial_cpu_seconds"]))
+        costs[arm].append(max(0.001, trial["trial_cpu_seconds"] + trial.get("prior_interrupted_cpu_seconds", 0)))
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("protocol", type=Path)
-    parser.add_argument("-o", "--output", type=Path, required=True)
-    parser.add_argument("--plan", action="store_true", help="validate the protocol and engine controls without running solvers")
-    parser.add_argument("--pw", default=os.environ.get("PW_BIN", "pw.x"), help="QE pw.x executable (no shell launcher)")
-    args = parser.parse_args(argv)
-    protocol_path = args.protocol.resolve(strict=True)
-    protocol = load_protocol(protocol_path)
-    output = args.output.resolve()
-    if "'" in str(output) or "\n" in str(output) or "\r" in str(output):
-        raise ValueError("output path cannot contain apostrophes or newlines because QE consumes it as a Fortran path")
-    if output.exists() and (not output.is_dir() or any(output.iterdir())):
-        raise ValueError("output must be a new or empty directory; existing runs are never removed")
-    # Query real CLI capabilities before creating a project or launching any
-    # generator. Proxies cannot stand in for the reference XC in a design run.
-    response = subprocess.run([str(ROOT / "pseudoforge"), "api", "GET", "/api/xc"], capture_output=True, text=True, check=True, timeout=30)
-    functionals = json.loads(response.stdout)
-    found = next((item for item in functionals if item["id"] == protocol["xc"]), None)
+@contextmanager
+def lock_run(output):
+    fd = os.open(output, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise ValueError("another design process owns this output directory") from error
+        yield
+    finally:
+        os.close(fd)
+
+
+@contextmanager
+def core_allocation(search, *, plan):
+    if plan or "training_core_hours" not in search:
+        yield None
+        return
+    if not hasattr(os, "sched_getaffinity"):
+        raise ValueError("training_core_hours requires Linux CPU affinity")
+    cpus = os.sched_getaffinity(0)
+    cpu = min(cpus)
+    os.sched_setaffinity(0, {cpu})
+    try:
+        yield cpu
+    finally:
+        os.sched_setaffinity(0, cpus)
+
+
+def validate_commands(protocol, commands):
+    # Use exactly the same capability checks as ordinary Bash generation.
+    response = subprocess.run([str(ROOT / "pseudoforge"), "api", "GET", "/api/xc"],
+                              capture_output=True, text=True, check=True, timeout=30)
+    found = next((item for item in json.loads(response.stdout) if item["id"] == protocol["xc"]), None)
     if not found or found.get("status") == "proxy":
         raise ValueError("design requires a native XC functional; functional proxies cannot match its references")
-    commands = []
-    for candidate in protocol["candidates"]:
-        command = generation_args(protocol, candidate, output / candidate["id"])
-        checked = subprocess.run([str(ROOT / "pseudoforge"), "build-command", *command[2:]], capture_output=True, text=True, timeout=60)
+    for candidate, command in zip(protocol["candidates"], commands):
+        checked = subprocess.run([str(ROOT / "pseudoforge"), "build-command", *command[2:]],
+                                 capture_output=True, text=True, timeout=60)
         if checked.returncode:
             raise ValueError(f"{candidate['id']}: unsupported generation settings: {checked.stderr.strip()}")
-        commands.append(command)
-    output.mkdir(parents=True, exist_ok=True)
-    archive = output / "protocol-inputs"
+
+
+def execution_identity(protocol, pw, env):
+    # Fingerprint installed source as well as the actual engine paths; this
+    # also works for installations that do not have Git metadata.
+    source = hashlib.sha256()
+    paths = [ROOT / "pseudoforge", *ROOT.glob("lib/*.sh"), *ROOT.glob("tools/*.py"),
+             *ROOT.glob("tools/awk/*.awk"), *ROOT.glob("data/**/*")]
+    for path in sorted(p for p in paths if p.is_file()):
+        source.update(f"{path.relative_to(ROOT)}={digest(path)}\n".encode())
+    engines = {}
+    for name in sorted({c["engine"] for c in protocol["candidates"]}):
+        resolved = subprocess.run([str(ROOT / "pseudoforge"), "engines", "path", name],
+                                  env=env, capture_output=True, text=True, timeout=30)
+        path = Path(resolved.stdout.strip())
+        engines[name] = ({"path": str(path.resolve()), "sha256": digest(path)}
+                         if not resolved.returncode and path.is_file() else None)
+    rc = Path(env.get("PF_RC") or (Path.home() / ".pseudoforgerc")).resolve()
+    return {
+        "source_sha256": source.hexdigest(),
+        "engine_binaries": engines,
+        "config_sha256": digest(rc) if rc.is_file() else None,
+        "solver": {"path": str(Path(pw).resolve()), "sha256": digest(pw)},
+        "mpi_btl": env["OMPI_MCA_btl"],
+    }
+
+
+def archive_protocol(protocol, original, archive):
     archive.mkdir()
-    (archive / "original.json").write_bytes(protocol_path.read_bytes())
-    for case in protocol["benchmarks"]:
-        snapshot = archive / (case["id"] + ".in")
-        shutil.copyfile(case["input"], snapshot)
-        if digest(snapshot) != case["input_sha256"]:
-            raise ValueError("a benchmark changed during validation; repeat with immutable inputs")
-        case["input"] = str(snapshot)
-    for symbol, file in protocol["fixed_pseudos"].items():
-        snapshot = archive / (symbol + ".fixed.UPF")
-        shutil.copyfile(file, snapshot)
-        protocol["fixed_pseudos"][symbol] = str(snapshot)
+    (archive / "original.json").write_bytes(original)
     portable = json.loads(json.dumps(protocol))
     for case in portable["benchmarks"]:
-        case["input"] = Path(case["input"]).name
+        snapshot = archive / (case["id"] + ".in")
+        shutil.copyfile(case["input"], snapshot)
+        if digest(snapshot) != case.pop("input_sha256"):
+            raise ValueError("a benchmark changed during validation; repeat with immutable inputs")
+        case["input"] = snapshot.name
         case.pop("composition")
-        case.pop("input_sha256")
+    for symbol, file in portable["fixed_pseudos"].items():
+        snapshot = archive / (symbol + ".fixed.UPF")
+        original_digest = digest(file)
+        shutil.copyfile(file, snapshot)
+        if digest(snapshot) != original_digest:
+            raise ValueError(f"{symbol}: fixed pseudopotential changed during snapshot")
+        portable["fixed_pseudos"][symbol] = snapshot.name
     for candidate in portable["candidates"]:
         candidate.pop("grid", None)
-    portable["fixed_pseudos"] = {symbol: Path(file).name for symbol, file in protocol["fixed_pseudos"].items()}
     write_json(archive / "protocol.json", portable)
-    report = {"schema_version": 1, "protocol_sha256": digest(protocol_path), "selection_uses": "train only",
-              "selection_objective": protocol.get("selection", "cost"),
-              "frozen_protocol_sha256": digest(archive / "protocol.json"),
-              "host": {"platform": platform.platform(), "machine": platform.machine(), "python": platform.python_version(), "threads": 1},
-              "reference_description": protocol.get("reference_description", ""),
-              "verification_scope": "only the supplied cases, reference theory and tolerances; no guarantee for other materials",
-              "reference_kinds": sorted({case["reference"]["kind"] for case in protocol["benchmarks"]}),
-              "solver": None, "results": [], "selected": None, "pareto": [], "test": None,
-              "meets_reference_constraints": False, "plan_only": args.plan,
-              "commands": [shlex.join(command) for command in commands],
-              "fixed_pseudos": {el: {"path": file, "sha256": digest(file)} for el, file in protocol["fixed_pseudos"].items()}}
-    trials = list(zip(protocol["candidates"], commands))
-    search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
-    adaptive = search["strategy"] in ("adaptive", "bayesian")
-    decisions = []
-    if adaptive and not args.plan:
-        schedule = adaptive_trials(trials, search, report["results"], decisions)
-    else:
-        schedule = order_trials(trials, {**search, "strategy": "uniform"} if adaptive else search)
-    report["search"] = {**search, "trial_order": [], "candidate_count": len(commands)}
-    if adaptive and not args.plan:
-        report["search"]["decisions"] = decisions
-    elif not adaptive:
-        report["search"]["planned_order"] = [candidate["id"] for candidate, _ in schedule]
-    write_json(output / "report.json", report)
-    if args.plan:
-        env = dict(os.environ)
-        previews = []
-        for candidate, command in schedule:
-            preview = output / "previews" / candidate["id"]
-            command = command[:-1] + [str(preview), "--dry-run"]
-            execute(command, ROOT, output / (candidate["id"] + ".preview.log"), env, protocol["timeout_seconds"])
-            previews.append({"id": candidate["id"], "project": str(preview)})
-        report["search"]["trial_order"] = [preview["id"] for preview in previews]
-        if adaptive:
-            report["search"]["preview_schedule"] = "uniform preview; actual allocation depends on training results"
-        report["previews"] = previews
-        write_json(output / "report.json", report)
-        print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; planned trials: {len(previews)}; report: {output / 'report.json'}")
-        return 0
-    pw = shutil.which(args.pw)
-    if not pw:
-        raise ValueError("pw.x not found; specify --pw /absolute/path/to/pw.x")
-    report["solver"] = {"path": str(Path(pw).resolve()), "sha256": digest(pw)}
-    env = dict(os.environ, OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
-    env.setdefault("OMPI_MCA_btl", "^uct")
-    train = [case for case in protocol["benchmarks"] if case["split"] == "train"]
-    heldout = [case for case in protocol["benchmarks"] if case["split"] == "test"]
-    report["resource_accounting"] = {
-        "scope": "elapsed time and CPU time reported by the OS for reaped local child processes",
-        "generation_cpu_seconds": 0.0, "training_trial_cpu_seconds": 0.0,
-        "training_trial_wall_seconds": 0.0,
+    return {file.name: digest(file) for file in sorted(archive.iterdir())}
+
+
+def verify_inputs(archive, hashes):
+    for name, checksum in hashes.items():
+        if Path(name).name != name or digest(archive / name) != checksum:
+            raise ValueError(f"checkpoint input differs from its recorded checksum: {name}")
+
+
+def project_hashes(project):
+    return {file.name: digest(file) for file in sorted((project / "pseudos").iterdir())
+            if file.is_file() and file.suffix.lower() == ".upf"}
+
+
+def progress(report):
+    checkpoint = report.get("checkpoint", {})
+    return {
+        "phase": checkpoint.get("phase", "plan" if report.get("plan_only") else "legacy"),
+        "paused": checkpoint.get("paused", False),
+        "active": checkpoint.get("active"),
+        "completed_trials": len(report["results"]),
+        "selected": report["selected"],
+        "resource_accounting": report.get("resource_accounting"),
     }
+
+
+def run_training(protocol, output, report, commands, pw, env, check_stop):
+    checkpoint = report["checkpoint"]
+    search = report["search"]
     accounting = report["resource_accounting"]
+    results = report["results"]
+    elapsed_before = accounting["training_active_wall_seconds"]
+    started = time.monotonic()
     budget = search.get("training_wall_seconds")
-    deadline = None if budget is None else time.monotonic() + budget
-    for candidate, command in schedule:
-        if deadline is not None and time.monotonic() >= deadline:
-            if adaptive:
-                decisions.pop()
-            break
-        report["search"]["trial_order"].append(candidate["id"])
-        report["search"]["active_trial"] = candidate["id"]
+    if "training_core_hours" in search:
+        budget = search["training_core_hours"] * 3600  # affinity gives this run one logical CPU
+    deadline = None if budget is None else started + max(0, budget - elapsed_before)
+
+    def save():
+        elapsed = elapsed_before + time.monotonic() - started
+        accounting["training_active_wall_seconds"] = elapsed
+        if "training_core_hours" in search:
+            accounting["training_elapsed_core_hours"] = elapsed / 3600
         write_json(output / "report.json", report)
-        item = {"id": candidate["id"], "candidate": candidate, "status": "failed"}
-        project = output / candidate["id"]
-        started = time.perf_counter()
-        cpu_started = child_cpu_seconds()
+
+    train = [case for case in protocol["benchmarks"] if case["split"] == "train"]
+    trials = list(zip(protocol["candidates"], commands))
+    decisions = []
+    adaptive = search["strategy"] in ("adaptive", "bayesian")
+    schedule = adaptive_trials(trials, search, results, decisions) if adaptive else order_trials(trials, search)
+    for index, (candidate, command) in enumerate(schedule):
+        candidate_id = candidate["id"]
+        if index < len(results):
+            if (results[index]["id"] != candidate_id or
+                    (adaptive and decisions[-1] != search["decisions"][index])):
+                raise ValueError("checkpoint search history does not match the replayed schedule")
+            continue
+        try:
+            check_stop()
+        except DesignInterrupted:
+            save()
+            raise
+        if deadline is not None and time.monotonic() >= deadline:
+            search["stop_reason"] = "training budget exhausted"
+            break
+        prior = [entry for entry in checkpoint["interruptions"] if entry.get("id") == candidate_id
+                 and entry["phase"] == "training"]
+        path = Path(candidate_id) if not prior else Path(".attempts", candidate_id, str(len(prior) + 1))
+        project = output / path
+        log = output / (candidate_id + ".generation.log") if not prior else project.with_suffix(".generation.log")
+        log.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint["active"] = {"id": candidate_id, "path": str(path), "phase": "training"}
+        save()
+        item = {"id": candidate_id, "candidate": candidate, "status": "failed", "project": str(path)}
+        trial_start = time.monotonic()
+        cpu_before = child_cpu_seconds()
+        interrupted = None
         try:
             try:
-                execute(command, ROOT, output / (candidate["id"] + ".generation.log"), env,
-                        protocol["timeout_seconds"], deadline=deadline)
+                execute([*command[:-1], str(project)], ROOT, log, env, protocol["timeout_seconds"],
+                        deadline=deadline, check_stop=check_stop)
             finally:
-                item["generation_wall_seconds"] = time.perf_counter() - started
-                item["generation_cpu_seconds"] = child_cpu_seconds() - cpu_started
+                item["generation_wall_seconds"] = time.monotonic() - trial_start
+                item["generation_cpu_seconds"] = child_cpu_seconds() - cpu_before
             for symbol, file in protocol["fixed_pseudos"].items():
                 shutil.copyfile(file, project / "pseudos" / (symbol + ".fixed.UPF"))
-            # The generated UPF is selected independently of fixed species.
-            item["training"] = evaluate(protocol, candidate, project, train, pw, env, deadline=deadline)
+            item["pseudo_sha256"] = project_hashes(project)
+            item["training"] = evaluate(protocol, candidate, project, train, pw, env,
+                                        deadline=deadline, check_stop=check_stop)
             item["status"] = "evaluated"
-        except (ValueError, OSError) as exc:
-            item["error"] = str(exc)
-        item["trial_wall_seconds"] = time.perf_counter() - started
-        item["trial_cpu_seconds"] = child_cpu_seconds() - cpu_started
+        except DesignInterrupted as error:
+            interrupted = error
+        except (ValueError, OSError) as error:
+            item["error"] = str(error)
+        item["trial_wall_seconds"] = time.monotonic() - trial_start
+        item["trial_cpu_seconds"] = child_cpu_seconds() - cpu_before
         accounting["generation_cpu_seconds"] += item["generation_cpu_seconds"]
         accounting["training_trial_cpu_seconds"] += item["trial_cpu_seconds"]
         accounting["training_trial_wall_seconds"] += item["trial_wall_seconds"]
-        report["results"].append(item)
-        del report["search"]["active_trial"]
-        write_json(output / "report.json", report)
-        print(candidate["id"], item["status"], flush=True)
+        active = checkpoint["active"]
+        checkpoint["active"] = None
+        if interrupted:
+            checkpoint["paused"] = True
+            checkpoint["interruptions"].append({**active, "signal": interrupted.signum,
+                                                "cpu_seconds": item["trial_cpu_seconds"],
+                                                "wall_seconds": item["trial_wall_seconds"]})
+            save()
+            raise interrupted
+        if prior:
+            item["prior_interrupted_cpu_seconds"] = sum(entry["cpu_seconds"] for entry in prior)
+        results.append(item)
+        search["trial_order"].append(candidate_id)
+        if adaptive:
+            search["decisions"].append(decisions[-1])
+        save()
+        print(candidate_id, item["status"], flush=True)
     if deadline is not None and time.monotonic() >= deadline:
-        report["search"]["stop_reason"] = "training wall budget exhausted"
-    report["pareto"] = pareto(report["results"])
-    feasible = [item for item in report["results"] if item.get("training", {}).get("passes")]
+        search["stop_reason"] = "training budget exhausted"
+
+    report["pareto"] = pareto(results)
+    feasible = [item for item in results if item.get("training", {}).get("passes")]
     if feasible:
         criteria = ("cost_seconds", "worst_normalized_error")
         if report["selection_objective"] == "accuracy":
             criteria = tuple(reversed(criteria))
         winner = min(feasible, key=lambda item: (*(item["training"][key] for key in criteria), item["id"]))
         report["selected"] = winner["id"]
-        # Commit the decision to disk before opening any held-out calculation.
-        write_json(output / "report.json", report)
-        started = time.perf_counter()
-        cpu_started = child_cpu_seconds()
-        try:
-            report["test"] = evaluate(protocol, winner["candidate"], output / winner["id"], heldout, pw, env)
-            report["meets_reference_constraints"] = report["test"]["passes"] and "synthetic-test" not in report["reference_kinds"]
-        except (ValueError, OSError) as exc:
-            report["test"] = {"passes": False, "error": str(exc)}
-        finally:
-            accounting["heldout_cpu_seconds"] = child_cpu_seconds() - cpu_started
-            accounting["heldout_wall_seconds"] = time.perf_counter() - started
+        checkpoint["phase"] = "heldout"
+    else:
+        checkpoint["phase"] = "complete"
+    save()
+
+
+def run_heldout(protocol, output, report, pw, env, check_stop):
+    check_stop()
+    checkpoint = report["checkpoint"]
+    winner = next(item for item in report["results"] if item["id"] == report["selected"])
+    project = output / winner["project"]
+    heldout = [case for case in protocol["benchmarks"] if case["split"] == "test"]
+    retries = sum(entry["phase"] == "heldout" for entry in checkpoint["interruptions"])
+    work_dir = project / ".heldout-retries" / str(retries + 1) if retries else project
+    checkpoint["active"] = {"id": winner["id"], "path": str(work_dir.relative_to(output)), "phase": "heldout"}
     write_json(output / "report.json", report)
-    print(f"Selected using training data: {report['selected'] or 'none'}; report: {output / 'report.json'}")
+    started = time.monotonic()
+    cpu_before = child_cpu_seconds()
+    interrupted = None
+    try:
+        report["test"] = evaluate(protocol, winner["candidate"], project, heldout, pw, env,
+                                  check_stop=check_stop, work_dir=work_dir)
+        report["meets_reference_constraints"] = report["test"]["passes"] and "synthetic-test" not in report["reference_kinds"]
+    except DesignInterrupted as error:
+        interrupted = error
+    except (ValueError, OSError) as error:
+        report["test"] = {"passes": False, "error": str(error)}
+    cpu = child_cpu_seconds() - cpu_before
+    elapsed = time.monotonic() - started
+    accounting = report["resource_accounting"]
+    accounting["heldout_cpu_seconds"] = accounting.get("heldout_cpu_seconds", 0) + cpu
+    accounting["heldout_wall_seconds"] = accounting.get("heldout_wall_seconds", 0) + elapsed
+    active = checkpoint["active"]
+    checkpoint["active"] = None
+    if interrupted:
+        checkpoint["paused"] = True
+        checkpoint["interruptions"].append({**active, "signal": interrupted.signum,
+                                            "cpu_seconds": cpu, "wall_seconds": elapsed})
+    else:
+        checkpoint["phase"] = "complete"
+    write_json(output / "report.json", report)
+    if interrupted:
+        raise interrupted
+
+
+def design_run(args, output, check_stop):
+    setup_start = time.monotonic()
+    setup_cpu = child_cpu_seconds()
+    path = output / "report.json"
+    archive = output / "protocol-inputs"
+    if args.resume:
+        report = json.loads(path.read_text())
+        checkpoint = report.get("checkpoint", {})
+        if checkpoint.get("version") != 1:
+            raise ValueError("this report has no resumable design checkpoint")
+        if checkpoint["phase"] == "complete":
+            print(json.dumps(progress(report)))
+            return 0 if report["meets_reference_constraints"] else 2
+        if checkpoint["active"]:
+            raise ValueError("an unclean exit left an active attempt; its process and budget could not be verified. Start a fresh run")
+        verify_inputs(archive, checkpoint["inputs"])
+        protocol = load_protocol(archive / "protocol.json")
+        for item in report["results"]:
+            if item.get("pseudo_sha256") is not None and project_hashes(output / item["project"]) != item["pseudo_sha256"]:
+                raise ValueError(f"{item['id']}: checkpoint pseudopotential checksum mismatch")
+    else:
+        if any(output.iterdir()):
+            raise ValueError("output must be a new or empty directory; existing runs are never removed")
+        protocol_path = args.protocol.resolve(strict=True)
+        original = protocol_path.read_bytes()
+        protocol = load_protocol(protocol_path)
+        if protocol_path.read_bytes() != original:
+            raise ValueError("the protocol changed while loading it")
+    commands = [generation_args(protocol, candidate, output / candidate["id"])
+                for candidate in protocol["candidates"]]
+    trials = list(zip(protocol["candidates"], commands))
+    search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
+    adaptive = search["strategy"] in ("adaptive", "bayesian")
+    validate_commands(protocol, commands)
+    env = dict(os.environ, OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1")
+    env.setdefault("OMPI_MCA_btl", "^uct")
+    check_stop()
+
+    with core_allocation(search, plan=args.plan) as cpu:
+        if not args.plan:
+            requested_pw = args.pw or (report["solver"]["path"] if args.resume else env.get("PW_BIN", "pw.x"))
+            pw = shutil.which(requested_pw)
+            if not pw:
+                raise ValueError("pw.x not found; specify --pw /absolute/path/to/pw.x")
+            pw = str(Path(pw).resolve())
+            identity = execution_identity(protocol, pw, env)
+        if args.resume:
+            if identity != checkpoint["execution"]:
+                raise ValueError("solver, generator, configuration or source changed since the checkpoint")
+            checkpoint["resume_count"] += 1
+        else:
+            hashes = archive_protocol(protocol, original, archive)
+            protocol = load_protocol(archive / "protocol.json")
+            report = {
+                "schema_version": 1, "protocol_sha256": hashes["original.json"], "selection_uses": "train only",
+                "selection_objective": protocol.get("selection", "cost"), "frozen_protocol_sha256": hashes["protocol.json"],
+                "host": {"platform": platform.platform(), "machine": platform.machine(),
+                         "python": platform.python_version(), "threads": 1},
+                "reference_description": protocol.get("reference_description", ""),
+                "verification_scope": "only the supplied cases, reference theory and tolerances; no guarantee for other materials",
+                "reference_kinds": sorted({case["reference"]["kind"] for case in protocol["benchmarks"]}),
+                "solver": None if args.plan else identity["solver"],
+                "results": [], "selected": None, "pareto": [], "test": None,
+                "meets_reference_constraints": False, "plan_only": args.plan,
+                "commands": [shlex.join(command) for command in commands],
+                "fixed_pseudos": {el: {"path": file, "sha256": digest(file)}
+                                   for el, file in protocol["fixed_pseudos"].items()},
+                "search": {**search, "trial_order": [], "candidate_count": len(commands)},
+            }
+            if not adaptive:
+                report["search"]["planned_order"] = [candidate["id"] for candidate, _ in order_trials(trials, search)]
+            if args.plan:
+                previews = []
+                for candidate, command in order_trials(trials, {**search, "strategy": "uniform"} if adaptive else search):
+                    preview = output / "previews" / candidate["id"]
+                    command = command[:-1] + [str(preview), "--dry-run"]
+                    execute(command, ROOT, output / (candidate["id"] + ".preview.log"), env,
+                            protocol["timeout_seconds"], check_stop=check_stop)
+                    previews.append({"id": candidate["id"], "project": str(preview)})
+                report["search"]["trial_order"] = [preview["id"] for preview in previews]
+                if adaptive:
+                    report["search"]["preview_schedule"] = "uniform preview; actual allocation depends on training results"
+                report["previews"] = previews
+                write_json(path, report)
+                print(f"Validated {len(commands)} candidates and {len(protocol['benchmarks'])} cases; planned trials: {len(previews)}; report: {path}")
+                return 0
+            if adaptive:
+                report["search"]["decisions"] = []
+            checkpoint = {"version": 1, "phase": "training", "paused": False, "active": None,
+                          "resume_count": 0, "interruptions": [], "inputs": hashes, "execution": identity}
+            report["checkpoint"] = checkpoint
+            report["resource_accounting"] = {
+                "scope": "local elapsed time and OS CPU time for reaped child processes",
+                "generation_cpu_seconds": 0.0, "training_trial_cpu_seconds": 0.0,
+                "training_trial_wall_seconds": 0.0, "training_active_wall_seconds": 0.0,
+                "setup_wall_seconds": 0.0, "setup_cpu_seconds": 0.0,
+            }
+        accounting = report["resource_accounting"]
+        accounting["setup_wall_seconds"] += time.monotonic() - setup_start
+        accounting["setup_cpu_seconds"] += child_cpu_seconds() - setup_cpu
+        if cpu is not None:
+            accounting.setdefault("training_cpu_affinity_sessions", []).append(cpu)
+        checkpoint["paused"] = False
+        write_json(path, report)
+        try:
+            if checkpoint["phase"] == "training":
+                run_training(protocol, output, report, commands, pw, env, check_stop)
+            if checkpoint["phase"] == "heldout":
+                run_heldout(protocol, output, report, pw, env, check_stop)
+        except DesignInterrupted:
+            if not checkpoint["paused"]:
+                checkpoint["paused"] = True
+                write_json(path, report)
+            print(f"Design paused; resume with pseudoforge design --resume -o {shlex.quote(str(output))}", file=sys.stderr)
+            raise
+    print(f"Selected using training data: {report['selected'] or 'none'}; report: {path}")
     return 0 if report["meets_reference_constraints"] else 2
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--plan", action="store_true", help="validate inputs without running solvers")
+    mode.add_argument("--resume", action="store_true", help="continue a checkpoint from its archived inputs")
+    mode.add_argument("--status", action="store_true", help="print checkpoint progress as JSON")
+    parser.add_argument("protocol", type=Path, nargs="?")
+    parser.add_argument("-o", "--output", type=Path, required=True)
+    parser.add_argument("--pw", help="QE executable (defaults to PW_BIN or pw.x on new runs)")
+    args = parser.parse_args(argv)
+    needs_protocol = not (args.resume or args.status)
+    if bool(args.protocol) != needs_protocol:
+        parser.error("provide a protocol for a new run, or use --resume or --status with an output directory")
+    output = args.output.resolve()
+    if "'" in str(output) or "\n" in str(output) or "\r" in str(output):
+        raise ValueError("output path cannot contain apostrophes or newlines because QE consumes it as a Fortran path")
+    if args.status:
+        print(json.dumps(progress(json.loads((output / "report.json").read_text())), indent=2))
+        return 0
+    if not args.resume:
+        if output.exists() and not output.is_dir():
+            raise ValueError("output must be a directory")
+        output.mkdir(parents=True, exist_ok=True)
+    with lock_run(output), capture_stop() as check_stop:
+        return design_run(args, output, check_stop)
 
 
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except DesignInterrupted as error:
+        sys.exit(128 + error.signum)
     except (ValueError, OSError, subprocess.SubprocessError) as error:
         print(f"design: {error}", file=sys.stderr)
         sys.exit(1)

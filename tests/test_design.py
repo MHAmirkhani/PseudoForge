@@ -5,8 +5,10 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -296,6 +298,95 @@ JOB DONE.
         second = subprocess.run(command, env=env, text=True, capture_output=True, timeout=30)
         self.assertNotEqual(second.returncode, 0)
         self.assertIn("existing runs are never removed", second.stderr)
+
+    @unittest.skipUnless(hasattr(os, "sched_getaffinity"), "Linux CPU affinity")
+    def test_resume_replays_adaptive_history_and_keeps_the_heldout_selection(self):
+        second = dict(self.protocol["candidates"][0], id="second", ecutwfc=40)
+        self.protocol["candidates"].append(second)
+        self.protocol["search"] = {"strategy": "bayesian", "seed": 0, "max_trials": 2,
+                                   "training_core_hours": 0.025}
+        self.protocol["selection"] = "accuracy"
+        protocol = self.load()
+        seeded = design.order_trials([(c, None) for c in protocol["candidates"]],
+                                     {**protocol["search"], "strategy": "random"})
+        first, interrupted = [candidate for candidate, _ in seeded]
+        solver = self.root / "pw-fixture"
+        solver.write_text(f"""#!/usr/bin/env python3
+import os, pathlib, sys, time
+assert len(os.sched_getaffinity(0)) == 1
+text = sys.stdin.read()
+small_error = 'ecutwfc={first["ecutwfc"]},' in text
+phase = 'heldout' if '! test' in text else 'training'
+marker = pathlib.Path(__file__).with_name(phase + '.marker')
+if (phase == 'heldout' or not small_error) and not marker.exists():
+    marker.touch()
+    time.sleep(60)
+print('! total energy = -10 Ry')
+print('atom 1 type 1 force =', '0.0001' if small_error else '0.0', '0 0')
+print('JOB DONE.')
+""")
+        solver.chmod(0o755)
+        rc = self.root / "rc"
+        rc.touch()
+        env = dict(os.environ, PF_RC=str(rc), LD1_BIN=str(ROOT / "tests/mock/ld1.x"),
+                   MOCK_FAIL_ELEMENTS="", MOCK_FAIL_ALWAYS="")
+        output = self.root / "out"
+        cmd = [str(ROOT / "pseudoforge"), "design", "-o", str(output)]
+
+        def paused_run(command, phase, signum, check_lock=False):
+            process = subprocess.Popen(command, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                until = time.monotonic() + 90
+                while not (self.root / (phase + ".marker")).exists() and process.poll() is None:
+                    self.assertLess(time.monotonic(), until, "fixture solver never entered " + phase)
+                    time.sleep(0.05)
+                self.assertIsNone(process.poll())
+                if check_lock:
+                    busy = subprocess.run([*cmd, "--resume"], env=env, text=True, capture_output=True, timeout=15)
+                    self.assertIn("owns this output directory", busy.stderr)
+                process.send_signal(signum)
+                stdout, stderr = process.communicate(timeout=15)
+                self.assertEqual(process.returncode, 128 + signum, stdout + stderr)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate()
+            return json.loads((output / "report.json").read_text())
+
+        training = paused_run([*cmd, str(self.root / "protocol.json"), "--pw", str(solver)],
+                              "training", signal.SIGINT, check_lock=True)
+        self.assertEqual([r["id"] for r in training["results"]], [first["id"]])
+        self.assertEqual(training["checkpoint"]["interruptions"][0]["id"], interrupted["id"])
+        self.assertTrue(training["checkpoint"]["paused"])
+
+        status = subprocess.run([*cmd, "--status"], text=True, capture_output=True, check=True, timeout=15)
+        self.assertTrue(json.loads(status.stdout)["paused"])
+        (self.root / "protocol.json").unlink()
+        frozen = output / "protocol-inputs/train.in"
+        original = frozen.read_bytes()
+        frozen.write_bytes(original + b"\n")
+        refused = subprocess.run([*cmd, "--resume"], env=env, text=True, capture_output=True, timeout=15)
+        self.assertIn("checksum", refused.stderr)
+        frozen.write_bytes(original)
+
+        heldout = paused_run([*cmd, "--resume"], "heldout", signal.SIGTERM)
+        self.assertEqual(heldout["results"][0], training["results"][0])
+        self.assertEqual(heldout["selected"], interrupted["id"])
+        self.assertEqual(heldout["checkpoint"]["phase"], "heldout")
+        self.assertEqual(heldout["checkpoint"]["resume_count"], 1)
+        self.assertIsNone(heldout["test"])
+        self.assertGreater(heldout["resource_accounting"]["training_elapsed_core_hours"],
+                           training["resource_accounting"]["training_elapsed_core_hours"])
+
+        final = subprocess.run([*cmd, "--resume"], env=env, text=True, capture_output=True, timeout=90)
+        self.assertEqual(final.returncode, 2, final.stdout + final.stderr)
+        report = json.loads((output / "report.json").read_text())
+        self.assertEqual(report["checkpoint"]["phase"], "complete")
+        self.assertEqual(report["results"], heldout["results"])
+        self.assertEqual(report["selected"], heldout["selected"])
+        self.assertEqual(report["search"]["trial_order"], [first["id"], interrupted["id"]])
+        self.assertEqual(len(report["search"]["decisions"]), 2)
+        self.assertTrue(report["test"]["passes"])
 
 
 if __name__ == "__main__":
