@@ -35,6 +35,8 @@ h_out=$(capabilities_for && capabilities_render_human 2>&1)
 grep -q "With the store alone (this website):" <<< "$h_out" && ok_ "human output includes store alone" || bad_ "store alone missing"
 grep -q "With PseudoForge installed, no engines:" <<< "$h_out" && ok_ "human output includes cli no engines" || bad_ "no engines missing"
 grep -q "With PseudoForge and engines installed:" <<< "$h_out" && ok_ "human output includes cli with engines" || bad_ "with engines missing"
+grep -q "Single-engine defect repair" <<< "$h_out" && ok_ "human output includes single-engine defect repair" || bad_ "single-engine repair missing"
+grep -q "Cross-engine parameter repair" <<< "$h_out" && ok_ "human output includes cross-engine parameter repair" || bad_ "cross-engine repair missing"
 grep -q "Install:  ./install.sh --bootstrap" <<< "$h_out" && ok_ "human output includes install command" || bad_ "install command missing"
 grep -q "docs/getting-started/installation.md" <<< "$h_out" && ok_ "human output includes docs path" || bad_ "docs path missing"
 
@@ -43,6 +45,8 @@ j_out=$(capabilities_for && capabilities_render_json 2>&1)
 grep -q '"store_alone":' <<< "$j_out" && ok_ "json output includes store_alone" || bad_ "store_alone missing from json"
 grep -q '"cli_no_engines":' <<< "$j_out" && ok_ "json output includes cli_no_engines" || bad_ "cli_no_engines missing from json"
 grep -q '"cli_with_engines":' <<< "$j_out" && ok_ "json output includes cli_with_engines" || bad_ "cli_with_engines missing from json"
+grep -q '"Single-engine defect repair' <<< "$j_out" && ok_ "json includes single-engine repair" || bad_ "json single-engine repair missing"
+grep -q '"Cross-engine parameter repair' <<< "$j_out" && ok_ "json includes cross-engine repair" || bad_ "json cross-engine repair missing"
 grep -q '"supported": true' <<< "$j_out" && ok_ "json output includes supported true" || bad_ "supported true missing"
 grep -q '"supported": false' <<< "$j_out" && ok_ "json output includes supported false" || bad_ "supported false missing"
 

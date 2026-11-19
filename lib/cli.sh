@@ -231,13 +231,15 @@ usage: pseudoforge list <what>
   elements     the periodic table as PseudoForge sees it
   recipes      saved recipes
   sets         PSlibrary sets and their coverage
+  defects      known defect taxonomy [--engine NAME]
 EOF
         ;;
         show) cat <<'EOF'
 usage: pseudoforge show <profile>
+       pseudoforge show defect <id>
 
-Full description of a library profile: what it publishes, what can be
-generated for it, its provenance, licence and citation.
+Show full description of a library profile, or inspect a defect from the
+taxonomy with its single-engine and cross-engine repair strategies.
 EOF
         ;;
         recipe) cat <<'EOF'
@@ -1168,14 +1170,63 @@ cmd_list() {
         # SSSP is a table of choices, not a library, so it gets its own view:
         # which library won each element and at what cut-off.
         sssp_report "${SPEC[xc]:-pbe}" ;;
-    *) die "list what?  profiles | functionals | formats | elements | sets | sssp | recipes <element>" ;;
+    defects)
+        shift
+        local eng=""
+        while [ $# -gt 0 ]; do
+            case $1 in
+                --engine) eng=$2; shift 2 ;;
+                --engine=*) eng=${1#*=}; shift ;;
+                *) [ -z "$eng" ] && eng=$1; shift ;;
+            esac
+        done
+        banner "Known pseudopotential defects"
+        local tax="${PF_DATA:-$PF_ROOT/data}/defects/taxonomy.tsv"
+        [ -f "$tax" ] || die "taxonomy not found: $tax"
+        printf '  %-20s %-10s %-18s %-20s %s\n' DEFECT_ID ENGINE CLASS STRATEGY CROSS_STRATEGY
+        printf '  %s\n' "$(printf '%.0s-' $(seq 1 88))"
+        tail -n +2 "$tax" | while IFS=$'\t' read -r did d_eng d_class det d_loc strat params ev_src x_strat x_src; do
+            case $did in ''|\#*) continue ;; esac
+            if [ -n "$eng" ] && [ "$d_eng" != "$eng" ] && [ "$d_eng" != "any" ]; then
+                continue
+            fi
+            printf '  %-20s %-10s %-18s %-20s %s\n' "$did" "$d_eng" "$d_class" "$strat" "${x_strat:--}"
+        done
+        ;;
+    *) die "list what?  profiles | functionals | formats | elements | sets | sssp | recipes <element> | defects [--engine NAME]" ;;
     esac
 }
 
 cmd_show() {
     case "${1:-}" in -h|--help) cli_help_for show; return 0 ;; esac
+    if [ "${1:-}" = "defect" ]; then
+        shift
+        local id=${1:-}
+        [ -n "$id" ] || die "usage: pseudoforge show defect <id>"
+        local tax="${PF_DATA:-$PF_ROOT/data}/defects/taxonomy.tsv"
+        [ -f "$tax" ] || die "taxonomy not found: $tax"
+        local found=0
+        while IFS=$'\t' read -r did d_eng d_class det d_loc strat params ev_src x_strat x_src; do
+            case $did in ''|\#*) continue ;; esac
+            [ "$did" = "$id" ] || continue
+            found=1
+            banner "Defect: $did"
+            printf '  %-22s %s\n' "Engine:" "$d_eng"
+            printf '  %-22s %s\n' "Defect Class:" "$d_class"
+            printf '  %-22s %s\n' "Detector:" "$det"
+            printf '  %-22s %s\n' "Detector Location:" "$d_loc"
+            printf '  %-22s %s\n' "Single-Engine Repair:" "$strat"
+            printf '  %-22s %s\n' "Repair Parameters:" "$params"
+            printf '  %-22s %s\n' "Cross-Engine Strategy:" "${x_strat:-(none)}"
+            [ -n "$x_src" ] && printf '  %-22s %s\n' "Cross-Engine Donor:" "$x_src"
+            printf '  %-22s %s\n' "Evidence Source:" "$ev_src"
+            break
+        done < "$tax"
+        [ "$found" -eq 1 ] || die "unknown defect: $id"
+        return 0
+    fi
     local id=${1:-}
-    [ -n "$id" ] || die "usage: pseudoforge show <profile>"
+    [ -n "$id" ] || die "usage: pseudoforge show <profile> | show defect <id>"
     prof_exists "$id" || die "unknown profile: $id"
     printf '\n'; prof_describe "$id"; printf '\n'
     if prof_is_generatable "$id" && [ "$id" != pseudoforge-auto ]; then

@@ -98,10 +98,11 @@ const {AxeBuilder} = require('@axe-core/playwright');
     assert.equal(await page.getByText('Local training budget: 0.05 core-hours', {exact: true}).isVisible(), true);
     const designViolations = await new AxeBuilder({page}).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     assert.deepEqual(designViolations.violations.map(v => v.id), [], 'design page accessibility');
-    for (const route of ['/customize/', '/design/']) {
+    for (const route of ['/customize/', '/design/', '/repair/']) {
       await page.setViewportSize({width: 390, height: 844});
       await page.goto(base + route);
-      await page.locator(route === '/customize/' ? '#custom-engine' : '#design-protocol').waitFor();
+      const sel = route === '/customize/' ? '#custom-engine' : (route === '/design/' ? '#design-protocol' : '#repair-app');
+      await page.locator(sel).waitFor();
       const widths = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
       assert.ok(widths[0] <= widths[1], `horizontal overflow on ${route}: ${widths}`);
     }

@@ -46,6 +46,10 @@ pseudoforge api POST /api/convert body.json
 | `GET` | `/api/download/:id...` | Serve a native or converted file |
 | `POST` | `/api/validate` | Validate an uploaded pseudopotential |
 | `POST` | `/api/generate` | Refused here: generation is a local operation |
+| `GET` | `/api/defects` | Enumerate known pseudopotential defect taxonomy |
+| `GET` | `/api/defects/:id` | Inspect one defect from the taxonomy |
+| `POST` | `/api/repair/plan` | Detect defects and preview repair strategies without execution |
+| `POST` | `/api/repair/apply` | Execute a single-engine or cross-engine repair in an isolated workspace |
 
 <!-- generated:end -->
 

@@ -74,6 +74,8 @@ tui_help() {
         validation) doc=explanation/physics.md;  anchor="After generation" ;;
         advanced)   doc=explanation/physics.md;  anchor="Cut-off radii" ;;
         elements)   doc=getting-started/quickstart.md ;;
+        evidence|ladder) doc=contributing/evidence-status.md; anchor="Evidence ladder" ;;
+        repair)     doc=how-to/cross-engine-repair.md ;;
         *)          doc=getting-started/quickstart.md ;;
     esac
 
@@ -94,6 +96,67 @@ tui_help() {
         ui_text "Help -- docs/$doc" "$path" 22 76
     fi
     return 0
+}
+
+tui_evidence_ladder() {
+    local tmp; tmp=$(mktemp)
+    cat <<'EOF' > "$tmp"
+PseudoForge Evidence Ladder (L1-L6) & Verification Status
+=========================================================
+
+L1: Native Generation
+    Underlying engine completes without crash or non-zero exit code.
+    Status: Verified across all 9 engines (69/0/0 audit).
+
+L2: Valid Serialisation
+    Generated pseudopotential parses cleanly under upf_validate and lib/formats.
+    Status: Verified across all 9 engines.
+
+L3: Consumer SCF Convergence
+    Target DFT consumer (Quantum ESPRESSO, etc.) reaches ground-state SCF.
+    Status: Verified across all 9 engines.
+
+L4: Atomic Diagnostics
+    Ghost checks, logarithmic derivatives, core-valence energy conservation.
+    Status: Strong across all 9 engines.
+
+L5: Material Accuracy
+    Lattice constant / bulk modulus vs independent all-electron reference (ACWF).
+    Status: Verified for Silicon (ONCVPSP 1.89 -> 1.26 meV/atom, ld1 ~0.3 meV/atom).
+
+L6: Independent Transferability
+    Verification on an independent chemical family with non-overlapping calibration.
+    Status: EMPTY.
+    - Holdout lockbox permanently in calibration: Si diamond, TiO, TiO2, silane, silanone.
+    - Germanium diamond row-4 cross-engine transfer failed (negative result registered).
+
+Semantics & Budget:
+  training_core_hours is single-logical-CPU active training wall time enforced by
+  CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are
+  future work.
+EOF
+    ui_text "Evidence Ladder (L1-L6)" "$tmp" 24 78
+    rm -f "$tmp"
+}
+
+tui_help_menu() {
+    local hchoice
+    UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+    hchoice=$(ui_menu "PseudoForge Help & Documentation" \
+        "Select documentation topic or evidence status:" 18 70 \
+        evidence  "Evidence ladder (L1-L6) & verification status overlay" \
+        overview  "Getting started and quickstart guide" \
+        physics   "Physics choices: family, functional, relativity" \
+        repair    "Cross-engine repair and defect taxonomy" \
+        engines   "Engine capabilities, licenses and binaries") || return 0
+
+    case $hchoice in
+        evidence) tui_evidence_ladder ;;
+        overview) tui_help overview ;;
+        physics)  tui_help family ;;
+        repair)   tui_help repair ;;
+        engines)  tui_help engine ;;
+    esac
 }
 
 # ---------------------------------------------------------------------------
@@ -409,6 +472,7 @@ tui_main() {
             recipes  "Browse the recipe database" \
             xc       "Exchange-correlation functionals" \
             validate "Validate existing pseudopotentials" \
+            repair   "Detect and repair defects in pseudopotential outputs" \
             import   "Import a third-party library and test it" \
             reports  "Open a previous project's report" \
             settings "Settings ($PF_RC)" \
@@ -426,12 +490,13 @@ tui_main() {
             recipes)  ui_browse_recipes ;;
             xc)       ui_browse_xc ;;
             validate) ui_validate ;;
+            repair)   tui_repair ;;
             import)   ui_import ;;
             reports)  ui_reports ;;
             settings) ui_settings ;;
             doctor)   tui_doctor_panel ;;
             history)  tui_history_show ;;
-            help)     tui_help overview ;;
+            help)     tui_help_menu ;;
         esac
     done
 }
@@ -711,4 +776,191 @@ tui_capabilities() {
     fi
     ui_text "PseudoForge Capabilities" "$tmp" 24 78
     rm -f "$tmp"
+}
+
+# ---------------------------------------------------------------------------
+# tui_repair -- interactive defect detection and repair
+# Flow: select project -> detect defects -> choose strategy -> dry-run -> apply
+# Back-navigation preserves project selection but clears strategy selection.
+# ---------------------------------------------------------------------------
+tui_repair() {
+    if ! type cmd_repair >/dev/null 2>&1; then
+        . "$PF_LIB/repair.sh" || { ui_msg "Error" "Could not load repair module." 8 50; return 1; }
+    fi
+    tax_load
+
+    local proj=""
+    while : ; do
+        # 1. Project selection: if not set, prompt user
+        if [ -z "$proj" ]; then
+            local items=()
+            local d
+            if [ -d "$OUTPUT_BASE_DIR" ]; then
+                for d in "$OUTPUT_BASE_DIR"/*/; do
+                    [ -d "$d" ] || continue
+                    [ -f "$d/state.tsv" ] || [ -f "$d/manifest" ] || [ -f "$d/reports/summary.json" ] || continue
+                    local pdir="${d%/}"
+                    local psum
+                    psum=$(basename "$pdir")
+                    if [ -f "$d/state.tsv" ]; then
+                        psum="$psum ($(awk -F'\t' '!/^#/&&NF{n++} END{printf "%d elements", n+0}' "$d/state.tsv"))"
+                    fi
+                    items+=("$pdir" "$psum")
+                done
+            fi
+
+            UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+            if [ ${#items[@]} -gt 0 ]; then
+                items=("custom" "Enter custom project directory path..." "${items[@]}")
+                proj=$(ui_menu "Select Project to Repair" \
+                    "Choose an existing project to inspect for known defects:" 22 76 "${items[@]}") || return 0
+                if [ "$proj" = "custom" ]; then
+                    proj=$(ui_input "Project Directory" "Path to PseudoForge project:" 9 70 "$OUTPUT_BASE_DIR") || { proj=""; continue; }
+                fi
+            else
+                proj=$(ui_input "Project Directory" "Enter path to PseudoForge project directory:" 9 70 "$OUTPUT_BASE_DIR") || return 0
+            fi
+            [ -n "$proj" ] || return 0
+        fi
+
+        [ -d "$proj" ] || {
+            ui_msg "Directory Not Found" "Project directory does not exist:\n\n$proj" 10 70
+            proj=""
+            continue
+        }
+
+        # 2. Defect detection
+        local eng="" el="Si"
+        if [ -f "$proj/PROVENANCE.txt" ]; then
+            eng=$(awk -F= '$1=="engine.id" {print $2}' "$proj/PROVENANCE.txt" | tr -d ' \r\n')
+        fi
+        if [ -z "$eng" ] && [ -f "$proj/reports/summary.json" ]; then
+            eng=$(grep -oE '"engine": "[^"]+"' "$proj/reports/summary.json" | head -1 | cut -d'"' -f4)
+        fi
+        if [ -z "$eng" ] && [ -f "$proj/state.tsv" ]; then
+            eng=$(awk -F'\t' '!/^#/ && NF {print $3; exit}' "$proj/state.tsv")
+        fi
+        if [ -z "$eng" ]; then
+            case $(basename "$proj") in
+                *ape*) eng="ape" ;;
+                *adpack*) eng="adpack" ;;
+                *atompaw*) eng="atompaw" ;;
+                *oncv*) eng="oncvpsp" ;;
+                *fhi*) eng="fhi98pp" ;;
+                *opium*) eng="opium" ;;
+                *uspp*) eng="uspp" ;;
+                *gth*) eng="gth" ;;
+                *ld1*) eng="ld1" ;;
+            esac
+        fi
+
+        local detected=()
+        local did det det_fn
+        for did in "${TAX_IDS[@]}"; do
+            local t_eng="${TAX_ENGINE[$did]}"
+            if [ -n "$eng" ] && [ "$t_eng" != "$eng" ] && [ "$t_eng" != "any" ]; then
+                continue
+            fi
+            det="${TAX_DETECTOR[$did]}"
+            [ "$det" = "none" ] && continue
+            det_fn="$det"
+            case "$det_fn" in detect_*) ;; *) det_fn="detect_${det_fn}" ;; esac
+            if type "$det_fn" >/dev/null 2>&1; then
+                if "$det_fn" "$proj" "$t_eng" "$el"; then
+                    detected+=("$did")
+                fi
+            fi
+        done
+
+        if [ ${#detected[@]} -eq 0 ]; then
+            ui_msg "Defect Detection" "No defects detected in project:\n$proj\n\nAll verified detectors report clean outputs." 12 70
+            proj=""
+            continue
+        fi
+
+        # Defect selection menu
+        local d_items=()
+        for did in "${detected[@]}"; do
+            d_items+=("$did" "${TAX_CLASS[$did]} (${TAX_ENGINE[$did]})")
+        done
+
+        UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+        local sel_defect
+        sel_defect=$(ui_menu "Detected Defects" \
+            "The following defect(s) were found in $(basename "$proj"). Select one to repair:" \
+            20 76 "${d_items[@]}") || {
+            # User pressed Back: clear project selection to go back to project selector
+            proj=""
+            continue
+        }
+        [ -n "$sel_defect" ] || { proj=""; continue; }
+
+        # 3. Strategy selection loop
+        # Back-navigation preserves project selection but clears strategy selection
+        while : ; do
+            local strat_items=()
+            strat_items+=("single_engine_repair" "Single-engine: ${TAX_STRATEGY[$sel_defect]} (${TAX_PARAMS[$sel_defect]})")
+            if [ -n "${TAX_CROSS_STRAT[$sel_defect]}" ] && [ "${TAX_CROSS_STRAT[$sel_defect]}" != "none" ]; then
+                strat_items+=("cross_engine_repair" "Cross-engine: ${TAX_CROSS_STRAT[$sel_defect]} (donor: ${TAX_CROSS_SOURCE[$sel_defect]})")
+            fi
+
+            UI_OK_LABEL=Select UI_CANCEL_LABEL=Back
+            local chosen_strat
+            chosen_strat=$(ui_menu "Repair Strategy: $sel_defect" \
+                "Select repair strategy to apply for $sel_defect:" \
+                18 78 "${strat_items[@]}") || {
+                # User pressed Back: breaks strategy loop, returns to defect selection, preserves proj!
+                break
+            }
+            [ -n "$chosen_strat" ] || break
+
+            # 4. Dry-run preview
+            local donor=""
+            if [ "$chosen_strat" = "cross_engine_repair" ]; then
+                donor="${TAX_CROSS_SOURCE[$sel_defect]}"
+            fi
+
+            local preview_text
+            preview_text=$(cmd_repair "$proj" --defect "$sel_defect" --strategy "$chosen_strat" ${donor:+--donor-engine "$donor"} --dry-run 2>&1)
+
+            local tmp_prev; tmp_prev=$(mktemp)
+            cat <<EOF > "$tmp_prev"
+REPAIR PREVIEW (DRY-RUN)
+========================
+Project:    $proj
+Defect ID:  $sel_defect
+Strategy:   $chosen_strat
+${donor:+Donor:      $donor
+}
+Details from Taxonomy:
+  Engine:       ${TAX_ENGINE[$sel_defect]}
+  Defect Class: ${TAX_CLASS[$sel_defect]}
+  Detector:     ${TAX_DETECTOR[$sel_defect]} (${TAX_DETECTOR_LOC[$sel_defect]})
+  Evidence:     ${TAX_EVIDENCE[$sel_defect]}
+
+Dry-run Output:
+$preview_text
+
+Non-Destructive Execution Contract:
+Original outputs in $proj are permanently preserved.
+Repaired outputs will be written to:
+  $proj/repair/$sel_defect/<timestamp>/
+and recorded into reports/summary.json.
+EOF
+            UI_OK_LABEL="Apply Repair" UI_CANCEL_LABEL="Back"
+            if ui_yesno "Dry-run Preview: $sel_defect" "$(cat "$tmp_prev")" 22 78; then
+                rm -f "$tmp_prev"
+                # 5. Apply
+                local apply_out
+                apply_out=$(cmd_repair "$proj" --defect "$sel_defect" --strategy "$chosen_strat" ${donor:+--donor-engine "$donor"} 2>&1)
+                ui_msg "Repair Applied" "Repair successfully applied!\n\n$apply_out\n\nOriginal files preserved; report updated." 20 78
+                # After apply, return to defect selection for this project
+                break
+            else
+                rm -f "$tmp_prev"
+                # User pressed Back from preview: preserves project selection, clears strategy selection
+                continue
+            fi
+        done
+    done
 }

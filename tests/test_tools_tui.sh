@@ -23,7 +23,7 @@ bad_()  { printf '  %sFAIL%s  %s\n' "$RED" "$RESET" "$1"; [ -n "${2:-}" ] && pri
 skip_() { printf '  SKIP  %s\n' "$1"; skip=$((skip + 1)); }
 
 # 1. Functions are defined
-for fn in tui_tools tui_advise tui_provenance tui_element tui_coverage tui_recent tui_capabilities; do
+for fn in tui_tools tui_advise tui_provenance tui_element tui_coverage tui_recent tui_capabilities tui_repair tui_evidence_ladder; do
     if declare -F "$fn" >/dev/null; then
         ok_ "function $fn is defined"
     else
@@ -168,6 +168,15 @@ MOCK_TEXT_TITLE=""
 MOCK_TEXT_BODY=""
 tui_recent
 grep -q "Recent Files" <<< "$MOCK_TEXT_TITLE" && ok_ "tui_recent sets correct title" || bad_ "tui_recent title mismatch"
+
+# Test tui_evidence_ladder
+MOCK_TEXT_TITLE=""
+MOCK_TEXT_BODY=""
+tui_evidence_ladder
+grep -q "Evidence Ladder (L1-L6)" <<< "$MOCK_TEXT_TITLE" && ok_ "tui_evidence_ladder sets correct title" || bad_ "tui_evidence_ladder title mismatch"
+grep -q "L1: Native Generation" <<< "$MOCK_TEXT_BODY" && ok_ "tui_evidence_ladder renders L1" || bad_ "tui_evidence_ladder L1 missing"
+grep -q "L6: Independent Transferability" <<< "$MOCK_TEXT_BODY" && ok_ "tui_evidence_ladder renders L6" || bad_ "tui_evidence_ladder L6 missing"
+grep -q "training_core_hours" <<< "$MOCK_TEXT_BODY" && ok_ "tui_evidence_ladder renders budget semantics" || bad_ "tui_evidence_ladder budget disclaimer missing"
 
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \

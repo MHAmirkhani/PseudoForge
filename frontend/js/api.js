@@ -83,6 +83,10 @@ const API = (() => {
     compare: (a, b) => post('/compare', { a, b }),
     recent:     (count)  => get('/recent' + (count ? '?count=' + encodeURIComponent(count) : '')),
     capabilities: ()     => get('/capabilities'),
+    defects:      ()     => get('/defects'),
+    defect:       (id)   => get('/defects/' + encodeURIComponent(id)),
+    repairPlan:   (data) => post('/repair/plan', data),
+    repairApply:  (data) => post('/repair/apply', data),
     downloadUrl: (id) => base + '/download/' + encodeURIComponent(id),
   };
 })();

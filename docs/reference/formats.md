@@ -87,7 +87,7 @@ not work.
 
 **`fhi` to `psp8`** (no-tool)
 
-> No tool performs this conversion. ABINIT format 6 uses CPI radial records preceded by its own metadata header. For psp8 specifically, generate it with `--engine oncvpsp --format psp8`.
+> No tool performs this conversion. ABINIT format 6 uses CPI radial records preceded by its own metadata header. For psp8 specifically, generate it with --engine oncvpsp --format psp8.
 
 **`cpi` to `upf`** (no-tool)
 

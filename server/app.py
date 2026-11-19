@@ -314,6 +314,52 @@ def routes():
     return JSONResponse(status_code=status, content=body)
 
 
+@app.get("/api/defects")
+def defects():
+    return _passthrough("/api/defects")
+
+
+@app.get("/api/defects/{id}")
+def defect(id: str):
+    return _passthrough(f"/api/defects/{id}")
+
+
+@app.post("/api/repair/plan")
+async def repair_plan(request: Request):
+    raw = await request.body()
+    if len(raw) > 64 * 1024:
+        return JSONResponse(
+            status_code=413,
+            content={"error": "body_too_large", "message": "A repair plan request is a small JSON object."},
+        )
+    with tempfile.NamedTemporaryFile("wb", suffix=".json", delete=False) as fh:
+        fh.write(raw)
+        tmp = fh.name
+    try:
+        status, body = call_core("POST", "/api/repair/plan", tmp)
+    finally:
+        os.unlink(tmp)
+    return JSONResponse(status_code=status, content=body)
+
+
+@app.post("/api/repair/apply")
+async def repair_apply(request: Request):
+    raw = await request.body()
+    if len(raw) > 64 * 1024:
+        return JSONResponse(
+            status_code=413,
+            content={"error": "body_too_large", "message": "A repair apply request is a small JSON object."},
+        )
+    with tempfile.NamedTemporaryFile("wb", suffix=".json", delete=False) as fh:
+        fh.write(raw)
+        tmp = fh.name
+    try:
+        status, body = call_core("POST", "/api/repair/apply", tmp)
+    finally:
+        os.unlink(tmp)
+    return JSONResponse(status_code=status, content=body)
+
+
 # --------------------------------------------------------------------------
 # Convert and download.
 # --------------------------------------------------------------------------

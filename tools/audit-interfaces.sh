@@ -626,7 +626,7 @@ missing_case=$(printf '%s\n' $missing_case | tr '\n' ' ' | sed 's/^ //;s/ $//')
 # not a function, and is checked separately by the count below.
 missing_fn=""
 for fn in tui_wizard ui_quick ui_browse_profiles ui_browse_recipes \
-          ui_browse_xc ui_validate ui_import ui_reports ui_settings \
+          ui_browse_xc ui_validate tui_repair ui_import ui_reports ui_settings \
           tui_doctor_panel tui_history_show tui_help tui_load_recipe; do
     declare -F "$fn" >/dev/null 2>&1 || missing_fn="$missing_fn $fn"
 done
@@ -1686,11 +1686,16 @@ fi
 # The four store routes have to appear in it, or a client reads a route
 # list that omits the endpoint it is about to call.
 routes=$("$PSM" api --routes 2>/dev/null)
-for r in /api/native /api/native/:id /api/download/:id...; do
+for r in /api/native /api/native/:id /api/download/:id... /api/defects /api/defects/:id /api/repair/plan /api/repair/apply; do
     printf '%s\n' "$routes" | grep -q -- "$r" \
         && ok_ "route $r is declared" \
         || bad_ "route $r is missing from /api --routes"
 done
+
+# Static HTML for core feature pages
+[ -f "$ROOT/frontend/repair/index.html" ] \
+    && ok_ "static HTML exists for /repair/" \
+    || bad_ "missing static HTML for /repair/"
 
 # ---------------------------------------------------------------------------
 section "Q. every tool is reachable from CLI and TUI"

@@ -83,7 +83,8 @@ n=$(printf '%s\n' "$routes" | grep -c '^\(GET\|POST\)')
     && ok_ "$n routes declared" || bad_ "only $n routes"
 
 for want in /api/health /api/version /api/routes /api/engines /api/formats /api/profiles /api/xc \
-            /api/elements /api/native /api/convert /api/validate /api/generate; do
+            /api/elements /api/native /api/convert /api/validate /api/generate \
+            /api/defects /api/repair/plan /api/repair/apply; do
     printf '%s\n' "$routes" | grep -q " $want\b" \
         && ok_ "$want is declared" || bad_ "$want is missing from the table"
 done
@@ -125,6 +126,33 @@ done
 body=$("$PSM" api GET /api/engines/ape 2>/dev/null)
 json_has "$body" 'families' && ok_ "GET /api/engines/:name returns the engine" \
                             || bad_ "engine detail is missing fields"
+
+api GET /api/defects
+[ "$API_STATUS" = 200 ] && ok_ "GET /api/defects is 200" || bad_ "defects gave $API_STATUS"
+def_body=$("$PSM" api GET /api/defects 2>/dev/null)
+grep -q 'ape-si-ghost' <<< "$def_body" && ok_ "defects list includes ape-si-ghost" || bad_ "ape-si-ghost missing from defects"
+
+api GET /api/defects/ape-si-ghost
+[ "$API_STATUS" = 200 ] && ok_ "GET /api/defects/ape-si-ghost is 200" || bad_ "defect item gave $API_STATUS"
+item_body=$("$PSM" api GET /api/defects/ape-si-ghost 2>/dev/null)
+json_has "$item_body" 'repair_strategy' && ok_ "defect item has repair_strategy" || bad_ "defect item missing fields"
+
+api GET /api/defects/nonexistent-defect
+[ "$API_STATUS" = 404 ] && ok_ "GET /api/defects/<unknown> is 404" || bad_ "unknown defect gave $API_STATUS"
+
+# Repair plan check
+plan_payload="$TMP/plan.json"
+printf '{"project":"examples/design-si"}\n' > "$plan_payload"
+api POST /api/repair/plan "$plan_payload"
+[ "$API_STATUS" = 200 ] && ok_ "POST /api/repair/plan is 200" || bad_ "repair plan gave $API_STATUS"
+plan_res=$("$PSM" api POST /api/repair/plan "$plan_payload" 2>/dev/null)
+json_has "$plan_res" 'defects' && ok_ "repair plan contains defects" || bad_ "repair plan missing defects"
+
+# Traversal check on repair plan
+trav_payload="$TMP/trav.json"
+printf '{"project":"../../etc"}\n' > "$trav_payload"
+api POST /api/repair/plan "$trav_payload"
+[ "$API_STATUS" = 400 ] && ok_ "POST /api/repair/plan with traversal is 400" || bad_ "traversal plan gave $API_STATUS"
 
 printf '\n%s== a bad request is a 4xx, never a 500%s\n' "$DIM" "$RESET"
 api GET /api/nope

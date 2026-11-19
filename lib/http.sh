@@ -85,6 +85,10 @@ POST	/api/convert	http_h_convert	Convert a native file to another format
 GET	/api/download/:id...	http_h_download	Serve a native or converted file
 POST	/api/validate	http_h_validate	Validate an uploaded pseudopotential
 POST	/api/generate	http_h_generate	Refused here: generation is a local operation
+GET	/api/defects	http_h_defects	Enumerate known pseudopotential defect taxonomy
+GET	/api/defects/:id	http_h_defect	Inspect one defect from the taxonomy
+POST	/api/repair/plan	http_h_repair_plan	Detect defects and preview repair strategies without execution
+POST	/api/repair/apply	http_h_repair_apply	Execute a single-engine or cross-engine repair in an isolated workspace
 EOF
 }
 
@@ -1092,4 +1096,188 @@ http_h_generate() {
     HTTP_STATUS=501
     printf '{"error":"generation_not_available_here","message":"Generation runs on your machine, not on this server.","instructions":"Install PseudoForge and run: pseudoforge generate -e <element> -t <family> -p <profile> -x <functional>","install_url":%s}\n' \
         "$(http_json_str "$PF_INSTALL_URL")"
+}
+
+# ---------------------------------------------------------------------------
+# Defects and Repair endpoints
+# ---------------------------------------------------------------------------
+http_h_defects() {
+    local tax="${PF_DATA:-$PF_ROOT/data}/defects/taxonomy.tsv"
+    [ -f "$tax" ] || { http_error 503 taxonomy_unavailable "Defect taxonomy file is unavailable."; return 0; }
+
+    local first=1
+    HTTP_STATUS=200
+    printf '['
+    while IFS=$'\t' read -r did eng dclass det det_loc strat params evid cross_strat cross_src; do
+        case $did in ''|\#*) continue ;; esac
+        [ "$first" = 1 ] && first=0 || printf ','
+        printf '{"id":%s,"engine":%s,"class":%s,"detector":%s,"detector_location":%s,"repair_strategy":%s,"repair_parameters":%s,"evidence_source":%s,"cross_engine_strategy":%s,"cross_engine_source":%s}' \
+            "$(http_json_str "$did")" \
+            "$(http_json_str "$eng")" \
+            "$(http_json_str "$dclass")" \
+            "$(http_json_str "$det")" \
+            "$(http_json_str "$det_loc")" \
+            "$(http_json_str "$strat")" \
+            "$(http_json_str "$params")" \
+            "$(http_json_str "$evid")" \
+            "$(http_json_str "${cross_strat:-}")" \
+            "$(http_json_str "${cross_src:-}")"
+    done < "$tax"
+    printf ']\n'
+}
+
+http_h_defect() {
+    local id=$HTTP_PARAM
+    local tax="${PF_DATA:-$PF_ROOT/data}/defects/taxonomy.tsv"
+    [ -f "$tax" ] || { http_error 503 taxonomy_unavailable "Defect taxonomy file is unavailable."; return 0; }
+
+    local found=0
+    while IFS=$'\t' read -r did eng dclass det det_loc strat params evid cross_strat cross_src; do
+        case $did in ''|\#*) continue ;; esac
+        if [ "$did" = "$id" ]; then
+            found=1
+            HTTP_STATUS=200
+            printf '{"id":%s,"engine":%s,"class":%s,"detector":%s,"detector_location":%s,"repair_strategy":%s,"repair_parameters":%s,"evidence_source":%s,"cross_engine_strategy":%s,"cross_engine_source":%s}\n' \
+                "$(http_json_str "$did")" \
+                "$(http_json_str "$eng")" \
+                "$(http_json_str "$dclass")" \
+                "$(http_json_str "$det")" \
+                "$(http_json_str "$det_loc")" \
+                "$(http_json_str "$strat")" \
+                "$(http_json_str "$params")" \
+                "$(http_json_str "$evid")" \
+                "$(http_json_str "${cross_strat:-}")" \
+                "$(http_json_str "${cross_src:-}")"
+            return 0
+        fi
+    done < "$tax"
+
+    [ "$found" = 1 ] || http_error 404 not_found "No defect with id: $id"
+}
+
+http_h_repair_plan() {
+    local body=${1:-}
+    [ -n "$body" ] && [ -f "$body" ] || {
+        http_error 400 bad_request "A JSON body with 'project' path is required."; return 0;
+    }
+    local proj; proj=$(http_body_field "$body" project)
+    [ -n "$proj" ] || {
+        http_error 400 bad_request "Missing required 'project' parameter."; return 0;
+    }
+    case $proj in
+        *..*) http_error 400 bad_request "Directory traversal is forbidden."; return 0 ;;
+    esac
+    [ -d "$proj" ] || {
+        http_error 404 not_found "Project directory not found: $proj"; return 0;
+    }
+
+    if ! type cmd_repair >/dev/null 2>&1; then
+        . "$PF_LIB/repair.sh" 2>/dev/null || true
+    fi
+    tax_load
+
+    local req_eng; req_eng=$(http_body_field "$body" engine)
+    local eng="$req_eng" el="Si"
+    if [ -z "$eng" ] && [ -f "$proj/PROVENANCE.txt" ]; then
+        eng=$(awk -F= '$1=="engine.id" {print $2}' "$proj/PROVENANCE.txt" | tr -d ' \r\n')
+    fi
+    if [ -z "$eng" ] && [ -f "$proj/reports/summary.json" ]; then
+        eng=$(grep -oE '"engine": "[^"]+"' "$proj/reports/summary.json" | head -1 | cut -d'"' -f4)
+    fi
+    if [ -z "$eng" ] && [ -f "$proj/state.tsv" ]; then
+        eng=$(awk -F'\t' '!/^#/ && NF {print $3; exit}' "$proj/state.tsv")
+    fi
+    if [ -z "$eng" ]; then
+        case $(basename "$proj") in
+            *ape*) eng="ape" ;; *adpack*) eng="adpack" ;; *atompaw*) eng="atompaw" ;;
+            *oncv*) eng="oncvpsp" ;; *fhi*) eng="fhi98pp" ;; *opium*) eng="opium" ;;
+            *uspp*) eng="uspp" ;; *gth*) eng="gth" ;; *ld1*) eng="ld1" ;;
+        esac
+    fi
+
+    local detected=()
+    local did det det_fn
+    for did in "${TAX_IDS[@]}"; do
+        local t_eng="${TAX_ENGINE[$did]}"
+        if [ -n "$eng" ] && [ "$t_eng" != "$eng" ] && [ "$t_eng" != "any" ]; then
+            continue
+        fi
+        det="${TAX_DETECTOR[$did]}"
+        [ "$det" = "none" ] && continue
+        det_fn="$det"
+        case "$det_fn" in detect_*) ;; *) det_fn="detect_${det_fn}" ;; esac
+        if type "$det_fn" >/dev/null 2>&1; then
+            if "$det_fn" "$proj" "$t_eng" "$el"; then
+                detected+=("$did")
+            fi
+        fi
+    done
+
+    HTTP_STATUS=200
+    printf '{"project":%s,"engine":%s,"detected_count":%d,"defects":[' \
+        "$(http_json_str "$proj")" "$(http_json_str "$eng")" "${#detected[@]}"
+    local first=1
+    for did in "${detected[@]}"; do
+        [ "$first" = 1 ] && first=0 || printf ','
+        printf '{"id":%s,"engine":%s,"class":%s,"detector":%s,"detector_location":%s,"single_engine":{"strategy":%s,"parameters":%s},"cross_engine":{"strategy":%s,"donor_engine":%s},"evidence":%s}' \
+            "$(http_json_str "$did")" \
+            "$(http_json_str "${TAX_ENGINE[$did]}")" \
+            "$(http_json_str "${TAX_CLASS[$did]}")" \
+            "$(http_json_str "${TAX_DETECTOR[$did]}")" \
+            "$(http_json_str "${TAX_DETECTOR_LOC[$did]}")" \
+            "$(http_json_str "${TAX_STRATEGY[$did]}")" \
+            "$(http_json_str "${TAX_PARAMS[$did]}")" \
+            "$(http_json_str "${TAX_CROSS_STRAT[$did]:-}")" \
+            "$(http_json_str "${TAX_CROSS_SOURCE[$did]:-}")" \
+            "$(http_json_str "${TAX_EVIDENCE[$did]}")"
+    done
+    printf ']}\n'
+}
+
+http_h_repair_apply() {
+    local body=${1:-}
+    [ -n "$body" ] && [ -f "$body" ] || {
+        http_error 400 bad_request "A JSON body with 'project' and 'defect_id' is required."; return 0;
+    }
+    local proj; proj=$(http_body_field "$body" project)
+    local did; did=$(http_body_field "$body" defect_id)
+    [ -n "$did" ] || did=$(http_body_field "$body" defect)
+    local strat; strat=$(http_body_field "$body" strategy)
+    strat=${strat:-single_engine_repair}
+    local donor; donor=$(http_body_field "$body" donor_engine)
+    [ -n "$donor" ] || donor=$(http_body_field "$body" donor)
+
+    [ -n "$proj" ] && [ -n "$did" ] || {
+        http_error 400 bad_request "Both 'project' and 'defect_id' are required."; return 0;
+    }
+    case $proj in
+        *..*) http_error 400 bad_request "Directory traversal is forbidden."; return 0 ;;
+    esac
+    [ -d "$proj" ] || {
+        http_error 404 not_found "Project directory not found: $proj"; return 0;
+    }
+
+    if ! type cmd_repair >/dev/null 2>&1; then
+        . "$PF_LIB/repair.sh" 2>/dev/null || true
+    fi
+    tax_load
+
+    local rep_out; rep_out=$(cmd_repair "$proj" --defect "$did" --strategy "$strat" ${donor:+--donor-engine "$donor"} 2>&1)
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        http_error 500 repair_failed "Repair execution failed: $rep_out"
+        return 0
+    fi
+
+    local rep_json
+    rep_json=$(find "$proj/repair/$did" -name "repair-report.json" 2>/dev/null | sort -r | head -1)
+    if [ -n "$rep_json" ] && [ -f "$rep_json" ]; then
+        HTTP_STATUS=200
+        cat "$rep_json"
+        printf '\n'
+    else
+        HTTP_STATUS=200
+        printf '{"status":"ok","defect_id":%s,"strategy":%s,"project":%s,"message":%s}\n' \
+            "$(http_json_str "$did")" "$(http_json_str "$strat")" "$(http_json_str "$proj")" "$(http_json_str "$rep_out")"
+    fi
 }

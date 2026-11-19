@@ -54,12 +54,16 @@ With the store alone (this website):
   ❌ Run cutoff scans
   ❌ Run transferability tests
   ❌ Auto-fix failed generations
+  ❌ Single-engine defect repair
+  ❌ Cross-engine parameter repair
 
 With PseudoForge installed, no engines:
   ✅ All of the above
   ✅ Inspect recipes (pseudoforge recipe <element>)
   ✅ Validate from the CLI
   ❌ Generate custom pseudopotentials (need an engine)
+  ❌ Single-engine defect repair (need an engine)
+  ❌ Cross-engine parameter repair (need an engine)
 
 With PseudoForge and engines installed:
   ✅ All of the above
@@ -68,6 +72,8 @@ With PseudoForge and engines installed:
   ✅ Run transferability tests
   ✅ Auto-fix failed generations
   ✅ Custom recipes
+  ✅ Single-engine defect repair (pseudoforge repair)
+  ✅ Cross-engine parameter repair (pseudoforge repair --donor-engine)
 
 Install:  ./install.sh --bootstrap
 Docs:     docs/getting-started/installation.md
@@ -91,7 +97,9 @@ capabilities_render_json() {
       { "supported": false, "text": "Generate custom pseudopotentials" },
       { "supported": false, "text": "Run cutoff scans" },
       { "supported": false, "text": "Run transferability tests" },
-      { "supported": false, "text": "Auto-fix failed generations" }
+      { "supported": false, "text": "Auto-fix failed generations" },
+      { "supported": false, "text": "Single-engine defect repair" },
+      { "supported": false, "text": "Cross-engine parameter repair" }
     ]
   },
   "cli_no_engines": {
@@ -100,7 +108,9 @@ capabilities_render_json() {
       { "supported": true, "text": "All of the above" },
       { "supported": true, "text": "Inspect recipes (pseudoforge recipe <element>)" },
       { "supported": true, "text": "Validate from the CLI" },
-      { "supported": false, "text": "Generate custom pseudopotentials (need an engine)" }
+      { "supported": false, "text": "Generate custom pseudopotentials (need an engine)" },
+      { "supported": false, "text": "Single-engine defect repair (need an engine)" },
+      { "supported": false, "text": "Cross-engine parameter repair (need an engine)" }
     ]
   },
   "cli_with_engines": {
@@ -111,7 +121,9 @@ capabilities_render_json() {
       { "supported": true, "text": "Run cutoff scans with pw.x" },
       { "supported": true, "text": "Run transferability tests" },
       { "supported": true, "text": "Auto-fix failed generations" },
-      { "supported": true, "text": "Custom recipes" }
+      { "supported": true, "text": "Custom recipes" },
+      { "supported": true, "text": "Single-engine defect repair (pseudoforge repair)" },
+      { "supported": true, "text": "Cross-engine parameter repair (pseudoforge repair --donor-engine)" }
     ]
   },
   "install": "./install.sh --bootstrap",
