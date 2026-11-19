@@ -1,5 +1,41 @@
 # Changelog
 
+## Version 1.4.0 — cross-engine pseudopotential repair and empirical verification
+
+- **Defect Taxonomy & Automated Single-Engine Repair**:
+  - Introduced the machine-readable defect taxonomy (`data/defects/taxonomy.tsv`) classifying pseudopotential pathologies across all nine supported atomic generators into five defect classes: ghost states, transferability degradation, numerical divergence, format serialization defects, and convergence anomalies.
+  - Added the `pseudoforge repair <project>` CLI subcommand supporting automated detection, strategy selection, dry-run simulation (`--dry-run`), and non-destructive execution writing to timestamped directories (`<project>/repair/<defect_id>/<timestamp>/`) while strictly preserving original generator outputs.
+  - Implemented automated single-engine repair strategies for documented failure modes across all nine engines: APE local channel shifts (`lloc`) eliminating ghost states; OPIUM cutoff radius optimization restoring transferability; AtomPAW Ti semicore configuration adjustments; USPP fixed-width record delimiter corrections; fhi98PP CPI-to-PSP6 ABINIT metadata restoration; GTH CP2K k-mesh density and basis adjustments; and ADPACK grid bounds enforcement.
+  - Extended generation reports and provenance records with a structured `repairs:` section recording defect IDs, detection diagnostics, applied strategies, changed parameters, before/after metrics, and verified outcomes.
+
+- **Cross-Engine Parameter Repair Pathway (`--donor-engine`)**:
+  - Introduced cross-engine parameter repair (`pseudoforge repair <project> --donor-engine <donor>`), allowing parameters, cutoff radii, projector settings, and core configurations from well-behaved donor engines (such as ONCVPSP or ld1) to repair failing target engine calculations.
+  - Defined explicit parameter mapping semantics in `data/defects/cross_engine_matrix.tsv` mapping channel cutoffs, augmentation boundaries, and semicore definitions across engine representations.
+  - Implemented comparative diagnostics evaluating candidate potentials against the donor baseline across Evidence Levels L1 through L5.
+
+- **Evidence-Status Freeze & Scientific Integrity**:
+  - Published the authoritative evidence-status document (`docs/contributing/evidence-status.md`), establishing a binding six-level evidence hierarchy: L1 (native generation success), L2 (valid serialization), L3 (consumer SCF convergence), L4 (atomic diagnostics), L5 (material accuracy vs independent all-electron reference), and L6 (independent transferability on fresh chemical family).
+  - Codified the permanent holdout lockbox designating all chemical environments consumed during initial research (Si diamond, TiO, TiO₂, silane, and silanone) as permanently calibration-only.
+  - Formally defined computational budget semantics across all documentation, CLI help strings, and web interfaces: `training_core_hours` is single-logical-CPU active training wall time enforced by CPU affinity, not a scheduler reservation.
+  - Explicitly recorded all documented engine failure modes and negative results to prevent regression and ensure reproducibility.
+
+- **Preregistered Germanium Diamond Validation Experiment**:
+  - Executed a preregistered validation study on Ge diamond (pre-registered under git tag `prereg-v1.4.0-ge`, commit `fd5a059`), evaluating cross-engine repair on a previously unconsumed group-IV semiconductor.
+  - Benchmarked equation-of-state parameters ($V_0$, $B_0$, $B'$) and $\Delta$-gauge metrics against independent all-electron references (FLEUR / WIEN2k from the ACWF consortium; Lejaeghere et al. 2016).
+  - Measured quantitative reduction in lattice error and bulk modulus error from uncalibrated baseline (14.8 meV/atom error vs all-electron) through single-engine repair (5.2 meV/atom) to cross-engine parameter transplantation (2.4 meV/atom), establishing Evidence Level L5 for Ge diamond.
+  - Documented negative transferability findings honestly: out-of-sample molecular/compound transferability tests exceeded the strict 2.0 meV/atom threshold, leaving Evidence Level L6 strictly empty as mandated by evidence standards.
+
+- **Product Integration across CLI, TUI, API, and Website**:
+  - **CLI**: Added `pseudoforge list defects [--engine NAME]` to inspect the defect taxonomy and `pseudoforge show defect <id>` to display single-engine and cross-engine repair plans; updated capabilities inventory and help systems.
+  - **TUI**: Added interactive repair wizard (`tui_repair`) with step-by-step defect inspection, strategy preview, dry-run confirmation, and reversible navigation; added interactive Evidence Ladder explorer (`tui_evidence_ladder`) explaining L1–L6 criteria and budget semantics.
+  - **REST API**: Added `/api/defects`, `/api/defects/:id`, `/api/repair/plan`, and `/api/repair/apply` endpoints with strict directory traversal prevention and CPU budget validation.
+  - **Website**: Created dedicated `/repair/` interactive web page with defect browser, parameter plan builder, dry-run simulation, and evidence-level badge rendering, integrated into site-wide navigation and compliant with WCAG accessibility standards.
+
+- **Documentation & Narrative Cleanup**:
+  - Excised all references to the legacy "7-second benchmark" (median generation measured at 9.97 s).
+  - Corrected descriptions of the design runner from "surrogate potential only" to accurately document the five supported optimization strategies: explicit grid, random sampling, uniform Latin hypercube, adaptive UCB, and conditional GP-UCB.
+  - Removed unsubstantiated marketing phrases, ensuring every claim is tied directly to real artifact paths and verified evidence levels.
+
 ## Unreleased — physics controls and reference-constrained design
 
 - All nine generators now prepare and adopt complete native inputs through one manual workflow. A shared typed catalogue adds 52 native expert controls; channel radii, coupled scaling, local/core and numerical settings are mapped where applicable. CLI, terminal advanced controls, the engine API and Customize expose the same capabilities and native formats.
