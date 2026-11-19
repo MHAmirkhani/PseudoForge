@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 import shutil
 
-from make_protocols import ANGSTROM_PER_BOHR, ARMS, RY_EV, SOURCE_SHA256, cubic_qe_input, eos_energy
+from make_protocols import (
+    ANGSTROM_PER_BOHR, ARMS, RY_EV, SOURCE_SHA256, cubic_qe_input, eos_energy, eos_pressure,
+)
 
 OXIDE_SHA256 = "6dd6873cde0d80da9126ef9b5bc8f0489ee3e1ad27d2860fab719591579c11f9"
 ORIGIN = (0.0, 0.0, 0.0)
@@ -38,9 +40,13 @@ def main():
     parser.add_argument("--convergence-mesh", type=int, default=16)
     parser.add_argument("--atompaw-semicore", action="store_true",
                         help="also prepare the Ti 3s/3p PAW intervention")
+    parser.add_argument("--stress-tolerance-kbar", type=float,
+                        help="include hydrostatic stress inferred from the all-electron EOS fit")
     args = parser.parse_args()
     if not 1 <= args.k_mesh < args.convergence_mesh:
         parser.error("convergence mesh must be larger than the positive base mesh")
+    if args.stress_tolerance_kbar is not None and not 0 < args.stress_tolerance_kbar < float("inf"):
+        parser.error("stress tolerance must be positive and finite")
     try:
         references = {
             "train": (read_reference(args.unaries, SOURCE_SHA256), SOURCE_SHA256),
@@ -64,7 +70,8 @@ def main():
             filename = f"{case_id}.in"
             volume = factor * fit["min_volume"]
             alat = (volume_factor * volume) ** (1 / 3) / ANGSTROM_PER_BOHR
-            (args.output / filename).write_text(cubic_qe_input(ibrav, alat, None, sites, "Ti", MASSES))
+            (args.output / filename).write_text(cubic_qe_input(
+                ibrav, alat, None, sites, "Ti", MASSES, stress=args.stress_tolerance_kbar is not None))
             energy = eos_energy(volume, fit["min_volume"], fit["bulk_modulus_ev_ang3"], fit["bulk_deriv"])
             cases.append({
                 "id": case_id, "split": split, "group": family, "input": filename, "relative_to": f"{family}-{other}",
@@ -73,6 +80,10 @@ def main():
                               "energy_Ry": energy / RY_EV},
                 "tolerances": {"relative_energy_Ry_atom": 0.005 / RY_EV},
             })
+            if args.stress_tolerance_kbar is not None:
+                pressure = eos_pressure(volume, fit["min_volume"], fit["bulk_modulus_ev_ang3"], fit["bulk_deriv"])
+                cases[-1]["reference"]["stress_kbar"] = [[pressure if i == j else 0 for j in range(3)] for i in range(3)]
+                cases[-1]["tolerances"]["stress_max_kbar"] = args.stress_tolerance_kbar
 
     mesh = [args.k_mesh] * 3
     convergence = {

@@ -50,6 +50,12 @@ done
 The Ti example uses an exploratory 5 meV/atom tolerance and a 1 meV/atom
 numerical drift allowance. It tests EOS energy differences only. The two
 oxides are cubic verification prototypes from the published dataset.
+For a hydrostatic stress check, add `--stress-tolerance-kbar 20` (or a
+justified tolerance) to the preparer. The diagonal reference components are
+the pressure from the analytical negative volume derivative of the
+all-electron Birch–Murnaghan fit. The off-diagonals vanish by symmetry.
+These are EOS-derived hydrostatic values. An independent force benchmark
+needs displacements and all-electron force observations.
 
 To test an explicit physical intervention, generate the protocols with
 `--atompaw-semicore` and run `atompaw-paw-semicore.json` as a separate design

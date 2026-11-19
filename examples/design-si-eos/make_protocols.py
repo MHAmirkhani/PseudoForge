@@ -33,7 +33,15 @@ def qe_input(volume, mesh):
     ), "Si", {"Si": 28.0855})
 
 
-def cubic_qe_input(ibrav, alat, mesh, sites, element, masses):
+def eos_pressure(volume, equilibrium_volume, bulk_modulus, bulk_derivative):
+    """Third-order Birch–Murnaghan hydrostatic pressure in kbar."""
+    ratio = (equilibrium_volume / volume) ** (1 / 3)
+    ev_angstrom3_to_kbar = 1602.176634
+    return (1.5 * bulk_modulus * (ratio**7 - ratio**5) *
+            (1 + 0.75 * (bulk_derivative - 4) * (ratio**2 - 1)) * ev_angstrom3_to_kbar)
+
+
+def cubic_qe_input(ibrav, alat, mesh, sites, element, masses, *, stress=False):
     mesh_row = "{{K_MESH}}" if mesh is None else f"{mesh} {mesh} {mesh}"
     species = "\n".join(f'{symbol} {masses[symbol]} ' +
                         ('{{UPF}}' if symbol == element else f'{symbol}.fixed.UPF')
@@ -42,7 +50,7 @@ def cubic_qe_input(ibrav, alat, mesh, sites, element, masses):
     ntyp = len({symbol for symbol, _ in sites})
     return f"""&CONTROL
  calculation='scf', prefix='{{{{PREFIX}}}}', outdir='{{{{OUTDIR}}}}',
- pseudo_dir='{{{{PSEUDO_DIR}}}}', disk_io='none'
+ pseudo_dir='{{{{PSEUDO_DIR}}}}', disk_io='none'{', tstress=.true.' if stress else ''}
 /
 &SYSTEM
  ibrav={ibrav}, celldm(1)={alat:.12f}, nat={len(sites)}, ntyp={ntyp},
