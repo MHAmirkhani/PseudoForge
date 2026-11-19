@@ -279,7 +279,12 @@ report_json() {
                 "$(report_cutoff "$el" 2)" "$(report_cutoff "$el" 3)" \
                 "$(printf '%s' "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g')"
         done
-        printf '\n  ]\n}\n'
+        printf '\n  ]'
+        if [ -f "$PROJECT_DIR/reports/repairs.json" ]; then
+            printf ',\n  "repairs": %s\n}\n' "$(cat "$PROJECT_DIR/reports/repairs.json")"
+        else
+            printf ',\n  "repairs": []\n}\n'
+        fi
     } > "$out"
     printf '%s\n' "$out"
 }

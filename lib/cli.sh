@@ -45,6 +45,7 @@ USAGE
     api <method> <path>     call the local API server (api --routes lists them)
     optimise -e EL [opts]   sweep --rcut-scale and pick the softest radii that
                             still pass transferability (ld1 oncvpsp opium ape)
+    repair <project> [opts] detect and repair defects in pseudopotential outputs
     design protocol.json   search candidates against reference data (Python 3.10+)
     plot <project>          draw log derivatives and wavefunctions for a run
     doctor                  check the environment and the recipe database
@@ -368,6 +369,7 @@ Turn physics choices into an exact CLI generation command.
 Validates parameters with cli_check_spec and formats with spec_cmdline.
 EOF
         ;;
+        repair)  cmd_repair --help ;;
         design) cat <<'EOF'
 usage: pseudoforge design <protocol.json> [-o DIR] [--pw /path/to/pw.x]
        pseudoforge design <protocol.json> --plan -o DIR
