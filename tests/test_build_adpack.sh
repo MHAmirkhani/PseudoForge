@@ -77,6 +77,21 @@ else
     bad_ "build_engine does not dispatch adpack to build_adpack"
 fi
 
+if have patch; then
+    archive=$ROOT/engines-src/adpack2.2.tar.gz
+    fix=$ROOT/lib/patches/adpack/0001-check-radial-grid-and-scf-bounds.patch
+    if tar -xf "$archive" -C "$TEST_TMP" adpack2.2/source/readfile.c adpack2.2/source/FEMHF_All_Electron.c &&
+        patch -d "$TEST_TMP/adpack2.2" -p1 -F0 --batch --forward < "$fix" >/dev/null &&
+        patch -d "$TEST_TMP/adpack2.2" -p1 -F0 --batch --reverse --dry-run < "$fix" >/dev/null &&
+        grep -q 'ASIZE1<Grid_Num' "$TEST_TMP/adpack2.2/source/readfile.c"; then
+        ok_ "native bounds fix applies to the pinned source and recognizes a patched tree"
+    else
+        bad_ "native input bounds patch is incompatible with the pinned source"
+    fi
+else
+    skip_ "patch is not installed"
+fi
+
 printf '\n%s%d passed%s, %s%d failed%s, %s%d skipped%s\n' \
     "$GREEN" "$pass" "$RESET" \
     "$( [ "$fail" -gt 0 ] && printf '%s' "$RED" || printf '%s' "$DIM" )" "$fail" "$RESET" \
