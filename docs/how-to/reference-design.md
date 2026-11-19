@@ -228,9 +228,9 @@ stability across the declared levels and structures.
 
 The report also records OS-reported CPU time for local child processes in
 each generation and training trial, including completed failed attempts.
-Held-out CPU and elapsed time are recorded separately. Remote workers,
-protocol setup, and optimizer overhead are outside these counters. Measured
-child CPU time and allocated core-hours describe different costs.
+Held-out and setup CPU and elapsed time have separate counters. The active
+training clock includes scheduling and checkpoint overhead. Child-process
+CPU measurements cover the workers the operating system reports as reaped.
 
 Every generation runs with `--no-autofix`; the search must evaluate the requested
 parameters. A bound ghost detected by ONCVPSP is refused even with optional
@@ -249,6 +249,7 @@ the held-out cases and the references are not labelled `synthetic-test`.
 Exit code 0 means that condition holds, 2 means no verified choice, and 1 means
 invalid inputs or an execution setup error. A successful `--plan` returns 0
 but performs no physical measurement and leaves the flag false.
+An orderly SIGINT or SIGTERM exits with 130 or 143 after saving the pause.
 
 This implements the measurement and selection workflow. Establishing a new
 scientific advantage requires a broader benchmark, independent reference data,

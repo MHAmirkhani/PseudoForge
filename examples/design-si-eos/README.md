@@ -63,3 +63,21 @@ under the same numerical settings. This trial adds Ti 3s and 3p to the
 valence and scans three radii. Compare it with the radius-only arms. The
 combined intervention changes two ingredients in the construction, so a
 matched factorial study is needed to attribute an improvement to either one.
+
+## Paired local-budget comparison
+
+Use the same candidate pool and train/test cases for seeded random, uniform,
+adaptive and Bayesian search. The script writes all trial protocol hashes,
+the distinct seeds and the per-seed strategy order before starting QE.
+Each method runs serially on one logical CPU under the same local elapsed
+training core-hour cap. Setup and held-out calculations are measured
+separately.
+
+```bash
+python3 examples/design-si-eos/compare_search.py ./si-protocol.json \
+  --pw /path/to/pw.x --seeds 37 73 --core-hours 0.025 --max-trials 6 -o ./search-comparison
+```
+
+Run on a quiet or reserved host. The train/held-out volume split of the
+Si example gives a same-family pilot. Use independent material families
+and more prespecified seeds to estimate a transferable search advantage.

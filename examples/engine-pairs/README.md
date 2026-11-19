@@ -52,9 +52,13 @@ python3 examples/engine-pairs/evaluate_cp2k.py "$work/native/report.json" \
   --basis /absolute/path/to/BASIS_MOLOPT_UZH --smoke -o "$work/cp2k"
 ```
 
-The smoke mode runs only the first level. Both modes report the two training
-volumes and leave selection to a later standalone validation. The CP2K grid
-cutoff and QE wavefunction cutoff describe different numerical settings.
+The smoke mode runs only the first level. The default run reports the whole
+ladder on the training volumes. With `--select` in place of `--smoke`,
+the evaluator checks the reference limits and signed numerical drift,
+locks the best feasible training candidate, then evaluates the locked
+candidate on the other volumes. It uses the protocol's declared
+`tolerance_fraction` with the CP2K basis and grid ladder. The CP2K grid cutoff
+and QE wavefunction cutoff describe different numerical settings.
 
 ## Check fhi98PP CPI records with ABINIT
 
