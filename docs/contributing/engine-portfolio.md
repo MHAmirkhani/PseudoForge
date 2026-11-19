@@ -1,6 +1,6 @@
 # Research proposal: allocating a pseudopotential design budget across engines
 
-Status: **proposal, not an implemented optimizer or a demonstrated advantage**.
+Status: **experimental implementation and open benchmark**.
 Literature checked on 18 November 2026. The implemented foundation is the
 [nine-engine manual workflow](../how-to/manual-generation.md), its typed
 controls, input snapshots and failure reporting. The current `design` command
@@ -8,9 +8,10 @@ evaluates a finite grid through QE, with random, uniform and cost-aware UCB
 allocation over engine/formulation pairs. It supports optional cutoff/k-mesh
 stability checks, declared structural-family splits and a local training
 time budget. A conditional GP-UCB strategy proposes parameter combinations
-within the declared native grid. A separate replayable example evaluates
-GTH through CP2K. OpenMX material evaluation and a measured advantage
-over equal-budget baselines remain open.
+within the declared native grid. The matched native panel exercises all nine
+generators. Separate replays check GTH in CP2K, fhi98PP's semilocal data in
+ABINIT and ADPACK's VPS data in OpenMX. Independent material references for
+the latter two and a measured advantage over equal-budget baselines remain open.
 
 ## What is already established
 
