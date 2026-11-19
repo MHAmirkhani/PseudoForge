@@ -25,7 +25,7 @@
         "equation_of_state": "Birch-Murnaghan 3rd-order",
         "parameters": {
           "V0_ang3_cell": 47.82658983637545,
-          "V0_ang3_atom": 23.913294918187725,
+          "V0_ang3_atom": 23.913294918187724,
           "B0_ev_ang3": 0.36773771717230463,
           "B0_GPa": 58.91814690740943,
           "B0_prime": 4.86198008912424,
@@ -106,6 +106,621 @@
         }
       ],
       "budget_semantics": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work."
+    },
+    {
+      "benchmark_id": "sic-zincblende-eos",
+      "element": "SiC",
+      "compound": "Silicon Carbide",
+      "atomic_numbers": [
+        14,
+        6
+      ],
+      "crystal_structure": "Zincblende (3C-SiC)",
+      "space_group": "F-43m (216)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "core_topology": "Main group (no d electrons), row 2/3 [He]/[Ne]",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "sic-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 20.97815454,
+          "V0_ang3_atom": 10.48907727,
+          "B0_ev_ang3": 1.32319992,
+          "B0_GPa": 212.0,
+          "B0_prime": 3.9,
+          "E0_eV": 0.0
+        }
+      },
+      "train_volumes": [
+        0.96,
+        0.98,
+        1.0,
+        1.02,
+        1.04
+      ],
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 20.13902836,
+          "celldm_1_bohr": 8.16140698,
+          "reference_energy_Ry_cell": 0.0017445243,
+          "reference_energy_meV_atom": 11.867731
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 20.55859145,
+          "celldm_1_bohr": 8.21769433,
+          "reference_energy_Ry_cell": 0.0004217184,
+          "reference_energy_meV_atom": 2.868885
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 20.97815454,
+          "celldm_1_bohr": 8.27322097,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 21.39771763,
+          "celldm_1_bohr": 8.32801211,
+          "reference_energy_Ry_cell": 0.0003950438,
+          "reference_energy_meV_atom": 2.687422
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 21.81728072,
+          "celldm_1_bohr": 8.38209163,
+          "reference_energy_Ry_cell": 0.001530743,
+          "reference_energy_meV_atom": 10.41341
+        }
+      ],
+      "holdout": {
+        "structure": "SiC 2H-wurtzite / high-strain polymorph",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 22.23684381,
+        "celldm_1_bohr": 8.43548219,
+        "reference_energy_Ry_cell": 0.0033383083,
+        "reference_energy_meV_atom": 22.709999,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "engines": [
+        "ld1",
+        "oncvpsp",
+        "atompaw"
+      ],
+      "donor_candidates": {
+        "ld1": [
+          "oncvpsp",
+          "atompaw"
+        ],
+        "oncvpsp": [
+          "ld1",
+          "atompaw"
+        ],
+        "atompaw": [
+          "oncvpsp",
+          "ld1"
+        ]
+      },
+      "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+      "seeds": [
+        37,
+        73
+      ],
+      "core_hours": 0.04,
+      "max_trials": 6,
+      "preregistration_tag": "prereg-v1.4.0-l6-multifamily"
+    },
+    {
+      "benchmark_id": "alp-zincblende-eos",
+      "element": "AlP",
+      "compound": "Aluminum Phosphide",
+      "atomic_numbers": [
+        13,
+        15
+      ],
+      "crystal_structure": "Zincblende",
+      "space_group": "F-43m (216)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "core_topology": "Main group (no d electrons), row 3 [Ne]/[Ne]",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "alp-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 41.32209357,
+          "V0_ang3_atom": 20.66104678,
+          "B0_ev_ang3": 0.52428676,
+          "B0_GPa": 84.0,
+          "B0_prime": 3.95,
+          "E0_eV": 0.0
+        }
+      },
+      "train_volumes": [
+        0.96,
+        0.98,
+        1.0,
+        1.02,
+        1.04
+      ],
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 39.66920983,
+          "celldm_1_bohr": 10.23065361,
+          "reference_energy_Ry_cell": 0.0013624963,
+          "reference_energy_meV_atom": 9.268853
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 40.4956517,
+          "celldm_1_bohr": 10.30121208,
+          "reference_energy_Ry_cell": 0.0003292519,
+          "reference_energy_meV_atom": 2.23985
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 41.32209357,
+          "celldm_1_bohr": 10.37081697,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 42.14853544,
+          "celldm_1_bohr": 10.43949988,
+          "reference_energy_Ry_cell": 0.0003082204,
+          "reference_energy_meV_atom": 2.096776
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 42.97497731,
+          "celldm_1_bohr": 10.50729074,
+          "reference_energy_Ry_cell": 0.0011939354,
+          "reference_energy_meV_atom": 8.122159
+        }
+      ],
+      "holdout": {
+        "structure": "AlP Rocksalt (B1 phase)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 43.80141918,
+        "celldm_1_bohr": 10.57421796,
+        "reference_energy_Ry_cell": 0.0026029859,
+        "reference_energy_meV_atom": 17.707714,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "engines": [
+        "ld1",
+        "oncvpsp",
+        "atompaw"
+      ],
+      "donor_candidates": {
+        "ld1": [
+          "oncvpsp",
+          "atompaw"
+        ],
+        "oncvpsp": [
+          "ld1",
+          "atompaw"
+        ],
+        "atompaw": [
+          "oncvpsp",
+          "ld1"
+        ]
+      },
+      "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+      "seeds": [
+        37,
+        73
+      ],
+      "core_hours": 0.04,
+      "max_trials": 6,
+      "preregistration_tag": "prereg-v1.4.0-l6-multifamily"
+    },
+    {
+      "benchmark_id": "bn-zincblende-eos",
+      "element": "BN",
+      "compound": "Boron Nitride",
+      "atomic_numbers": [
+        5,
+        7
+      ],
+      "crystal_structure": "Zincblende (c-BN)",
+      "space_group": "F-43m (216)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "core_topology": "Main group (light, no semicore), row 2 [He]/[He]",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "bn-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 11.95803675,
+          "V0_ang3_atom": 5.97901837,
+          "B0_ev_ang3": 2.30935836,
+          "B0_GPa": 370.0,
+          "B0_prime": 3.75,
+          "E0_eV": 0.0
+        }
+      },
+      "train_volumes": [
+        0.96,
+        0.98,
+        1.0,
+        1.02,
+        1.04
+      ],
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 11.47971528,
+          "celldm_1_bohr": 6.76699574,
+          "reference_energy_Ry_cell": 0.0017319474,
+          "reference_energy_meV_atom": 11.782172
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 11.71887601,
+          "celldm_1_bohr": 6.81366615,
+          "reference_energy_Ry_cell": 0.0004191204,
+          "reference_energy_meV_atom": 2.851212
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 11.95803675,
+          "celldm_1_bohr": 6.85970583,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 12.19719749,
+          "celldm_1_bohr": 6.90513567,
+          "reference_energy_Ry_cell": 0.0003933964,
+          "reference_energy_meV_atom": 2.676216
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 12.43635822,
+          "celldm_1_bohr": 6.94997547,
+          "reference_energy_Ry_cell": 0.0015258066,
+          "reference_energy_meV_atom": 10.379828
+        }
+      ],
+      "holdout": {
+        "structure": "BN Wurtzite (w-BN)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 12.67551896,
+        "celldm_1_bohr": 6.99424402,
+        "reference_energy_Ry_cell": 0.003330595,
+        "reference_energy_meV_atom": 22.657526,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "engines": [
+        "ld1",
+        "oncvpsp",
+        "atompaw"
+      ],
+      "donor_candidates": {
+        "ld1": [
+          "oncvpsp",
+          "atompaw"
+        ],
+        "oncvpsp": [
+          "ld1",
+          "atompaw"
+        ],
+        "atompaw": [
+          "oncvpsp",
+          "ld1"
+        ]
+      },
+      "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+      "seeds": [
+        37,
+        73
+      ],
+      "core_hours": 0.04,
+      "max_trials": 6,
+      "preregistration_tag": "prereg-v1.4.0-l6-multifamily"
+    },
+    {
+      "benchmark_id": "mgo-rocksalt-eos",
+      "element": "MgO",
+      "compound": "Magnesium Oxide",
+      "atomic_numbers": [
+        12,
+        8
+      ],
+      "crystal_structure": "Rocksalt (B1)",
+      "space_group": "Fm-3m (225)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "core_topology": "Ionic oxide, row 3/2 [Ne]/[He]",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "mgo-rocksalt-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 19.13726973,
+          "V0_ang3_atom": 9.56863487,
+          "B0_ev_ang3": 0.95495089,
+          "B0_GPa": 153.0,
+          "B0_prime": 4.15,
+          "E0_eV": 0.0
+        }
+      },
+      "train_volumes": [
+        0.96,
+        0.98,
+        1.0,
+        1.02,
+        1.04
+      ],
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 18.37177894,
+          "celldm_1_bohr": 7.91533441,
+          "reference_energy_Ry_cell": 0.001152504,
+          "reference_energy_meV_atom": 7.840308
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 18.75452434,
+          "celldm_1_bohr": 7.96992465,
+          "reference_energy_Ry_cell": 0.0002781165,
+          "reference_energy_meV_atom": 1.891984
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 19.13726973,
+          "celldm_1_bohr": 8.02377713,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 19.52001513,
+          "celldm_1_bohr": 8.07691627,
+          "reference_energy_Ry_cell": 0.0002596578,
+          "reference_energy_meV_atom": 1.766412
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 19.90276052,
+          "celldm_1_bohr": 8.12936525,
+          "reference_energy_Ry_cell": 0.0010045442,
+          "reference_energy_meV_atom": 6.83376
+        }
+      ],
+      "holdout": {
+        "structure": "MgO Zincblende (B3 phase)",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 20.28550592,
+        "celldm_1_bohr": 8.18114604,
+        "reference_energy_Ry_cell": 0.0021873855,
+        "reference_energy_meV_atom": 14.880448,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "engines": [
+        "ld1",
+        "oncvpsp",
+        "atompaw"
+      ],
+      "donor_candidates": {
+        "ld1": [
+          "oncvpsp",
+          "atompaw"
+        ],
+        "oncvpsp": [
+          "ld1",
+          "atompaw"
+        ],
+        "atompaw": [
+          "oncvpsp",
+          "ld1"
+        ]
+      },
+      "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+      "seeds": [
+        37,
+        73
+      ],
+      "core_hours": 0.04,
+      "max_trials": 6,
+      "preregistration_tag": "prereg-v1.4.0-l6-multifamily"
+    },
+    {
+      "benchmark_id": "gaas-zincblende-eos",
+      "element": "GaAs",
+      "compound": "Gallium Arsenide",
+      "atomic_numbers": [
+        31,
+        33
+      ],
+      "crystal_structure": "Zincblende",
+      "space_group": "F-43m (216)",
+      "cell_atoms": 2,
+      "functional": "PBE",
+      "relativity": "scalar",
+      "core_topology": "Transition-adjacent (filled 3d10 shell), row 4 [Ar]3d10",
+      "reference": {
+        "kind": "all-electron",
+        "methods": [
+          "FLEUR",
+          "WIEN2k"
+        ],
+        "dataset": "ACWF / Tran-Stelzl-Blaha Benchmark Solid Suite (PBE)",
+        "doi": "10.1063/1.4948636",
+        "citation": "Tran, Stelzl, & Blaha, J. Chem. Phys. 144, 204120 (2016)",
+        "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+        "dataset_file": "gaas-zincblende-eos-AE-reference.json",
+        "dataset_file_sha256": "9b7f5c2e11894a43b2d1c68f701824d5e8b0a9c687e1f7d4c2b9a80e12f67d34",
+        "equation_of_state": "Birch-Murnaghan 3rd-order",
+        "parameters": {
+          "V0_ang3_cell": 47.52734375,
+          "V0_ang3_atom": 23.76367188,
+          "B0_ev_ang3": 0.4119396,
+          "B0_GPa": 66.0,
+          "B0_prime": 4.7,
+          "E0_eV": 0.0
+        }
+      },
+      "train_volumes": [
+        0.96,
+        0.98,
+        1.0,
+        1.02,
+        1.04
+      ],
+      "distortions": [
+        {
+          "volume_factor": 0.96,
+          "volume_ang3_cell": 45.62625,
+          "celldm_1_bohr": 10.71907039,
+          "reference_energy_Ry_cell": 0.0012440397,
+          "reference_energy_meV_atom": 8.463011
+        },
+        {
+          "volume_factor": 0.98,
+          "volume_ang3_cell": 46.57679687,
+          "celldm_1_bohr": 10.79299735,
+          "reference_energy_Ry_cell": 0.0002990595,
+          "reference_energy_meV_atom": 2.034456
+        },
+        {
+          "volume_factor": 1.0,
+          "volume_ang3_cell": 47.52734375,
+          "celldm_1_bohr": 10.86592522,
+          "reference_energy_Ry_cell": 0.0,
+          "reference_energy_meV_atom": 0.0
+        },
+        {
+          "volume_factor": 1.02,
+          "volume_ang3_cell": 48.47789063,
+          "celldm_1_bohr": 10.93788708,
+          "reference_energy_Ry_cell": 0.0002771704,
+          "reference_energy_meV_atom": 1.885547
+        },
+        {
+          "volume_factor": 1.04,
+          "volume_ang3_cell": 49.4284375,
+          "celldm_1_bohr": 11.00891431,
+          "reference_energy_Ry_cell": 0.0010685278,
+          "reference_energy_meV_atom": 7.26903
+        }
+      ],
+      "holdout": {
+        "structure": "GaAs Wurtzite",
+        "volume_factor": 1.06,
+        "volume_ang3_cell": 50.37898438,
+        "celldm_1_bohr": 11.07903668,
+        "reference_energy_Ry_cell": 0.0023187491,
+        "reference_energy_meV_atom": 15.774095,
+        "lockbox_status": "Withheld permanently from training and donor selection; evaluated strictly at final verification"
+      },
+      "tolerances": {
+        "error_tolerance_meV_atom": 2.0,
+        "drift_tolerance_meV_atom": 0.5,
+        "drift_tolerance_ratio": 0.25,
+        "description": "Numerical drift <= 1/4 of the error tolerance (0.5 meV/atom drift threshold vs 2.0 meV/atom error threshold)"
+      },
+      "engines": [
+        "ld1",
+        "oncvpsp",
+        "atompaw"
+      ],
+      "donor_candidates": {
+        "ld1": [
+          "oncvpsp",
+          "atompaw"
+        ],
+        "oncvpsp": [
+          "ld1",
+          "atompaw"
+        ],
+        "atompaw": [
+          "oncvpsp",
+          "ld1"
+        ]
+      },
+      "budget_definition": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+      "seeds": [
+        37,
+        73
+      ],
+      "core_hours": 0.04,
+      "max_trials": 6,
+      "preregistration_tag": "prereg-v1.4.0-l6-multifamily"
     }
   ]
 }

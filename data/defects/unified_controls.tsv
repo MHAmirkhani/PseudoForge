@@ -1,0 +1,35 @@
+# engine	native_parameter	unit	physical_role	translatable_to	translation_formula	constraints
+oncvpsp	rc(l)	bohr	Channel pseudization cutoff radius	ape:rc(l),ld1:rc(l),atompaw:rc(l),opium:rc(l),fhi98pp:rc(l),adpack:rc(l)	rc_target(l) = rc_donor(l)	Must satisfy rc > r_core_max; identical valence shell topology required
+oncvpsp	qcut	Ry^(1/2)	Projector Fourier convergence cutoff for residual minimization	NOT_TRANSLATABLE	None; ONCV-specific dual-projector reciprocal filtering parameter	Specific to Hamann (2013) residual localization; no direct analog in single-projector generators
+oncvpsp	lloc	integer	Local ionic pseudopotential reference channel	ape:LLocal,ld1:lloc,atompaw:local_channel,opium:lloc,adpack:lloc	lloc_target = lloc_donor	Target channel must be bound and non-ghosting; -1 or 4 indicates separate local component
+oncvpsp	ncon	integer	Number of continuity constraints at matching radius (derivatives matched)	NOT_TRANSLATABLE	None; generator-internal continuity degree	Fixed by generator polynomial degree (typically 4-6)
+oncvpsp	nbas	integer	Number of spherical Bessel basis functions in optimized expansion	NOT_TRANSLATABLE	None; basis dimension for ONCV projector expansion	Internal to Hamann ONCV solver architecture
+oncvpsp	ep	Ry	Projector reference energy shift (relative to valence eigenvalue)	uspp:beta_energies,ld1:energy_shifts	delta_E = E_ref - epsilon_val	Valid for dual-projector engines; bound or low scattering state
+oncvpsp	dvloc0	Ry/bohr^2	Local pseudopotential quadratic curvature correction at origin	NOT_TRANSLATABLE	None; ONCV core polynomial regularization parameter	Specific to ONCV local regularization; no physical analog in traditional Troullier-Martins
+ape	LLocal	integer	Local potential angular momentum channel to avoid bound ghost states	oncvpsp:lloc,ld1:lloc,atompaw:local_channel,opium:lloc,adpack:lloc	lloc_target = LLocal_donor	Must not generate ghost state in target; LLocal <= l_max
+ape	rc(l)	bohr	Troullier-Martins cutoff radius for channel l	oncvpsp:rc(l),ld1:rc(l),fhi98pp:rc(l),atompaw:rc(l),opium:rc(l),adpack:rc(l)	rc_target(l) = rc_donor(l)	Must lie beyond outermost core lobe to ensure transferability
+ape	rho0	e/bohr^3	Core charge density at origin for non-linear core correction	ld1:rcore,oncvpsp:rcore,fhi98pp:pspcore,atompaw:rcore	rcore_target = r(rho_core = rho0)	Depends on NLCC functional form (polynomial vs Louie-Froyen-Cohen)
+ape	rmax	bohr	Radial logarithmic integration grid outer boundary	adpack:rmax,ld1:rmax	rmax_target >= rmax_donor	Must encompass asymptotic atomic valence wavefunctions (rmax >= 60 bohr)
+ld1	lloc	integer	Local potential angular momentum channel	oncvpsp:lloc,ape:LLocal,atompaw:local_channel,opium:lloc	lloc_target = lloc_donor	0 <= lloc <= l_max; channel must be non-resonant
+ld1	rcloc	bohr	Local potential matching radius	oncvpsp:rc(lloc),ape:rc(LLocal),fhi98pp:rc(lloc)	rc_target(lloc) = rcloc_donor	Must be >= max(rc(l)) to avoid core unscreening oscillation
+ld1	rcore	bohr	Non-linear core correction matching radius	oncvpsp:rcore,fhi98pp:pspcore,atompaw:rcore	rcore_target = rcore_donor	Core charge density and first two derivatives must be continuous
+ld1	tm	boolean	Troullier-Martins pseudization scheme flag	fhi98pp:tm_vs_ham,ape:scheme,opium:method	scheme_target = 'tm'	Both engines must support norm-conserving TM pseudization
+ld1	which_augfun	string	Augmentation function shape formulation for ultrasoft charge reconstruction	NOT_TRANSLATABLE	None; ultrasoft augmentation charge geometry	Specific to Vanderbilt USPP / PAW charge decomposition algorithms
+uspp	rinner	bohr	Inner radius for ultrasoft q_ij(r) augmentation pseudization	atompaw:rc_aug,ld1:rinner	rinner_target = rinner_donor	Must satisfy rinner <= rmatch
+uspp	rmatch	bohr	Norm-conserving outer matching radius for beta projectors	oncvpsp:rc(l),ld1:rc(l),atompaw:rc(l)	rc_target(l) = rmatch_donor(l)	Requires USPP to NC projector equivalence mapping
+uspp	beta_energies	Ry	Reference energies for non-local projectors	ld1:energy_shifts,oncvpsp:ep	delta_E = E_beta - epsilon_val	Must avoid unphysical scattering resonances near valence manifold
+atompaw	rc(l)	bohr	PAW partial wave augmentation sphere radius	ld1:rc(l),oncvpsp:rc(l),uspp:rmatch	rc_target(l) = rc_donor(l)	Augmentation spheres must not overlap nearest-neighbor bond distance in solids
+atompaw	local_channel	integer	PAW local ionic pseudopotential channel	ld1:lloc,oncvpsp:lloc,ape:LLocal	lloc_target = local_channel_donor	Must correspond to screening channel of atomic species
+atompaw	compensation_radius	bohr	Compensation charge Gaussian shape cutoff radius	NOT_TRANSLATABLE	None; PAW partition-of-unity frozen-core parameter	Unique to Projector Augmented-Wave formalism; not applicable to NC/USPP
+fhi98pp	rc(l)	bohr	Norm-conserving channel pseudization cutoff radius	oncvpsp:rc(l),ape:rc(l),ld1:rc(l),opium:rc(l)	rc_target(l) = rc_donor(l)	Must exceed outermost node of all-electron radial wavefunction
+fhi98pp	tm_vs_ham	enum	Pseudization generator algorithm (Troullier-Martins vs Hamann)	ld1:pseudization_scheme,opium:method	method_target = tm_vs_ham_donor	Target engine must implement selected algorithm
+fhi98pp	pspcore	bohr	Non-linear core correction matching radius	ld1:rcore,oncvpsp:rcore,atompaw:rcore	rcore_target = pspcore_donor	Valence-core charge density crossover boundary
+opium	rc(l)	bohr	Channel pseudization matching radius	oncvpsp:rc(l),ape:rc(l),ld1:rc(l)	rc_target(l) = rc_donor(l)	Outside outermost core maximum
+opium	lloc	integer	Local potential angular momentum channel	ld1:lloc,oncvpsp:lloc,ape:LLocal	lloc_target = lloc_donor	Selected channel must exist in valence configuration
+opium	method	enum	Pseudization formulation (tm, rrkj, kerker)	ld1:pseudization_scheme,fhi98pp:tm_vs_ham	method_target = method_donor	Limited to methods supported by both engines
+gth	Gaussian_widths	bohr	Separable dual-space Gaussian decay lengths (r_l, r_loc)	NOT_TRANSLATABLE	None; analytical Gaussian basis representation	Incompatible with real-space radial grid cutoff radii without numerical refitting
+gth	h	Hartree	Projector coupling matrix elements h_ij^l	NOT_TRANSLATABLE	None; Gaussian projector expansion coefficients	Dual-space matrix representation cannot be mapped directly to radial potential channels
+gth	rloc	bohr	Local error-function core potential range parameter	oncvpsp:rc(lloc),ld1:rcloc	rloc_target approx 0.85 * rcloc_donor	Heuristic mapping only; functional form differences (erf vs numerical spline)
+adpack	rc(l)	bohr	Norm-conserving cutoff radius	oncvpsp:rc(l),ape:rc(l),ld1:rc(l)	rc_target(l) = rc_donor(l)	Must lie within stable logarithmic radial grid bounds
+adpack	lloc	integer	Local channel selector	ld1:lloc,oncvpsp:lloc,ape:LLocal	lloc_target = lloc_donor	0 <= lloc <= l_max
+adpack	grid_bounds	dimensionless	Logarithmic integration grid point limit and boundary bounds	NOT_TRANSLATABLE	None; internal numerical grid discretisation	Fixed by ADPACK internal array allocations (requires source bounds patch for fine grids)
