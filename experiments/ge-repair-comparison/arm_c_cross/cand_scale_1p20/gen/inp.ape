@@ -1,0 +1,32 @@
+Title = "Ge Cross Repair Scale 1.20"
+CalculationMode = ae + pp
+Verbose = 30
+WaveEquation = scalar_rel
+PPOutputFileFormat = upf
+SpinMode = unpolarized
+XCCorrections = rhoxc
+LLocal = 0
+
+%XCFunctionals
+ gga_x_pbe
+ gga_c_pbe
+%
+
+NuclearCharge = 32
+
+%Orbitals
+"Ar"
+  4 | 0 | 2
+  4 | 1 | 2
+  3 | 2 | 10
+%
+
+%PPComponents
+  4 | 0 | 2.40 | tm
+  4 | 1 | 2.64 | tm
+  3 | 2 | 2.40 | tm
+%
+
+PPCalculationTolerance = 1e-6
+EigenSolverTolerance = 1e-8
+ODEIntTolerance = 1e-12

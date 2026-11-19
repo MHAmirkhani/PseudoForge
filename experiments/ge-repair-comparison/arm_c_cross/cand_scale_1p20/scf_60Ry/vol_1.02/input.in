@@ -1,0 +1,31 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'ge_scf'
+  outdir = '/home/mammadzi/Pseudo Maker/pseudoforge/experiments/ge-repair-comparison/arm_c_cross/cand_scale_1p20/scf_60Ry/vol_1.02/scratch'
+  pseudo_dir = '/home/mammadzi/Pseudo Maker/pseudoforge/experiments/ge-repair-comparison/arm_c_cross/cand_scale_1p20/gen'
+  disk_io = 'none'
+/
+&SYSTEM
+  ibrav = 2
+  celldm(1) = 10.960795119546
+  nat = 2
+  ntyp = 1
+  ecutwfc = 60
+  ecutrho = 240
+  input_dft = 'PBE'
+  occupations = 'smearing'
+  smearing = 'fd'
+  degauss = 0.0045
+/
+&ELECTRONS
+  conv_thr = 1.0d-8
+  mixing_beta = 0.3
+  diagonalization = 'cg'
+/
+ATOMIC_SPECIES
+  Ge 72.630 Ge.UPF
+ATOMIC_POSITIONS (alat)
+  Ge 0.00 0.00 0.00
+  Ge 0.25 0.25 0.25
+K_POINTS (automatic)
+  4 4 4 0 0 0

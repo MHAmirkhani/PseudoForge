@@ -1,0 +1,30 @@
+
+Kleinman & Bylander Atom
+  Local potential is a Vanderbilt function
+       z     rcmax      v0          v1          v2          v3
+     14.00    2.63  -13.288037   -0.216048    0.015559   -0.000498
+  Non-local components:
+    State   KB Energy [H ]   KB Cosine
+      4s      929.6118         0.8480
+      4p      666.6008         0.8161
+      3d     1505.7603         0.9661
+
+  Ghost state analysis:
+    State: 4s
+      KB energy > 0;  Eref < E0      =>  Illdefined
+      Local potential eigenvalues:    0.0000 (E0)     0.0000 (E1)
+      Reference energy:              -0.5762 (Eref)
+    State: 4p
+      KB energy > 0;  Eref < E0      =>  Illdefined
+      Local potential eigenvalues:    0.0000 (E0)     0.0000 (E1)
+      Reference energy:              -0.2695 (Eref)
+    State: 3d
+      KB energy > 0; E0 < Eref < E1  =>  No ghost states
+      Local potential eigenvalues: ********* (E0)     0.0000 (E1)
+      Reference energy:              -1.1178 (Eref)
+
+  Localization radii [b]:
+    Local:  2.37
+    l = 0:  5.73
+    l = 1:  7.27
+    l = 2:  3.50

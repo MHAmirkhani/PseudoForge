@@ -1,0 +1,189 @@
+                 APE - Atomic Pseudopotentials Engine
+
+              Program started on 2026/11/19 at 18:42:39
+
+Compilation Info
+  Version: 2.4.0
+  Commit: 5b95184
+  Build time: 2026-09-10T22:58:51
+  C compiler: /usr/bin/cc
+  C flags: -O2 -std=gnu17 -fcommon -Wno-implicit-function-declaration -Wno-int-conversion
+  Fortran compiler: /usr/bin/f95
+  Fortran flags: -O2 -ffree-line-length-none -fallow-argument-mismatch -ffree-line-length-none
+  Libxc version: 7.1.2
+
+Calculation Type:
+  Atomic Calculation
+  PseudoPotential Generation
+
+Setting units
+  Input units system:  Atomic Units
+  Output units system: Atomic Units
+
+Eigensolver Info
+  Method:    Brent's method
+  Tolerance:  1.000E-08
+  Mode: fast
+
+
+                    -- All Electron Calculation --
+
+Initializing ODE Integrator
+  ODE Stepping function: Embedded 8th order Runge-Kutta Prince-Dormand
+                         method with 9th order error estimate
+  ODE Integrator tolerance:  1.000E-12
+  ODE Integrator maximum number of steps: 500000
+
+General Information about the atom:
+  Symbol: Ge
+  Theory Level: DFT
+  Wave-equation: Scalar-relativistic
+  Spin mode: unpolarized
+  Nuclear charge:  32.00
+  Total charge:     0.00
+  Smearing: fixed occupancies
+  Configuration    : State   Occupation
+                       1s       2.00
+                       2s       2.00
+                       2p       6.00
+                       3s       2.00
+                       3p       6.00
+                       3d      10.00
+                       4s       2.00
+                       4p       2.00
+
+Exchange-Correlation model:
+  Exchange:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    Asymptotic value of the enhancement function:     0.804000000
+    Coefficient of the 2nd order expansion:     0.219514973
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+  Correlation:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    beta constant:     0.066724551
+    (1 - ln(2))/Pi^2 in the PBE:     0.031090691
+    Multiplies the A t^2 term. Used in the SPBE functional:     1.000000000
+    Scaling for t, used in the BKL functionals:     1.000000000
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+  Exchange-correlation density correction
+
+Mesh information:
+  Type: logarithmic [ri = b*exp(a*i)]
+  Mesh starting point:   5.66E-05 b
+  Mesh outmost point:    169.706 b
+  Mesh parameters (a, b):  1.49291E-02,  5.57303E-05
+  Mesh number of points:   1000
+  Derivatives Method: Cubic splines
+
+Starting SCF process
+  Convergence tolerance: ConvAbsDens ConvRelDens
+                          0.000E+00   1.000E-08
+                         ConvAbsEnergy ConvRelEnergy
+                          0.000E+00   0.000E+00
+  Maximum number of iterations:    300
+  Mixing scheme: Modified Broyden's Method
+  Mixing: 0.300
+
+Performing SCF Cycle
+
+  Final results for SCF procedure:
+
+Initializing ODE Integrator
+  ODE Stepping function: Embedded 8th order Runge-Kutta Prince-Dormand
+                         method with 9th order error estimate
+  ODE Integrator tolerance:  1.000E-12
+  ODE Integrator maximum number of steps: 500000
+
+
+                   -- Pseudopotential Generation --
+
+Pseudo atom information:
+  Wavefunction info:
+    State   Occupation    Node radius   Peak radius   Default core radius
+     4s        2.00          0.763         1.709             0.000
+     4p        2.00          0.822         2.138             0.000
+     3d       10.00          0.000         0.495             0.000
+
+Pseudopotential Generation:
+  State: 4s
+    Scheme: Troullier-Martins
+    Core radius:   2.660
+    Coefficients:
+      c0  = -7.163868918E-01   c2  =  2.669146213E-02
+      c4  = -1.424867163E-04   c6  = -1.611393849E-02
+      c8  =  3.476524721E-03   c10 = -2.951108529E-04
+      c12 =  9.236850203E-06
+    Residues:
+      c2**2 + c4(2l+5)    = -2.003562871E-10
+      norm[AE] - norm[PP] =  5.689975877E-10
+
+  State: 4p
+    Scheme: Troullier-Martins
+    Core radius:   2.540
+    Coefficients:
+      c0  = -1.080376957E+00   c2  = -1.509974596E-01
+      c4  = -3.257176116E-03   c6  = -6.735894595E-03
+      c8  =  1.862134116E-03   c10 = -1.836914519E-04
+      c12 =  6.489862028E-06
+    Residues:
+      c2**2 + c4(2l+5)    = -1.320055176E-13
+      norm[AE] - norm[PP] =  2.188145498E-12
+
+  State: 3d
+    Scheme: Troullier-Martins
+    Core radius:   2.650
+    Coefficients:
+      c0  =  1.781201154E+00   c2  = -1.501665512E+00
+      c4  = -2.505554789E-01   c6  =  1.418475008E-01
+      c8  = -2.406612894E-02   c10 =  1.854203838E-03
+      c12 = -5.519898338E-05
+    Residues:
+      c2**2 + c4(2l+5)    =  1.264094718E-09
+      norm[AE] - norm[PP] = -1.163270369E-09
+
+
+Pseudopotentials Self-Consistency:
+  State  Eigenvalue [H ]    Norm Test   Slope Test
+    4s        -0.57622      1.0000025   0.9999953
+    4p        -0.26948      1.0000552   1.0000618
+    3d        -1.11870      1.0000336   0.9921534
+
+Kleinman & Bylander Atom
+  l-component used as local: l = 0
+  Non-local components:
+    State   KB Energy [H ]   KB Cosine
+      4p       -4.8043        -0.0219
+      3d       -7.8167        -0.8516
+
+  Ghost state analysis:
+    State: 4p
+      KB energy < 0; Eref > E0       =>  Ghost state found
+      Local potential eigenvalues:   -0.2709 (E0)    -0.0741 (E1)
+      Reference energy:              -0.2695 (Eref)
+    State: 3d
+      KB energy < 0; Eref < E0       =>  No ghost states
+      Local potential eigenvalues:   -0.0618 (E0)    -0.0346 (E1)
+      Reference energy:              -1.1178 (Eref)
+
+  Localization radii [b]:
+    Local: 24.73
+    l = 1:  2.60
+    l = 2:  2.41
+
+              Program finished on 2026/11/19 at 18:42:41
+
+

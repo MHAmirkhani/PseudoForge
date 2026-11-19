@@ -1,0 +1,49 @@
+
+Pseudo atom information:
+  Wavefunction info:
+    State   Occupation    Node radius   Peak radius   Default core radius
+     4s        2.00          0.763         1.709             0.000
+     4p        2.00          0.822         2.138             0.000
+     3d       10.00          0.000         0.495             0.000
+
+Pseudopotential Generation:
+  State: 4s
+    Scheme: Troullier-Martins
+    Core radius:   2.000
+    Coefficients:
+      c0  = -1.256588088E+00   c2  =  5.901545178E-01
+      c4  = -6.965647224E-02   c6  = -1.004211342E-01
+      c8  =  3.961782810E-02   c10 = -5.878488517E-03
+      c12 =  3.204954616E-04
+    Residues:
+      c2**2 + c4(2l+5)    =  2.116413711E-10
+      norm[AE] - norm[PP] = -6.323806090E-09
+
+  State: 4p
+    Scheme: Troullier-Martins
+    Core radius:   2.200
+    Coefficients:
+      c0  = -1.207052675E+00   c2  = -4.979461268E-02
+      c4  = -3.542147793E-04   c6  = -2.715847367E-02
+      c8  =  8.461632671E-03   c10 = -1.029870438E-03
+      c12 =  4.622384336E-05
+    Residues:
+      c2**2 + c4(2l+5)    =  7.427392035E-14
+      norm[AE] - norm[PP] = -3.667207163E-12
+
+  State: 3d
+    Scheme: Troullier-Martins
+    Core radius:   2.000
+    Coefficients:
+      c0  =  2.429161755E+00   c2  = -2.257752022E+00
+      c4  = -5.663826883E-01   c6  =  5.897368653E-01
+      c8  = -1.760209948E-01   c10 =  2.378235282E-02
+      c12 = -1.241109754E-03
+    Residues:
+      c2**2 + c4(2l+5)    =  1.833699859E-11
+      norm[AE] - norm[PP] = -1.760769308E-10
+
+
+
+Pseudopotentials Self-Consistency:
+  State  Eigenvalue [H ]    Norm Test   Slope Test

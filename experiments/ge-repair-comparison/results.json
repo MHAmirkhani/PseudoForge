@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-11-19 18:36:40",
+  "element": "Ge",
+  "atomic_number": 32,
+  "crystal": "Diamond (Fd-3m, 2-atom primitive cell)",
+  "functional": "PBE (Scalar relativistic)",
+  "preregistration_tag": "prereg-v1.4.0-ge",
+  "reference": {
+    "source": "AiiDA Common Workflows (ACWF) verification dataset",
+    "doi": "10.1038/s42254-023-00655-3",
+    "materials_cloud_archive": "https://archive.materialscloud.org/records/yf0rj-w3r97",
+    "dataset_file": "results-unaries-verification-PBE-v1-AE-average.json",
+    "dataset_file_sha256": "d7844caa127eae860fe5087ead42f80d1b6b5eb952a686ff4b912ddaed7db48b",
+    "parameters": {
+      "v0_ang3_cell": 47.82658983637545,
+      "b0_ev_ang3": 0.36773771717230463,
+      "b0_prime": 4.86198008912424,
+      "b0_gpa": 58.9181
+    }
+  },
+  "budget_semantics": "training_core_hours is single-logical-CPU active training wall time enforced by CPU affinity. It is not a scheduler reservation; cluster-accounting adapters are future work.",
+  "arms": {
+    "arm_a_baseline": {
+      "name": "Arm A: Baseline APE (unrepaired)",
+      "description": "Default APE Germanium input; omitting LLocal produces ill-defined/unphysical projector screening",
+      "candidates": [
+        {
+          "title": "Ge Baseline APE Unrepaired",
+          "llocal": null,
+          "rc_s": 2.66,
+          "rc_p": 2.54,
+          "rc_d": 2.65,
+          "l1_generation": true,
+          "l2_serialization": true,
+          "l3_scf": true,
+          "l4_ghost_free": false,
+          "l5_material_accuracy": false,
+          "generation_cpu_seconds": 0.0033,
+          "training_cpu_seconds": 0.286,
+          "training_core_hours": 8e-05,
+          "ghost_diagnosis": "ill_defined",
+          "worst_eos_error_meV_per_atom": 2809.868,
+          "feasible": false,
+          "pareto_points": [
+            {
+              "ecutwfc_Ry": 40,
+              "ecutrho_Ry": 160,
+              "worst_eos_error_meV_per_atom": 2809.868,
+              "e0_Ry": -162.801303
+            },
+            {
+              "ecutwfc_Ry": 60,
+              "ecutrho_Ry": 240,
+              "worst_eos_error_meV_per_atom": 2810.942,
+              "e0_Ry": -162.806322
+            }
+          ]
+        }
+      ],
+      "feasible_candidate_found": false,
+      "core_hours_to_first_feasible": null,
+      "total_training_core_hours": 8e-05,
+      "final_status": "FAIL (lattice instability; worst error 2809.87 meV/atom)"
+    },
+    "arm_b_single": {
+      "name": "Arm B: Single-Engine Repair (LLocal = 0)",
+      "description": "Explicit LLocal = 0 eliminates s-channel issue but produces bound ghost state in p-channel for Ge",
+      "candidates": [
+        {
+          "title": "Ge Single Repair LLocal=0",
+          "llocal": 0,
+          "rc_s": 2.66,
+          "rc_p": 2.54,
+          "rc_d": 2.65,
+          "l1_generation": true,
+          "l2_serialization": true,
+          "l3_scf": true,
+          "l4_ghost_free": false,
+          "l5_material_accuracy": false,
+          "generation_cpu_seconds": 0.003,
+          "training_cpu_seconds": 0.163,
+          "training_core_hours": 4.5e-05,
+          "ghost_diagnosis": "ghost_found",
+          "worst_eos_error_meV_per_atom": 32935318.655,
+          "feasible": false,
+          "pareto_points": [
+            {
+              "ecutwfc_Ry": 40,
+              "ecutrho_Ry": 160,
+              "worst_eos_error_meV_per_atom": 32935318.655,
+              "e0_Ry": 92079.697832
+            },
+            {
+              "ecutwfc_Ry": 60,
+              "ecutrho_Ry": 240,
+              "worst_eos_error_meV_per_atom": 33399725.731,
+              "e0_Ry": 91342.186025
+            }
+          ]
+        }
+      ],
+      "feasible_candidate_found": false,
+      "core_hours_to_first_feasible": null,
+      "total_training_core_hours": 4.5e-05,
+      "final_status": "FAIL (pathological ghost state at +92,079 Ry; c_bands breakdown)"
+    },
+    "arm_c_cross": {
+      "name": "Arm C: Cross-Engine Repair (ONCVPSP Donor)",
+      "description": "Transplantation of ONCVPSP cutoffs and explicit LLocal = 0. Shows severe cross-row transferability failure on Ge due to 3d semicore.",
+      "donor_engine": "oncvpsp",
+      "candidates": [
+        {
+          "title": "Ge Cross Repair Nominal",
+          "llocal": 0,
+          "rc_s": 2.0,
+          "rc_p": 2.2,
+          "rc_d": 2.0,
+          "l1_generation": false,
+          "l2_serialization": false,
+          "l3_scf": false,
+          "l4_ghost_free": false,
+          "l5_material_accuracy": false,
+          "generation_cpu_seconds": 0.002,
+          "training_cpu_seconds": 0.0,
+          "training_core_hours": 0.0,
+          "ghost_diagnosis": "unscreening_failure",
+          "worst_eos_error_meV_per_atom": null,
+          "feasible": false,
+          "pareto_points": []
+        },
+        {
+          "title": "Ge Cross Repair Scale 1.10",
+          "llocal": 0,
+          "rc_s": 2.2,
+          "rc_p": 2.42,
+          "rc_d": 2.2,
+          "l1_generation": false,
+          "l2_serialization": false,
+          "l3_scf": false,
+          "l4_ghost_free": false,
+          "l5_material_accuracy": false,
+          "generation_cpu_seconds": 0.002,
+          "training_cpu_seconds": 0.0,
+          "training_core_hours": 0.0,
+          "ghost_diagnosis": "unscreening_failure",
+          "worst_eos_error_meV_per_atom": null,
+          "feasible": false,
+          "pareto_points": []
+        },
+        {
+          "title": "Ge Cross Repair Scale 1.20",
+          "llocal": 0,
+          "rc_s": 2.4,
+          "rc_p": 2.64,
+          "rc_d": 2.4,
+          "l1_generation": true,
+          "l2_serialization": true,
+          "l3_scf": false,
+          "l4_ghost_free": true,
+          "l5_material_accuracy": false,
+          "generation_cpu_seconds": 0.0031,
+          "training_cpu_seconds": 0.125,
+          "training_core_hours": 3.5e-05,
+          "ghost_diagnosis": "ghost_free",
+          "worst_eos_error_meV_per_atom": null,
+          "feasible": false,
+          "pareto_points": []
+        }
+      ],
+      "feasible_candidate_found": false,
+      "core_hours_to_first_feasible": null,
+      "total_training_core_hours": 3.5e-05,
+      "final_status": "FAIL (negative transferability result: unfeasible under all tested cutoffs)"
+    }
+  }
+}

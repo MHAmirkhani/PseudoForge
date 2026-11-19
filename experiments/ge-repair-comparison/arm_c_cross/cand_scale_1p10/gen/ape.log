@@ -1,0 +1,167 @@
+                 APE - Atomic Pseudopotentials Engine
+
+              Program started on 2026/11/19 at 18:47:00
+
+Compilation Info
+  Version: 2.4.0
+  Commit: 5b95184
+  Build time: 2026-09-10T22:58:51
+  C compiler: /usr/bin/cc
+  C flags: -O2 -std=gnu17 -fcommon -Wno-implicit-function-declaration -Wno-int-conversion
+  Fortran compiler: /usr/bin/f95
+  Fortran flags: -O2 -ffree-line-length-none -fallow-argument-mismatch -ffree-line-length-none
+  Libxc version: 7.1.2
+
+Calculation Type:
+  Atomic Calculation
+  PseudoPotential Generation
+
+Setting units
+  Input units system:  Atomic Units
+  Output units system: Atomic Units
+
+Eigensolver Info
+  Method:    Brent's method
+  Tolerance:  1.000E-08
+  Mode: fast
+
+
+                    -- All Electron Calculation --
+
+Initializing ODE Integrator
+  ODE Stepping function: Embedded 8th order Runge-Kutta Prince-Dormand
+                         method with 9th order error estimate
+  ODE Integrator tolerance:  1.000E-12
+  ODE Integrator maximum number of steps: 500000
+
+General Information about the atom:
+  Symbol: Ge
+  Theory Level: DFT
+  Wave-equation: Scalar-relativistic
+  Spin mode: unpolarized
+  Nuclear charge:  32.00
+  Total charge:     0.00
+  Smearing: fixed occupancies
+  Configuration    : State   Occupation
+                       1s       2.00
+                       2s       2.00
+                       2p       6.00
+                       3s       2.00
+                       3p       6.00
+                       3d      10.00
+                       4s       2.00
+                       4p       2.00
+
+Exchange-Correlation model:
+  Exchange:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    Asymptotic value of the enhancement function:     0.804000000
+    Coefficient of the 2nd order expansion:     0.219514973
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+  Correlation:
+    Name: Perdew, Burke & Ernzerhof
+    Family: GGA
+    Derivatives: numerical
+    Density threshold: Libxc default
+    beta constant:     0.066724551
+    (1 - ln(2))/Pi^2 in the PBE:     0.031090691
+    Multiplies the A t^2 term. Used in the SPBE functional:     1.000000000
+    Scaling for t, used in the BKL functionals:     1.000000000
+    References:
+      [1] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 77, 3865 (
+          http://dx.doi.org/10.1103/PhysRevLett.77.3865
+      [2] J. P. Perdew, K. Burke, and M. Ernzerhof,  Phys. Rev. Lett. 78, 1396 (
+          http://dx.doi.org/10.1103/PhysRevLett.78.1396
+  Exchange-correlation density correction
+
+Mesh information:
+  Type: logarithmic [ri = b*exp(a*i)]
+  Mesh starting point:   5.66E-05 b
+  Mesh outmost point:    169.706 b
+  Mesh parameters (a, b):  1.49291E-02,  5.57303E-05
+  Mesh number of points:   1000
+  Derivatives Method: Cubic splines
+
+Starting SCF process
+  Convergence tolerance: ConvAbsDens ConvRelDens
+                          0.000E+00   1.000E-08
+                         ConvAbsEnergy ConvRelEnergy
+                          0.000E+00   0.000E+00
+  Maximum number of iterations:    300
+  Mixing scheme: Modified Broyden's Method
+  Mixing: 0.300
+
+Performing SCF Cycle
+
+  Final results for SCF procedure:
+
+Initializing ODE Integrator
+  ODE Stepping function: Embedded 8th order Runge-Kutta Prince-Dormand
+                         method with 9th order error estimate
+  ODE Integrator tolerance:  1.000E-12
+  ODE Integrator maximum number of steps: 500000
+
+
+                   -- Pseudopotential Generation --
+
+Pseudo atom information:
+  Wavefunction info:
+    State   Occupation    Node radius   Peak radius   Default core radius
+     4s        2.00          0.763         1.709             0.000
+     4p        2.00          0.822         2.138             0.000
+     3d       10.00          0.000         0.495             0.000
+
+Pseudopotential Generation:
+  State: 4s
+    Scheme: Troullier-Martins
+    Core radius:   2.200
+    Coefficients:
+      c0  = -1.046090849E+00   c2  =  3.335939716E-01
+      c4  = -2.225698747E-02   c6  = -5.991376101E-02
+      c8  =  1.892628405E-02   c10 = -2.319048916E-03
+      c12 =  1.048769154E-04
+    Residues:
+      c2**2 + c4(2l+5)    = -4.185285452E-11
+      norm[AE] - norm[PP] =  5.317844082E-10
+
+  State: 4p
+    Scheme: Troullier-Martins
+    Core radius:   2.420
+    Coefficients:
+      c0  = -1.120780500E+00   c2  = -1.216524248E-01
+      c4  = -2.114187494E-03   c6  = -1.178250439E-02
+      c8  =  3.305787777E-03   c10 = -3.475535512E-04
+      c12 =  1.327293558E-05
+    Residues:
+      c2**2 + c4(2l+5)    = -1.409983241E-13
+      norm[AE] - norm[PP] =  3.376920271E-12
+
+  State: 3d
+    Scheme: Troullier-Martins
+    Core radius:   2.200
+    Coefficients:
+      c0  =  2.211854014E+00   c2  = -1.965787465E+00
+      c4  = -4.293689281E-01   c6  =  3.637278439E-01
+      c8  = -8.967864576E-02   c10 =  1.001917431E-02
+      c12 = -4.323929988E-04
+    Residues:
+      c2**2 + c4(2l+5)    = -7.045830586E-10
+      norm[AE] - norm[PP] =  3.543770166E-09
+
+
+Pseudopotentials Self-Consistency:
+  State  Eigenvalue [H ]    Norm Test   Slope Test
+
+
+
+Fatal Error (description follows)
+  Unable to bracket eigenvalues for state:
+    1s
+
