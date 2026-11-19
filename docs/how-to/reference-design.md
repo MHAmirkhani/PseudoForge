@@ -86,7 +86,15 @@ trial CPU cost. Candidate order within each pair is seeded. The report records
 each decision and the scores used. An adaptive `--plan` shows a uniform
 preview because no training observations exist yet.
 
-Any of the three seeded strategies can set `"training_wall_seconds"` alongside
+Use `"strategy": "bayesian"` to retain the adaptive arm policy and select
+parameters within each arm with a Gaussian-process upper confidence bound.
+The model learns the bounded score from completed training trials, including
+failed attempts. Its kernel uses normalized numeric settings and categorical
+differences within that engine/formulation. It chooses among declared grid
+points and records the acquisition score. It does not fit the atomic solver
+or extrapolate outside the supplied candidate space.
+
+Each seeded strategy can set `"training_wall_seconds"` alongside
 `"max_trials"`. The clock starts before the first training trial. Running
 commands receive the remaining time, and a trial interrupted at the deadline
 is charged to the budget. Held-out verification starts after the selection

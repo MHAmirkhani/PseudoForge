@@ -222,8 +222,8 @@ def load_protocol(path):
     if "search" in protocol:
         search = protocol["search"]
         keys(search, {"strategy", "seed", "max_trials", "training_wall_seconds"}, "search")
-        if search.get("strategy") not in ("random", "uniform", "adaptive"):
-            raise ValueError("search strategy must be random, uniform or adaptive")
+        if search.get("strategy") not in ("random", "uniform", "adaptive", "bayesian"):
+            raise ValueError("search strategy must be random, uniform, adaptive or bayesian")
         if type(search.get("seed")) is not int or not 0 <= search["seed"] < 2**64:
             raise ValueError("seeded search requires an unsigned 64-bit seed")
         if type(search.get("max_trials")) is not int or not 1 <= search["max_trials"] <= len(expanded):
@@ -580,14 +580,71 @@ def order_trials(trials, search):
     return selected
 
 
+def posterior_scores(candidates, observed, domain):
+    """GP posterior UCB over the native parameter grid in one arm."""
+    if not observed:
+        return [0.0] * len(candidates)
+    keys = sorted({key for item in domain for key in item["options"]})
+    numeric = {}
+    for key in keys:
+        values = [item["options"][key] for item in domain if key in item["options"]]
+        if all(type(value) in (int, float) for value in values):
+            numeric[key] = (min(values), max(values) - min(values))
+
+    def kernel(a, b):
+        distance = float(a["profile"] != b["profile"])
+        distance += (math.log(a["ecutwfc"]) - math.log(b["ecutwfc"])) ** 2
+        distance += (math.log(a["ecutrho"]) - math.log(b["ecutrho"])) ** 2
+        for key in keys:
+            x, y = a["options"].get(key), b["options"].get(key)
+            if x == y:
+                continue
+            center, width = numeric.get(key, (0, 0))
+            if width:
+                # An inactive value has a separate activity coordinate,
+                # which keeps the mixed kernel positive semidefinite.
+                scaled_x = (x - center) / width if x is not None else 0.0
+                scaled_y = (y - center) / width if y is not None else 0.0
+                distance += (scaled_x - scaled_y) ** 2 + ((x is None) != (y is None))
+            else:
+                distance += 1
+        return math.exp(-2 * distance)
+
+    # Cholesky factor of K + noise I. Work in whitened coordinates so
+    # candidates share the same factor and training residuals.
+    factor = []
+    whitened = []
+    for i, (candidate, reward) in enumerate(observed):
+        row = []
+        for j, (other, _) in enumerate(observed[:i]):
+            row.append((kernel(candidate, other) - sum(x * y for x, y in zip(row, factor[j]))) / factor[j][j])
+        diagonal = math.sqrt(1.02 - sum(value**2 for value in row))
+        whitened.append((reward - 0.5 - sum(x * y for x, y in zip(row, whitened))) / diagonal)
+        factor.append([*row, diagonal])
+    scores = []
+    for candidate in candidates:
+        projected = []
+        for j, (other, _) in enumerate(observed):
+            row = factor[j]
+            projected.append((kernel(candidate, other) - sum(x * y for x, y in zip(projected, row))) / row[j])
+        mean = 0.5 + sum(x * y for x, y in zip(projected, whitened))
+        deviation = math.sqrt(max(0, 1 - sum(x**2 for x in projected)))
+        scores.append(mean + deviation)
+    return scores
+
+
 def adaptive_trials(trials, search, results, decisions):
     """Sample every arm once when budget permits, then use cost-aware UCB."""
     arms = defaultdict(deque)
     costs = defaultdict(list)
     rewards = defaultdict(list)
+    observed = defaultdict(list)
+    domains = defaultdict(list)
     seeded = order_trials(trials, {**search, "strategy": "random", "max_trials": len(trials)})
     for candidate, command in seeded:
-        arms[candidate["engine"], candidate["family"]].append((candidate, command))
+        arm = candidate["engine"], candidate["family"]
+        arms[arm].append((candidate, command))
+        domains[arm].append(candidate)
     for index in range(search["max_trials"]):
         untried = [arm for arm in arms if not rewards[arm]]
         if untried:
@@ -604,7 +661,14 @@ def adaptive_trials(trials, search, results, decisions):
             reason = {"stage": "cost-aware UCB",
                       "scores": [{"engine": key[0], "family": key[1], "score": value}
                                  for key, value in scores.items()]}
-        candidate, command = arms[arm].popleft()
+        if search.get("strategy") == "bayesian" and observed[arm]:
+            scores = posterior_scores([item for item, _ in arms[arm]], observed[arm], domains[arm])
+            position = max(range(len(scores)), key=scores.__getitem__)
+            candidate, command = arms[arm][position]
+            del arms[arm][position]
+            reason["parameter_acquisition"] = {"kind": "GP-UCB", "score": scores[position]}
+        else:
+            candidate, command = arms[arm].popleft()
         if not arms[arm]:
             del arms[arm]
         decisions.append({"id": candidate["id"], "engine": arm[0], "family": arm[1], **reason})
@@ -618,6 +682,7 @@ def adaptive_trials(trials, search, results, decisions):
         if assessment.get("passes"):
             reward = 1 - 0.5 * error
         rewards[arm].append(reward)
+        observed[arm].append((candidate, reward))
         costs[arm].append(max(0.001, trial["trial_cpu_seconds"]))
 
 
@@ -685,7 +750,7 @@ def main(argv=None):
               "fixed_pseudos": {el: {"path": file, "sha256": digest(file)} for el, file in protocol["fixed_pseudos"].items()}}
     trials = list(zip(protocol["candidates"], commands))
     search = protocol.get("search", {"strategy": "grid", "max_trials": len(trials)})
-    adaptive = search["strategy"] == "adaptive"
+    adaptive = search["strategy"] in ("adaptive", "bayesian")
     decisions = []
     if adaptive and not args.plan:
         schedule = adaptive_trials(trials, search, report["results"], decisions)

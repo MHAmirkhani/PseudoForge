@@ -7,8 +7,10 @@ controls, input snapshots and failure reporting. The current `design` command
 evaluates a finite grid through QE, with random, uniform and cost-aware UCB
 allocation over engine/formulation pairs. It supports optional cutoff/k-mesh
 stability checks, declared structural-family splits and a local training
-time budget. Conditional Bayesian parameter proposals, CP2K/OpenMX
-evaluation and a measured advantage of adaptive allocation remain open.
+time budget. A conditional GP-UCB strategy proposes parameter combinations
+within the declared native grid. A separate replayable example evaluates
+GTH through CP2K. OpenMX material evaluation and a measured advantage
+over equal-budget baselines remain open.
 
 ## What is already established
 

@@ -126,6 +126,15 @@ class DesignTests(unittest.TestCase):
                            30, deadline=start + 0.15)
         self.assertLess(time.monotonic() - start, 5)
 
+    def test_gp_uses_native_parameter_distance_within_one_engine(self):
+        def candidate(radius):
+            return {"options": {"rcut_scale": radius}, "profile": "psl-high",
+                    "ecutwfc": 40, "ecutrho": 320}
+        best, nearby, distant, worst = map(candidate, (0.9, 0.91, 1.09, 1.1))
+        scores = design.posterior_scores([nearby, distant], [(best, 0.99), (worst, 0.01)],
+                                         [best, nearby, distant, worst])
+        self.assertGreater(scores[0], scores[1])
+
     def test_missing_reference_or_mismatched_theory_is_refused(self):
         for change in ({"source": ""}, {"xc": "pz"}, {"relativity": "full"}, {"forces_Ry_bohr": [[0, 0]]}):
             with self.subTest(change=change):
