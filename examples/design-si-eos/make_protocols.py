@@ -28,13 +28,24 @@ def eos_energy(volume, equilibrium_volume, bulk_modulus, bulk_derivative):
 def qe_input(volume, mesh):
     # ibrav=2 uses the FCC primitive cell with one fourth of the cubic volume.
     alat = (4 * volume) ** (1 / 3) / ANGSTROM_PER_BOHR
+    return cubic_qe_input(2, alat, mesh, (
+        ("Si", (0.0, 0.0, 0.0)), ("Si", (0.25, 0.25, 0.25)),
+    ), "Si", {"Si": 28.0855})
+
+
+def cubic_qe_input(ibrav, alat, mesh, sites, element, masses):
     mesh_row = "{{K_MESH}}" if mesh is None else f"{mesh} {mesh} {mesh}"
+    species = "\n".join(f'{symbol} {masses[symbol]} ' +
+                        ('{{UPF}}' if symbol == element else f'{symbol}.fixed.UPF')
+                        for symbol in sorted({symbol for symbol, _ in sites}))
+    positions = "\n".join(f'{symbol} ' + " ".join(map(str, pos)) for symbol, pos in sites)
+    ntyp = len({symbol for symbol, _ in sites})
     return f"""&CONTROL
  calculation='scf', prefix='{{{{PREFIX}}}}', outdir='{{{{OUTDIR}}}}',
  pseudo_dir='{{{{PSEUDO_DIR}}}}', disk_io='none'
 /
 &SYSTEM
- ibrav=2, celldm(1)={alat:.12f}, nat=2, ntyp=1,
+ ibrav={ibrav}, celldm(1)={alat:.12f}, nat={len(sites)}, ntyp={ntyp},
  ecutwfc={{{{ECUTWFC}}}}, ecutrho={{{{ECUTRHO}}}},
  occupations='smearing', smearing='fd', degauss=0.0045
 /
@@ -42,10 +53,9 @@ def qe_input(volume, mesh):
  conv_thr=1.0d-10, mixing_beta=0.3
 /
 ATOMIC_SPECIES
- Si 28.0855 {{{{UPF}}}}
+{species}
 ATOMIC_POSITIONS alat
- Si 0.0 0.0 0.0
- Si 0.25 0.25 0.25
+{positions}
 K_POINTS automatic
  {mesh_row} 0 0 0
 """

@@ -26,3 +26,27 @@ This checks 80 Ry wavefunction cutoff, then 640 Ry density cutoff, then a
 the base and each preceding level. It selects by training error among feasible
 candidates and records changes in each stage separately. Increase and justify
 the settings for production benchmarks.
+
+## Train on metallic Ti and test on oxides
+
+Use the same repository root and pinned data commit as above. The pilot takes
+BCC and FCC titanium at equilibrium and 6% compression as training data. The
+held-out structures are the rocksalt TiO and fluorite TiO2 reference prototypes
+at the same volume fractions. Each comparison uses a separate energy zero
+within its structure. The oxygen UPF is fixed in every candidate.
+
+```sh
+curl -fLsS "${source%/*}/results-oxides-verification-PBE-v1-AE-average.json" -o "$work/oxides.json"
+./pseudoforge generate -e O -x pbe -r scalar -t nc -p sg15 --engine oncvpsp --format upf --source local --no-autofix -j 1 -o "$work/oxygen"
+python3 examples/design-si-eos/make_ti_protocols.py "$work/reference.json" "$work/oxides.json" \
+  "$work/oxygen/pseudos/O.pbe-oncv.UPF" --k-mesh 8 --convergence-mesh 12 -o "$work/ti-protocols"
+for arm in oncv-nc ld1-us atompaw-paw; do
+  for mode in default tuned; do
+    ./pseudoforge design "$work/ti-protocols/$arm-$mode.json" --pw /absolute/path/to/pw.x -o "$work/ti-$arm-$mode"
+  done
+done
+```
+
+The Ti example uses an exploratory 5 meV/atom tolerance and a 1 meV/atom
+numerical drift allowance. It tests EOS energy differences only. The two
+oxides are cubic verification prototypes from the published dataset.
