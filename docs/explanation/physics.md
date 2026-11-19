@@ -387,8 +387,9 @@ same way, so this is not a problem with any particular generated file and
 renaming extensions does not help.
 
 PseudoForge keeps the `.cpi` under `pseudos/native/` and records why there is no
-UPF. The file remains usable: ABINIT reads `.cpi` directly, and fhi98PP's own
-`pslp.x` performs genuine ghost-state and transferability analysis on it.
+UPF. fhi98PP's own `pslp.x` performs ghost-state and scattering diagnostics
+using the native output. [ABINIT format 6](https://docs.abinit.org/developers/psp6_info/)
+requires a metadata header before the CPI radial records.
 
 For norm-conserving pseudopotentials destined for Quantum ESPRESSO, use
 ONCVPSP (`--engine oncvpsp`) or PSlibrary's NC set (`--engine ld1 -t nc`).

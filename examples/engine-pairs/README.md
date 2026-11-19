@@ -56,6 +56,20 @@ The smoke mode runs only the first level. Both modes report the two training
 volumes and leave selection to a later standalone validation. The CP2K grid
 cutoff and QE wavefunction cutoff describe different numerical settings.
 
+## Check fhi98PP CPI records with ABINIT
+
+```sh
+python3 examples/engine-pairs/evaluate_abinit.py "$work/native/report.json" \
+  --abinit /absolute/path/to/abinit -o "$work/abinit"
+```
+
+The replay writes the [ABINIT format-6 header](https://docs.abinit.org/developers/psp6_info/)
+for the scalar Si/PW panel, with the highest constructed channel local. It
+appends the CPI radial records byte for byte and requires the tested layout
+without nonlinear core charge. It compares the energy difference for two Si
+diamond volumes at three cutoff and k-point settings. The report retains both
+CPI and PSP6 checksums. There is no independent PW92 reference in this replay.
+
 ## Check ADPACK VPS files with OpenMX
 
 ```sh

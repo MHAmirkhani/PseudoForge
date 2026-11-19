@@ -46,8 +46,12 @@ PseudoForge therefore keeps the `.cpi` under `pseudos/native/` and says plainly
 why there is no UPF.
 
 !!! note "The file is still useful"
-    ABINIT reads `.cpi` directly, and fhi98PP's own `pslp.x` does genuine
-    ghost-state and transferability analysis on it.
+    fhi98PP's own `pslp.x` uses the CPI radial data and the saved
+    all-electron reference. [ABINIT format 6](https://docs.abinit.org/developers/psp6_info/)
+    requires a metadata header before the CPI radial records. Use the
+    documented atomic, XC, local-channel and core-charge information.
+    The example `examples/engine-pairs/evaluate_abinit.py` writes this
+    header for the scalar Si/PW92 trial panel without a core-charge tail.
 
     If you need norm-conserving pseudopotentials *for Quantum ESPRESSO*, use
     [ONCVPSP](oncvpsp.md) or PSlibrary's NC set (`--engine ld1 -t nc`).

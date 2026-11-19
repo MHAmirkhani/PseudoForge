@@ -87,15 +87,15 @@ not work.
 
 **`fhi` to `psp8`** (no-tool)
 
-> No tool performs this conversion -- see psp8 -> upf for what was checked. ABINIT appears to read the fhi layout directly (its binary carries an m_psp6 module, and pspcod 6 is the fhi98PP format -- Unverified: check ABINIT's psp6 reader in the source). For psp8 specifically, generate it: --engine oncvpsp --format psp8.
+> No tool performs this conversion. ABINIT format 6 uses CPI radial records preceded by its own metadata header. For psp8 specifically, generate it with `--engine oncvpsp --format psp8`.
 
 **`cpi` to `upf`** (no-tool)
 
-> No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT reads the FHI layout directly; for a UPF, generate one with an engine that writes UPF.
+> No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT format 6 requires a metadata header before the CPI data. For a UPF, use an engine that writes UPF.
 
 **`fhi` to `upf`** (no-tool)
 
-> No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT reads the FHI layout directly; for a UPF, generate one with an engine that writes UPF.
+> No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT format 6 requires a metadata header before the CPI data. For a UPF, use an engine that writes UPF.
 
 **`cpmd` to `upf`** (no-tool)
 

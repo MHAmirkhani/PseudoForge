@@ -108,7 +108,7 @@ pf_convert_load() {
         CVT_KIND[$k]=refused
         CVT_REFUSAL[$k]=no-tool
     done
-    CVT_NOTE[cpi:upf]="No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT reads the FHI layout directly; for a UPF, generate one with an engine that writes UPF."
+    CVT_NOTE[cpi:upf]="No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpi and .fhi, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no FHI branch: the file falls through to the old PWSCF reader and fails. QE 7.6 ships no fhi2upf.x. ABINIT format 6 requires a metadata header before the CPI data. For a UPF, use an engine that writes UPF."
     CVT_NOTE[fhi:upf]="${CVT_NOTE[cpi:upf]}"
     CVT_NOTE[cpmd:upf]="No tool performs this in Quantum ESPRESSO 7.x. upfconv.x's help lists .cpmd, but its reader dispatch (read_ps_new in upflib/read_ps.f90) has no CPMD branch, and QE 7.6 ships no cpmd2upf.x. CPMD reads the file directly; for a UPF, generate one -- OPIUM writes both from one run (--engine opium --format upf,cpmd)."
 
@@ -161,7 +161,7 @@ pf_convert_load() {
     CVT_TOOL[fhi:psp8]=none
     CVT_KIND[fhi:psp8]=refused
     CVT_REFUSAL[fhi:psp8]=no-tool
-    CVT_NOTE[fhi:psp8]="No tool performs this conversion -- see psp8 -> upf for what was checked. ABINIT appears to read the fhi layout directly (its binary carries an m_psp6 module, and pspcod 6 is the fhi98PP format -- Unverified: check ABINIT's psp6 reader in the source). For psp8 specifically, generate it: --engine oncvpsp --format psp8."
+    CVT_NOTE[fhi:psp8]="No tool performs this conversion. ABINIT format 6 uses CPI radial records preceded by its own metadata header. For psp8 specifically, generate it with --engine oncvpsp --format psp8."
 
     for k in pawxml:upf vps:upf gth:upf psp8:upf upf:psp8 fhi:psp8 cpi:upf fhi:upf cpmd:upf; do CVT_ORDER+=("$k"); done
 }
