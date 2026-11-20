@@ -53,8 +53,8 @@ fi
 
 # 4. that symlink executes: $HOME/.local/bin/pseudoforge version
 ver_out=$("$HOME/.local/bin/pseudoforge" version 2>&1)
-if printf '%s\n' "$ver_out" | grep -q "PseudoForge 1.3"; then
-    ok_ "symlink executes: pseudoforge version prints PseudoForge 1.3"
+if printf '%s\n' "$ver_out" | grep -q "PseudoForge 1.4"; then
+    ok_ "symlink executes: pseudoforge version prints PseudoForge 1.4"
 else
     bad_ "symlink failed to print version" "$ver_out"
 fi

@@ -58,7 +58,7 @@ section() { printf '\n%s== %s%s\n' "$DIM" "$1" "$RESET"; }
 
 # ---------------------------------------------------------------------------
 section "basics"
-assert_match "version"            "PseudoForge 1.3"      "$PSM" version
+assert_match "version"            "PseudoForge 1.4"      "$PSM" version
 assert_match "version credits the author" "Amirkhani"    "$PSM" version
 assert_match "help"               "GENERATION OPTIONS"   "$PSM" help
 assert_ok    "creates config"     test -f "$PF_RC"
